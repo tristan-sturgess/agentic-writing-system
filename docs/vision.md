@@ -1,47 +1,54 @@
 # Vision
 
-A creative writing system for fictional stories. The user describes the story they want. Agents do most of the work of turning that description into a Story Bible and, eventually, into polished prose. The user can inspect every part of that bible, edit it directly, and steer the agents with further prompts.
+The Creative Writing System is a workspace for writing fiction. A writer describes the story they want. Agents do most of the work of turning that description into a Story Bible and, later, into prose. The writer can inspect every part of that bible, change it by hand, and steer the agents with another prompt.
 
-The product name in these docs is the Creative Writing System. Version 2 was framed as a writing assistant. Version 3 is a system: the Story Bible is the shared object, and both the user and the agents work on it.
+The Story Bible is the shared object. It holds the fictional world and the narrative: the people and other entities, what is true about them, how they relate, the events, the arcs that give those events a shape, and, once prose exists, the narrative units that present them. [story-bible.md](story-bible.md) is the authority for what those objects are and how a writer's edit differs from an agent's.
 
-## The Story Bible is the center
+This version is the product. It runs on the writer's machine first. Each story has an owner, so a later hosted deployment on Railway can hold many writers' stories without inventing a new meaning for a story. Storage, tenancy, and concurrent writes are specified in the persistence doc.
 
-The Story Bible is the structured representation of the fictional world and the narrative. It holds characters and other entities, their properties, the relationships between them, the events of the story, the arcs that give those events narrative shape, and, later, the prose that presents them.
+## Who it is for
 
-The application exposes that model in two directions:
+It is for a writer of long-form fiction who wants the world, the plot, and eventually the prose in one workspace. The writer asks for changes in chat. The Story Bible remains the record of the story.
 
-- **To the user**, as visualizations and editing tools. The user should be able to see the shape of the story and change it by hand: define a character, revise an arc, correct a relationship, override anything an agent wrote.
-- **To agents**, as tools and workflows. The intended path is that agents populate and revise the model. Manual editing is always available. It is not the primary way the story is supposed to get written.
+Hosting is there so each writer can keep their own stories. A story has one owner.
 
-User authority wins on content. Structural integrity can reject a broken reference. A quality check must not block a user edit. Agents follow tighter rules: concise statements, no silent rewriting of an existing claim to mean something new, and in-world change recorded as a new statement with a temporal link. That split is specified in [Story Bible Data Model Draft 2](v3-concept/story-bible-data-model-draft-2.md) and carried into [story-bible.md](story-bible.md).
+## How a writing session goes
 
-## How a story gets made
+The writer starts with a description of the story they want.
 
-The ideal run starts with a description of the kind of story the user wants. Agents then:
+An agent turns that description into Story Bible records: entities, their properties, the relationships among them, the events, and the arcs. The writer reads that structure, edits it directly, or asks for a revision. That loop repeats until the arcs are worth keeping.
 
-1. Create the relevant entities and their properties and relationships.
-2. Propose story arcs.
-3. Refine those arcs with the user.
-4. Write the prose.
-5. Deliver a polished story.
+Prose comes after the arcs. The same loop applies once a prose workflow exists: the agent drafts, the writer revises by hand or with a prompt, and the bible stays the source the draft has to agree with.
 
-In practice the path is a revision loop. The user describes what they want. An agent creates the first entities. The user fine-tunes them by hand or with another prompt. Arcs get proposed, inspected, and revised. Prose comes after the arcs are good enough to evaluate. The system should make that loop cheap to repeat.
+The end people want is a polished story. The ordinary path is many revisions. A revision should be cheap to ask for and easy to inspect.
 
-## What version 3 is optimizing for
+## What the writer can rely on
 
-Version 2 could update a prompt or a workflow and leave no trustworthy way to tell whether the stories got better. Version 3 keeps measurement next to the work. A change to a prompt, a model, or a workflow should be comparable to the previous run on the same kind of task.
+The writer can see the story's structure and change it. A writer's edit stands, including wording that is unconventional or poorly formed. A check can refuse a broken reference. A quality opinion must not block the edit. Agents work under tighter rules: they add and revise through the model, and they do not quietly change an existing claim so that it means something new. The Story Bible doc specifies that split.
 
-The things that matter most to measure are **story arcs** and **prose**. Characters, other generated entities, and the Story Bible as a whole are also worth evaluating, because later workflows will spend real effort on them.
+The writer chooses the models the agents use. How a choice is stored, and how a standing instruction rides along with that model, belongs to the model-configuration doc.
 
-Version 3 also aims to plan stories more directly than version 2 did. Version 2 determined a lot of plot movement by replaying character interpretations and intimacy signals. That was expensive, and it made the plot a side effect of simulation. The version 3 direction is a lighter event graph, with the planning agent in control of narrative structure, and deeper character or world reasoning used only when a step actually needs it. See [architecture-direction.md](architecture-direction.md).
+The writer and an agent can both change a story. Those writes land in order, and a failed save does not leave the screen and the stored story disagreeing. That is a requirement of the first agent workflow. The persistence doc specifies the mechanism.
 
-## What has to be true before agents start writing
+A change to a prompt, a model, or a workflow should be comparable to the previous run on the same task, including whether the result got better and what it cost in tokens, money, and time. Version 2 could not answer that. This version treats the answer as part of the product. Arcs are the first thing to measure. Characters, other generated entities, and the bible as a whole are measured too. Prose is measured once prose exists. The evaluations doc specifies the run record.
 
-Two constraints come from version 2 and apply before the first agent workflow:
+## What ships in what order
 
-- **Concurrent updates to the Story Bible have to be safe.** Parallel tool calls in version 2 raced, referenced objects that did not exist yet, and could leave memory and disk disagreeing. Version 3 plans the write model first. See [deployment-and-concurrency.md](deployment-and-concurrency.md).
-- **It runs locally first, and it is shaped so it can later run on Railway for more than one user.** The first milestone is a local app. The data model still has an owner and a story boundary, so multi-tenancy is not a later rewrite of every record.
+The build follows the order a writer would notice. [build-sequence.md](build-sequence.md) is the authority for the slices and their dependencies.
 
-## What this version is not trying to do first
+1. The Story Bible, plus enough editing and visualization to inspect and correct it. The first pictures are events in time, and arcs across those events.
+2. A chat agent whose job is to turn a description into arcs and the bible records those arcs need. The writer can edit between prompts.
+3. Evaluations for those arcs, then for characters and other generated entities, and for the bible as a whole.
+4. The prose workflow, and evaluations for prose.
 
-Prose generation waits until arcs can be created, edited, visualized, and evaluated. The physical-space subsystem in the related Story Space & Timeline project waits as well. Full simulation of character psychology is not the core of the model.
+Prose stays out until the earlier slices exist.
+
+The interface is still an open choice, recorded in [open-questions.md](open-questions.md). Being able to see and edit the story matters more than matching any earlier screen.
+
+## What waits
+
+Locations can be entities in the Story Bible. Routes, travel, and a scrubber for moving through a place stay in the separate Story Space & Timeline project until a later decision brings them in.
+
+Plot is planned directly, as events and arcs. An agent may look harder at a character or a place when a step needs that. That deeper look is not the mechanism that decides the plot.
+
+Ways to explore alternate plots, or to interview a character about the world, wait until the arc workflow exists. Whether the writer approves an arc draft before it is saved is an open choice in [open-questions.md](open-questions.md). The agents doc will name it.

@@ -1,70 +1,307 @@
 # Story Bible
 
-The working conceptual model is [Story Bible Data Model — Draft 2](v3-concept/story-bible-data-model-draft-2.md), attached to Linear DEF-90. It describes the information the bible stores. It is not a storage schema and not an agent workflow. Slice 1 turns it into a schema. The open modeling questions in Draft 2 stay open until a slice needs them answered.
+This is the conceptual model slice 1 implements. It says what a story stores, how the records point at each other, and how a writer's edit differs from an agent's. Storage, ownership, and concurrent writes are in the persistence doc. How an agent is allowed to call tools is in the agents doc.
 
-## What the bible stores
+The bible is a partial account of a fictional world and of the narrative told about it. Missing information is unspecified. It is a record the writer and the agents can both read and change. It is not a simulation that has to explain every change with an effect.
 
-Five core objects, plus Properties owned by Entities:
+## The story
 
-| Object | Role |
+Every record below belongs to one story.
+
+The story has its own id, assigned by the store. That id may be opaque. Who owns the story is specified in the persistence doc.
+
+The story also stores the writer's framing of the piece, and the reading order of the top-level Narrative Units:
+
+| Field | Role |
 | --- | --- |
-| Entity | A persistent thing in the world: a character, location, object, organization, or concept. Holds notes and Properties. Can be specific at different scales, such as city, building, and room. |
-| Property | A short free-form statement about one Entity. Stable id. Optional time bounds, observation, cause, and supersession. |
-| Assertion | A short free-form statement about a relationship among two or more Entities, with explicit entity links. Same temporal options as a Property. Assertions connect Entities only. |
-| Event | Something that happens. Can involve entities and other events, carry time or order, and act as the moment a statement starts or stops being valid. |
-| Narrative Unit | How the story is presented: a scene or chapter. Points at the events and entities it depicts, has its own order distinct from fictional chronology, and can hold or point at prose later. |
-| Arc | A narrative thread across events: a plotline, subplot, character arc, or relationship arc. Several arcs can share events. |
+| `title` | The name of the work. |
+| `description` | A short account of the project. |
+| `premise` | What the story is about. |
+| `tone` | The intended feeling. |
+| `themes` | The ideas the story is turning over. |
+| `writing_style` | How the prose should sound, once prose exists. |
+| `unit_ids` | The top-level Narrative Units in reading order. An act has no parent unit, so the story holds that order. |
 
-Histories are views over these records. A statement does not mutate its meaning as story time moves. An in-world change is a new statement, with the old one's validity ended and an optional `supersedes` link. A point-in-time `observed_at` records that something was true then, without claiming when it started or stopped.
+Version 2 kept premise, tone, themes, and writing style as a separate narrative-style object. They are about the work, so they live on the story. They are not Entities, and they have no validity interval. The writer and an agent can both edit them.
 
-Missing information is unspecified. The bible is partial on purpose. It is not a simulation that must explain every state change with an event.
+## Records
 
-## User edits and agent edits
+Five kinds of record live inside the story. Properties are a sixth kind, owned by an Entity. They are not Assertions.
 
-The user can create, reword, and delete statements even when the wording is awkward. The only hard stops are structural: references resolve, required links exist, and any length limits we choose to keep. Quality rules do not block the user.
+Ids inside the story are readable and stable. The rules are in [Identity](#identity). The field lists here are the schema. An implementation may add bookkeeping such as created-at timestamps. It may not add a second store of "current state" that can drift from these records.
 
-An agent-written statement should be narrow, clear, and checked against related statements. When the fictional world changes, the agent adds a new record and adjusts validity. It does not quietly rewrite the old sentence to mean something else. A user rewrite is a correction of the record. It does not require an event.
+### Entity
 
-## What changes relative to version 2
+A persistent thing in the fictional world: a character, a place, an object, an organization, a concept. A city, a building, and a room are separate Entities when the story needs them at those scales. There is one Entity record, not a subtype per kind of thing.
 
-Version 2's Story Bible is specified in [v2/story_bible_model.md](v2/story_bible_model.md). It is event-sourced. Characters have identity plus a baseline of intimacies. Events carry world-state effects and per-character signals. Replay derives character and world state at any timeline position. Chronology comes from typed edges (`follows`, `directly_follows`, `depends_on`, `during`). Scenes are the prose unit, with blueprints that point at enacted events. Narrative style is four flat fields: premise, tone, themes, writing style.
+| Field | Required | Role |
+| --- | --- | --- |
+| `id` | yes | Stable id. |
+| `name` | yes | Display name. Renaming does not change `id`. |
+| `notes` | no | Free text. Notes can stay prose. They do not have to be split into Properties. |
 
-Draft 2 keeps the idea of stable ids, events as things that happen, and a separation between story time and the order the story is told. It changes the center of the model:
+An Entity owns its Properties. Deleting the Entity deletes those Properties.
 
-- **Statements replace replay.** Properties and Assertions are the stored facts. State at a time is a view over statements whose validity covers that time. Version 2's replay engine, intimacy ranks, evidence scores, and signal effects are not the version 3 core.
-- **Relationships are first-class.** Version 2 noted character relationships as future work. Draft 2 makes them Assertions.
-- **Arcs are first-class.** Version 2 deferred arc membership beyond event-order edges. Draft 2 gives arcs their own identity and lets them group events by narrative role. That matches the decision to build and evaluate arcs before prose.
-- **Entities are one type, specialized by what they are.** Version 2 split characters, world facts, and world-state entries into different stored types, and treated locations as world facts. Draft 2 uses Entities at varying specificity, with Properties for one-entity claims.
-- **Interpretations are not required for plot.** Version 2 signals exist so intimacy state can be derived. Version 3 planning should be able to write events and arcs without that chain. Whether a lighter interpretation or belief record survives is an open question in DEF-53, not a requirement of the first schema.
-- **Prose is attached, not central yet.** Narrative Units can reference prose. The prose workflow is slice 5.
+### Property
 
-Version 2's readable slug ids (`char_the_guard` and similar) are a useful implementation habit. Draft 2's examples use the same kind of stable id. The schema can keep human-readable ids that do not change when a display name changes.
+A short free-form statement about one Entity. "Mara is generally distrustful of strangers." "Mara has blue eyes." "The room smells of cedar."
 
-## Modeling questions still open
+The statement is natural language. It does not use a fixed vocabulary or a subject-predicate-object grammar.
 
-From Draft 2, still unresolved:
+| Field | Required | Role |
+| --- | --- | --- |
+| `id` | yes | Stable id. |
+| `entity_id` | yes | The owning Entity. |
+| `statement` | yes | The claim. |
+| `when` | no | When the claim is known to hold. A list of spans. Empty means no time was recorded. |
+| `caused_by` | no | The Event that brought the claim about, if there is one. |
+| `supersedes` | no | The earlier Property this one replaces. Same Entity. |
 
-- How overlapping or incomplete time bounds work, and what "still true" means when `valid_until` is absent.
-- How contradictions are detected when time or perspective is incomplete.
-- How to mark objective facts, character beliefs, and tentative plans without taking edit control away from the user.
-- Whether Assertions need roles on their entity references.
-- Whether Properties ever relate to other Properties, or whether effects ever propagate automatically. The initial model does neither.
+### Assertion
 
-From the surrounding architecture issues, also unresolved, and not required to store the first objects:
+A short free-form statement about a relationship. The relationship can be among Entities, Events, and Arcs. "Mara distrusts John." "The bedroom connects to the hallway." "The letter follows the arrival, and it is what changes Mara's mind." "Mara's leaving is her journey from distrust toward trust."
 
-- Timestamps versus chronology edges versus both (DEF-53). Version 2 used edges only, with creation order as a tie-break, and that was enough to drive replay and a timeline graph. Draft 2 allows a timestamp or an event as a validity boundary.
-- Which event-to-event relation types are worth keeping. Version 2's four kinds are a candidate, not a commitment.
-- How location containment, travel, and character whereabouts relate to Entities and Events. That work lives in the Story Space project and is outside slice 1.
+The sentence carries the meaning. It does not need a predicate slug, and it does not have to start with one participant and end with another. The id lists are what make the participants explicit. An Assertion does not connect Properties or other Assertions. Slice 1 does not propagate a change from one statement to another, and it does not read an Assertion as a sort key for story time. Story time comes from the spans on an Event.
 
-## Slice 1 schema bar
+| Field | Required | Role |
+| --- | --- | --- |
+| `id` | yes | Stable id. |
+| `entity_ids` | no | Entities in the relationship. |
+| `event_ids` | no | Events in the relationship. |
+| `arc_ids` | no | Arcs in the relationship. |
+| `statement` | yes | The claim. One independently meaningful relationship. |
+| `when` | no | When the claim is known to hold. The same span list as on a Property. |
+| `caused_by` | no | Same as on a Property. |
+| `supersedes` | no | The earlier Assertion this one replaces. |
 
-The first schema needs:
+`entity_ids`, `event_ids`, and `arc_ids` together name at least two records. A causal claim between two Events is an Assertion with those Events in `event_ids`. Version 2 stored that kind of claim as a typed edge (`follows`, `directly_follows`, `depends_on`, `during`). There is no edge record here. An Assertion that names an Arc is how the story says what that Arc is about.
 
-- The six record kinds above, with stable ids and the links Draft 2 describes.
-- Notes on entities, separate from Properties.
-- A story container those records belong to, and an owner for that story.
-- Integrity checks for dangling references.
-- A way to read "what is in force" at an event or time as a view, once the temporal fields exist. The view can be simple while the overlap rules are still open.
-- Room for a narrative unit to point at prose text later, without a prose editor.
+A character's belief, if the story needs one stored, is a Property of that character, or an Assertion when the belief is about a relationship. It uses the same fields as any other statement. There is no rank, score, or derived strength.
 
-It does not need intimacy evidence, signal review, derived ranks, or a scene-generation blueprint.
+### Event
+
+Something that happens in the fictional world, at whatever scale the story needs. An Event can involve Entities. It can be the moment a Property or Assertion starts or stops being valid. It does not have to record every off-page occurrence, and it does not have to explain every change of state. A relationship between Events is an Assertion.
+
+| Field | Required | Role |
+| --- | --- | --- |
+| `id` | yes | Stable id. |
+| `title` | yes | Short name. |
+| `description` | no | What happens. |
+| `entity_ids` | no | Entities that take part, including places. |
+| `when` | no | When the Event occurs. The same span list as on a Property. Empty means its time is unspecified. |
+
+### Narrative Unit
+
+A unit of presentation, such as an act, a chapter, or a scene. Reading order is the order of these units. That order is independent of when the Events happen in the world.
+
+The structure is a tree, read from the top. The story's `unit_ids` lists the acts in order. An act's `child_ids` lists its chapters in order. A chapter's `child_ids` lists its scenes in order. A writer can start with an act and break it downward. A unit with no children is a leaf, such as a scene that gets prose.
+
+| Field | Required | Role |
+| --- | --- | --- |
+| `id` | yes | Stable id. |
+| `title` | yes | Short name. |
+| `summary` | no | What this unit presents. |
+| `notes` | no | Planning notes. |
+| `child_ids` | no | The Narrative Units inside this one, in reading order. |
+| `subject_ids` | no | What this unit depicts. A set of Entity, Event, and Arc ids. |
+| `prose` | no | The text, when the prose slice exists. Empty until then. |
+
+`subject_ids` is unordered. Duplicates are refused. A scene that presents what happens usually names Events, Arcs, or both. A unit that only describes a character names that Entity and may name nothing else. An act whose chapters do the depicting may leave the set empty. The same Event, Arc, or Entity may appear in more than one unit. Order inside the set is not story time and not reading order.
+
+`child_ids` is the reading order of the units it contains. A Narrative Unit appears in exactly one list: the story's `unit_ids`, or one unit's `child_ids`. A list cannot contain the same id twice. A unit cannot contain itself, directly or further down the tree. A save that would break either rule is refused.
+
+Version 2 stored a scene blueprint (purpose, point of view, stakes, stance, outline) beside the prose, and stored each scene's position as a number. Those generation artifacts are part of the prose workflow. They are not fields on the Narrative Unit in this model. Slice 1 does not enforce "one unit per event."
+
+### Arc
+
+A narrative thread defined by the Events that belong to it. A plot, a subplot, a character's journey, and a relationship can all be Arcs. Several Arcs may include the same Event.
+
+| Field | Required | Role |
+| --- | --- | --- |
+| `id` | yes | Stable id. |
+| `title` | yes | Short name. |
+| `description` | no | What the thread does and what it is about, in prose. |
+| `event_ids` | no | The Events that make up the thread. List order is the thread's own order, which may differ from story time. |
+
+The description can say who the thread follows and what changes. That prose is not a list of subjects. A character, a place, a relationship, or another Arc is tied to this one by an Assertion that names it. A character Arc will involve many other people through its Events. Those participants stay on the Events. The Assertion names only the link the story is actually claiming, such as "this Arc is Mara's journey" or "this Arc is Mara and John's relationship." An overarching plot may have no such Assertion.
+
+## How the records connect
+
+- An Entity owns its Properties.
+- An Assertion names the Entities, Events, and Arcs in the relationship.
+- An Event names the Entities involved.
+- A span may name an Event as a time point, and a Property or Assertion may name an Event as `caused_by`. That reference keeps working if the Event's spans change.
+- A Narrative Unit lists the units inside it, in reading order, and names the Entities, Events, and Arcs it depicts. The story lists the top-level units in reading order.
+- An Arc names the Events that define it. Who or what it is about is an Assertion.
+
+## When
+
+A Property, an Assertion, and an Event each store story time in one field, `when`. The value is a list of spans. The list can be empty. Later kinds of span can be added to this list without adding a field to the records. `caused_by` and `supersedes` stay on the statement. They say why a claim changed, not when it holds.
+
+A **time point** is one of:
+
+- a story-time timestamp, an ordered value whose storage format is an implementation choice, as long as two timestamps can be compared
+- an Event id
+
+A **span** is one of these kinds:
+
+| Kind | Fields | What it records |
+| --- | --- | --- |
+| `at` | `at`, a time point | Known at that point. It says nothing about any other point, including the stretch between two `at` spans. |
+| `range` | `start` and `end`, each an optional time point | Known across that period. Either bound may be absent. |
+
+On a Property or an Assertion, the list says when the claim is known to hold. Each `range` is its own period of validity, and the gaps between ranges stay empty. Each `at` is an observation at that point. Several observations do not make the claim valid between them, and they do not make it an ongoing fact. An empty list means no time was recorded. A standing claim, such as a description that the story treats as given, uses an empty list.
+
+On an Event, the same list says when the occurrence happens. One `at` is an instantaneous Event. Several `at` spans mean it was occurring at those points, not that it continued between them. A `range` is a period with a start, an end, or both. A missing bound means that bound is unknown. It does not mean the Event is still happening, and it does not mean the Event covers the whole timeline. An empty list means the Event's time is unspecified. A momentary Event ordinarily has one `at`. The field is still a list, so a repeated or stretched occurrence uses the same field.
+
+A span on an Event cannot use that same Event as a time point. Following Event ids through spans cannot come back to an Event already on the chain. A save that would make such a cycle is refused.
+
+### What is in force
+
+This reading is for Properties and Assertions. Slice 1 uses it. A stricter overlap rule can replace the view later. It must not add a new record type or a new field beside `when`. That replacement is still open. See [open-questions.md](open-questions.md).
+
+- A statement whose `when` is empty is included at every query point.
+- A statement is in force at a query point when any `range` covers that point: the point is at or after `start` (or `start` is absent) and before `end` (or `end` is absent). An absent `end` on a statement means the claim still applies after it starts. Ranges do not fill the gaps between them.
+- An `at` span records an observation at that point. It does not put the statement in force at that point or at any other point.
+- Spans on the same statement are stored as written. Slice 1 does not merge them, and an `at` that falls outside a `range` is allowed.
+- A time point that is a timestamp compares as that value. A time point that is an Event resolves to a timestamp only along a chain of Events that each have a single span yielding one timestamp: an `at` whose point is a timestamp, or the bound in use when that bound is a timestamp. Several spans, a cycle, or a bound that does not resolve leave the comparison unresolved. The view still includes the statement and marks the comparison unresolved.
+- An Assertion that names Events is a claim about them. It is not a substitute for their spans.
+- Two statements may contradict. Slice 1 saves both and surfaces a warning. The warning does not block the writer or the agent.
+
+A Property or Assertion means what its `statement` says. The sentence does not change meaning as story time moves. An in-world change is a new record. The older record keeps its sentence. Its spans can be adjusted, and the new record can `supersede` it. `caused_by` is optional. No Event is required for every new statement.
+
+Histories are views over these records. They are not a second object.
+
+```yaml
+events:
+  - id: event_arrival
+    title: Arrival
+    when:
+      - kind: at
+        at: { timestamp: t1 }
+  - id: event_the_market
+    title: The market
+    when:
+      - kind: at
+        at: { timestamp: t2 }
+  - id: event_the_letter
+    title: The letter
+    when:
+      - kind: range
+        start: { event_id: event_arrival }
+        end: { timestamp: t3 }
+
+entities:
+  - id: entity_mara
+    name: Mara
+    properties:
+      - id: prop_mara_distrustful
+        statement: Mara is generally distrustful of strangers.
+        when:
+          - kind: range
+            start: { event_id: event_arrival }
+            end: { event_id: event_the_letter }
+      - id: prop_mara_cautious
+        statement: Mara is cautiously willing to trust strangers.
+        when:
+          - kind: range
+            start: { event_id: event_the_letter }
+        caused_by: event_the_letter
+        supersedes: prop_mara_distrustful
+
+arcs:
+  - id: arc_mara_leaves
+    title: Mara leaves
+    description: Mara arrives unwilling to trust strangers. The letter is what changes that.
+    event_ids: [event_arrival, event_the_market, event_the_letter]
+
+assertions:
+  - id: assertion_mara_john
+    entity_ids: [entity_mara, entity_john]
+    statement: Mara distrusts John.
+    when:
+      - kind: at
+        at: { event_id: event_the_market }
+      - kind: at
+        at: { timestamp: t4 }
+  - id: assertion_letter_follows_arrival
+    event_ids: [event_arrival, event_the_letter]
+    statement: The letter follows the arrival, and it is what changes Mara's mind.
+  - id: assertion_mara_leaves_is_maras
+    entity_ids: [entity_mara]
+    arc_ids: [arc_mara_leaves]
+    statement: Mara's leaving is her journey from distrust toward trust.
+```
+
+The ids in the example follow the identity rules below. `t1` and the other timestamp labels stand for ordered story-time values. The example is the shape of the data, not a storage format.
+
+## The writer and the agent
+
+Both write the same records.
+
+The writer can create, view, reword, and delete, including wording that is unconventional or poorly formed. A save may refuse a broken reference, an empty required field, or a length cap the implementation has set. It may not refuse a save because the sentence is redundant, broad, or badly written.
+
+An agent-written Property or Assertion should be concise, narrow, clear, and checked against the statements already stored. When the world changes, the agent leaves the old sentence in place, adjusts its spans, and creates a new record. The agent does not rewrite the old sentence so that it means something else. A writer's rewrite is a correction of the record. It does not need an Event or a `supersedes` link.
+
+## Identity
+
+Record ids inside a story are readable slugs, minted once and then frozen. Renaming a record does not change its id. Anything that pointed at it keeps pointing at it.
+
+Mint an id only when the primary text is non-empty. The primary text is the Entity `name`, the Property or Assertion `statement`, or the Event, Narrative Unit, or Arc `title`. A blank create does not mint a placeholder such as `char` or `event`. The screen collects the name or title before the record exists.
+
+The id is a prefix plus a slug of that text:
+
+| Record | Prefix |
+| --- | --- |
+| Entity | `entity_` |
+| Property | `prop_` |
+| Assertion | `assertion_` |
+| Event | `event_` |
+| Narrative Unit | `unit_` |
+| Arc | `arc_` |
+
+The slug is lowercase words from the primary text, separated by underscores. An Event titled "The Letter" mints `event_the_letter`. A collision appends `_2`, `_3`, and so on.
+
+Version 2 froze slugs the same way, then minted `char` and `char_2` when the screen created a character before anyone typed a name. Those generic ids are the case this rule avoids.
+
+## References
+
+Every id field names a record in the same story.
+
+- A save that introduces an unknown id is refused. The refusal includes the ids that do exist for that kind of record, so an agent can correct itself.
+- An Assertion names at least two records, and each of them is an Entity, an Event, or an Arc.
+- A Narrative Unit appears in exactly one of the story's `unit_ids` or some unit's `child_ids`. Neither list contains a duplicate. No unit contains itself through `child_ids`.
+- A record cannot `supersede` itself.
+- Deleting an Entity deletes the Properties it owns.
+- Deleting any record that something else still names is refused. The refusal lists the referring records. The writer or the agent edits or deletes those first. List fields count: an Assertion's `entity_ids`, `event_ids`, and `arc_ids`, an Arc's `event_ids`, an Event's `entity_ids`, a Narrative Unit's `child_ids` and `subject_ids`, the story's `unit_ids`, and any Event id used as a time point.
+- Version 2 warned about dangling effect targets and saved anyway. Replay then skipped them. This model has no effect list to skip. A dangling id is refused for the writer and for the agent.
+
+## What the early slices show
+
+The records have to be editable as structured fields: Entities and their notes and Properties, Assertions, Events, Narrative Units, Arcs, and the story framing fields. Derived "in force" text is a view. The view is read-only.
+
+Two pictures are part of the model, whatever widget draws them:
+
+- Events arranged in story time from the spans in `when`. A `range` is a stretch between the bounds that resolve. Each `at` is its own point, with nothing drawn between separate points. An Event whose spans do not resolve to a timestamp is shown without a derived order. Selecting an Event opens it for editing. A relationship between Events is an Assertion, edited with the other Assertions.
+- Arcs laid over those Events, so a thread shows the Events that belong to it.
+
+Version 2 drew a graph of typed edges between Events and offered connect actions for those edges. This model arranges Events from their spans and shows Arcs over them. The widget stays open. See [open-questions.md](open-questions.md).
+
+## Locations
+
+A place is an Entity. An Event can name it. Routes, travel times, character whereabouts, and a scrubber for moving through a place belong to the Story Space & Timeline project. They are not records in this model. Which fields that project would own, if it is brought in later, stays open.
+
+## Where version 2's mechanisms went
+
+Version 2 stored characters, world facts, and world-state entries as different types, and derived the state at a timeline position by replaying effects and intimacy signals over baselines. Chronology was four edge types between Events. Scenes were the prose unit and pointed at the Events they enacted.
+
+This model keeps stable ids, Events as things that happen, and a split between world time and the order the story is told. State at a time is the in-force view over Properties and Assertions. Relationships, including a cause or an order between Events, are Assertions. Story time is the span list on an Event. Threads are Arcs. Presentation is a Narrative Unit. There is no replay, no signal record, no derived rank, and no edge record between Events.
+
+## Open modeling questions
+
+These stay open on purpose. [open-questions.md](open-questions.md) is the list.
+
+- Whether a stricter overlap rule replaces the in-force view above.
+- Whether statements gain a marker for objective fact, belief, or plan. Slice 1 has no such marker. Adding one later must not block a writer's edit.
+- Whether an Assertion's references need roles.
+- Whether Properties should ever link to other Properties, or whether a change should propagate on its own. Slice 1 does neither.
