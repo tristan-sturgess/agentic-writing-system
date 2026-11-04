@@ -83,11 +83,13 @@ The agent builder takes the node's base prompt and tools, and passes a fixed mid
 
 - An empty prefix passes the request through.
 - Otherwise it calls the inner handler with `request.override(system_message=...)`, where the new system message is a text block holding the prefix followed by the existing content blocks. Blocks, not string concatenation, so a base prompt that carries cache-control metadata keeps it.
+- `system_message` is `None` when the agent was built without a base prompt. The new system message is then the prefix block alone. Every agent here has a base prompt, so this is the case that keeps the middleware honest rather than one that is expected.
+
+The middleware is a class with both `wrap_model_call` and `awrap_model_call`. LangChain does not fall back from one hook to the other, and the chat UI streams through the async path. The logging middleware has the same requirement.
 
 That is the whole merge. There is no idempotency check:
 
 - `override` returns a new request and leaves the original alone. A retry middleware listed after the prefix middleware calls the inner handler again with the already-prefixed request. A retry that wraps the agent runs the prefix middleware again on the original request. Neither path prepends twice.
-- `system_message` always exists on the request, so there is no "insert one if missing" case.
 - Streaming and non-streaming calls build the same `ModelRequest`. A fallback from one to the other happens below the middleware and does not re-run it.
 
 The node's base system prompt is a different string. The prompt builder owns that string and does not read the prefix. The middleware applies the prefix.
@@ -98,7 +100,7 @@ The logging middleware is last in the list, so it is innermost. The request it s
 
 ## Store
 
-Each user has one JSON document of the shape below. The local single-user build stores it as `model_configs.json` in the data directory. The persistence doc names that directory and how a hosted user's document is addressed. Writes replace the file atomically: write a temporary file, then replace the target. Readers and writers go through the store. UI code does not open the file itself.
+Each user has one config document of the shape below. Readers and writers go through a config store with the operations listed after it. Nothing else touches what is behind the store. The persistence doc chooses what that is, locally and hosted, alongside the story store and the call-log store, and how a user's document is addressed. Version 2 kept this document as one JSON file replaced atomically on each save. That is one acceptable local implementation. It is not a requirement of this doc.
 
 ```json
 {
@@ -119,7 +121,7 @@ Each user has one JSON document of the shape below. The local single-user build 
 }
 ```
 
-Load and save always put the four roles back if they are missing. A role that is present keeps the user's edits. Custom configs follow, ordered by name. Default selections fill any node the file omits; a selection in the file wins.
+Load and save always put the four roles back if they are missing. A role that is present keeps the user's edits. Custom configs follow, ordered by name. Default selections fill any node the document omits; a selection in the document wins.
 
 The store supports list, get, save, delete, select, resolve, export, and import.
 
@@ -129,9 +131,9 @@ The store supports list, get, save, delete, select, resolve, export, and import.
 
 Export and import move this document between installations. They do not touch a story.
 
-- The file is the JSON document above. There is no ZIP wrapper.
+- The exchange format is the JSON document above, as one file. There is no ZIP wrapper. This is the export format, not a statement about how the store keeps the document.
 - Export writes the stored document after the four roles have been filled in.
-- Import replaces the current document. Missing roles are filled from the seeds. Roles present in the file keep the imported values. The parse validates the JSON and fails with a clear error on bad encoding, invalid JSON, a non-object payload, or a schema violation.
+- Import replaces the current document. Missing roles are filled from the seeds. Roles present in the import keep the imported values. The parse validates the JSON and fails with a clear error on bad encoding, invalid JSON, a non-object payload, or a schema violation.
 - After import, a selection whose node is not registered, or whose config does not exist, is dropped.
 
 ## Choosing a model
@@ -152,4 +154,4 @@ The prompt-assembly doc owns how the base prompt, Story Bible context, and conve
 
 The logging doc owns the logging middleware and the record. This doc's promise to that one: every model call goes through an agent whose middleware list has the prefix middleware before the logging middleware, so the request the logger sees is the request the provider gets.
 
-The persistence doc owns the local data directory, how a user's config document is addressed, and how that user's API key is stored. Prose nodes are added to the registry when that slice exists.
+The persistence doc owns what sits behind the config store, locally and hosted, how a user's config document is addressed, and how that user's API key is stored. Prose nodes are added to the registry when that slice exists.
