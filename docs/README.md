@@ -64,7 +64,7 @@ Accepted in Step 1. Paths are relative to `docs/`.
 
 LLM debug logging is its own file because the tap was easy to get wrong, and the evaluations doc only cites the records. Other version 2 material folds into the document named in the salvage list. The step that writes that document is responsible for it.
 
-[vision.md](vision.md) is the concept doc from Step 2. [story-bible.md](story-bible.md) is the Story Bible model from Step 3. The remaining drafts this list still replaces or folds in are [architecture-direction.md](architecture-direction.md), [evaluations.md](evaluations.md) (rewritten as [architecture/evaluations.md](architecture/evaluations.md); the draft stays so review can diff it), [deployment-and-concurrency.md](deployment-and-concurrency.md), and [build-sequence.md](build-sequence.md). [open-questions.md](open-questions.md) stays and is updated as decisions are deferred or settled. [v2-import-inventory.md](v2-import-inventory.md) is an input to the writing steps. It does not survive as its own finished doc.
+[vision.md](vision.md) is the concept doc from Step 2. [story-bible.md](story-bible.md) is the Story Bible model from Step 3. The remaining drafts this list still replaces or folds in are [architecture-direction.md](architecture-direction.md), [evaluations.md](evaluations.md) (rewritten as [architecture/evaluations.md](architecture/evaluations.md); the draft stays so review can diff it), and [deployment-and-concurrency.md](deployment-and-concurrency.md). [build-sequence.md](build-sequence.md) was rewritten in place by Step 10. [open-questions.md](open-questions.md) stays and is updated as decisions are deferred or settled. [v2-import-inventory.md](v2-import-inventory.md) is an input to the writing steps. It does not survive as its own finished doc.
 
 ### Version 2 salvage inside the existing documents
 
@@ -115,7 +115,7 @@ Step 12 does not add these back.
 | 7 | Persistence, tenancy, and concurrency | Done |
 | 8 | Agents and arc planning | Done |
 | 9 | Evaluations and observability | Done |
-| 10 | Build sequence | Not started |
+| 10 | Build sequence | Done |
 | 11 | Architecture overview | Not started |
 | 12 | Final coverage review | Not started |
 
@@ -309,6 +309,8 @@ The prose slice's entry in this doc carries the deferred salvage, in enough deta
 
 Done when a builder can start slice 1 from the Story Bible and persistence docs and can see what is deliberately waiting.
 
+Accepted. Five slices: the Story Bible on the story store, then the editing views where the UI is chosen, then the arc chat together with model configuration, prompt assembly, logging, and the remaining stores, then evaluations that cite those call records, then prose. The prose entry records tagged-stream creation, an exact patch, per-unit rollback, and the workflow pattern. Stance and intimacy prompts are left behind. Version 2's finished phases are not renumbered into these slices.
+
 ### 11. Architecture overview
 
 Add `architecture.md` as a short map.
@@ -344,19 +346,19 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [v2/AGENTS.md](v2/AGENTS.md) | Drop as a repo guide until code exists. Mine the tool-validation and "docs are the authority" habits if a later contributor guide is added. | No |
 | [v2/architecture.md](v2/architecture.md) | [architecture/persistence.md](architecture/persistence.md) took the world-state and file-lock lessons. [architecture/agents.md](architecture/agents.md) took the tool rule. The architecture overview still owes the module boundaries. The NiceGUI map and `world.json` are dropped. | Partial |
 | [v2/story_bible_model.md](v2/story_bible_model.md) | [story-bible.md](story-bible.md). Readable ids and the time/presentation split stay. Replay, signals, and ranks are dropped. | Yes |
-| [v2/forms_and_data_models.md](v2/forms_and_data_models.md) | [story-bible.md](story-bible.md), for which fields were editable. Form layout is dropped with NiceGUI. Scene blueprints wait with prose. | Yes |
+| [v2/forms_and_data_models.md](v2/forms_and_data_models.md) | [story-bible.md](story-bible.md), for which fields were editable. Form layout is dropped with NiceGUI. Scene blueprint fields are not Narrative Unit fields; [build-sequence.md](build-sequence.md) leaves any generated outline to the prose slice. | Yes |
 | [v2/model_configuration.md](v2/model_configuration.md) | [architecture/model-configuration.md](architecture/model-configuration.md). The scene and intimacy node lists are dropped. | Yes |
 | [v2/model_selection_analysis.md](v2/model_selection_analysis.md) | [architecture/model-configuration.md](architecture/model-configuration.md), for the role rationale and the seed models. The July 2026 price table is dropped. | Yes |
 | [v2/architecture_prompt_assembly.md](v2/architecture_prompt_assembly.md) | [architecture/prompt-assembly.md](architecture/prompt-assembly.md), for the message-channel rule and the stream filter. The prefix mechanism is in [architecture/model-configuration.md](architecture/model-configuration.md). The version 2 chat primer and scene-workflow prompt sequence are dropped. | Yes |
 | [v2/architecture_llm_debug_logging.md](v2/architecture_llm_debug_logging.md) | [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md). The callback-on-the-model tap is replaced by middleware on the shared agent builder. Evaluations cite the records and do not redefine the tap. | Yes |
-| [v2/architecture_agent_workflows.md](v2/architecture_agent_workflows.md) | [architecture/agents.md](architecture/agents.md), for the chat loop and the draft commit. The blocking plot sub-agent and inline intimacy are dropped. Scene-writing waits in the prose salvage. | Yes |
+| [v2/architecture_agent_workflows.md](v2/architecture_agent_workflows.md) | [architecture/agents.md](architecture/agents.md), for the chat loop and the draft commit. The blocking plot sub-agent and inline intimacy are dropped. The scene-workflow pattern is in [build-sequence.md](build-sequence.md), as notes for the prose slice. The stance prompts and the node list are not ported. | Yes |
 | [v2/architecture_async_jobs.md](v2/architecture_async_jobs.md) | [architecture/persistence.md](architecture/persistence.md), for claims versus transactions. The in-memory job manager and the scene queue are not the design. | Yes |
-| [v2/architecture_document_editing.md](v2/architecture_document_editing.md) | No document now. The build-sequence step records the stream-and-patch salvage for the prose slice. | No |
-| [v2/zip_import_export.md](v2/zip_import_export.md) | [architecture/persistence.md](architecture/persistence.md). Slice 1 exports one JSON story document. The zip returns with prose blobs. Secrets, configs, logs, and chat stay out. | Yes |
+| [v2/architecture_document_editing.md](v2/architecture_document_editing.md) | [build-sequence.md](build-sequence.md), as the prose slice's note. Tagged-stream creation and a targeted patch stay. Exact match plus an error replaces unbounded fuzzy search. The old stream-mode recipe is dropped. | Yes |
+| [v2/zip_import_export.md](v2/zip_import_export.md) | [architecture/persistence.md](architecture/persistence.md). Slice 1 exports one JSON story document. The zip returns with prose blobs. Secrets, configs, logs, and chat stay out. The readable HTML package waits in [build-sequence.md](build-sequence.md) until there is prose. | Yes |
 | [v2/intimacy-state-change-workflow.md](v2/intimacy-state-change-workflow.md) | Dropped in [story-bible.md](story-bible.md). A belief is a Property or an Assertion. | Yes |
-| [v2/known_issues.md](v2/known_issues.md) | No document. [story-bible.md](story-bible.md) took generic blank ids and dangling references. [architecture/persistence.md](architecture/persistence.md) took the non-transactional form save, the UI-thread retry, and chat left out of export. [architecture/agents.md](architecture/agents.md) took the blocked plot turn, the unwired cancel, and the markup leak. The prose salvage still owes the fuzzy match and the canvas rollback. The rest is version 2 debt. | Partial |
-| [v2/future_work.md](v2/future_work.md) | No document. Relationship tracking and arcs are in [story-bible.md](story-bible.md). Review before a draft commit, and tool calls in the chat, stay open in [architecture/agents.md](architecture/agents.md). Scene-workflow ideas wait in the prose salvage. | Partial |
-| [v2/implementation_plan.md](v2/implementation_plan.md) | Drop. It records finished version 2 phases. | No |
+| [v2/known_issues.md](v2/known_issues.md) | [story-bible.md](story-bible.md) took generic blank ids and dangling references. [architecture/persistence.md](architecture/persistence.md) took the non-transactional form save, the UI-thread retry, and chat left out of export. [architecture/agents.md](architecture/agents.md) took the blocked plot turn, the unwired cancel, and the markup leak. [build-sequence.md](build-sequence.md) took the fuzzy-search stall and the single-snapshot canvas rollback. The rest is version 2 debt. | Yes |
+| [v2/future_work.md](v2/future_work.md) | Relationship tracking and arcs are in [story-bible.md](story-bible.md). Review before a draft commit, and tool calls in the chat, stay open in [architecture/agents.md](architecture/agents.md). Scene-workflow ideas are notes on the prose slice in [build-sequence.md](build-sequence.md). Chat-history editing and the version 2 CI note are dropped. | Yes |
+| [v2/implementation_plan.md](v2/implementation_plan.md) | Dropped. [build-sequence.md](build-sequence.md) names it as finished history and does not renumber the slices to match those phases. | Yes |
 | [v2/agentic_development.md](v2/agentic_development.md) | Drop until this repo has its own contributor and tooling guide. | No |
 
 ### Version 3 concept snapshots
@@ -387,6 +389,6 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [architecture-direction.md](architecture-direction.md) | [architecture/agents.md](architecture/agents.md) took the arc agent. The architecture overview still owes the system map, then this draft is removed. | Partial |
 | [evaluations.md](evaluations.md) | Replaced by [architecture/evaluations.md](architecture/evaluations.md). The old draft stays until Step 12 so review can diff it. | Yes |
 | [deployment-and-concurrency.md](deployment-and-concurrency.md) | Rewritten as [architecture/persistence.md](architecture/persistence.md). The old draft stays until Step 12 so review can diff it. | Yes |
-| [build-sequence.md](build-sequence.md) | Replaced by Step 10. | No |
-| [open-questions.md](open-questions.md) | Kept. Steps 2–4 settled the product frame, the Story Bible, and per-user model configs. Step 7 settled the local and hosted stores, the conversation thread and its export, the secrets store, and call-log retention. Step 8 settled direct writes, the story as the planning unit, and waiting on exploration and character interviews. Step 9 settled the evaluation run, deterministic checks plus a model judge, the 1–5 rubric, cost logged with no budget, no CI, and tool-result records. Review before a draft commit, the conversation list, tool calls in the chat, overlap, restart durability, authentication, and the research step stay open. Later steps keep updating it. | Partial |
+| [build-sequence.md](build-sequence.md) | Rewritten in place by Step 10. | Yes |
+| [open-questions.md](open-questions.md) | Kept. Steps 2–4 settled the product frame, the Story Bible, and per-user model configs. Step 7 settled the local and hosted stores, the conversation thread and its export, the secrets store, and call-log retention. Step 8 settled direct writes, the story as the planning unit, and waiting on exploration and character interviews. Step 9 settled the evaluation run, deterministic checks plus a model judge, the 1–5 rubric, cost logged with no budget, no CI, and tool-result records. Step 10 assigns the UI and the minimum views to slice 2 and does not close them. Review before a draft commit, the conversation list, tool calls in the chat, overlap, restart durability, authentication, and the research step stay open. Later steps keep updating it. | Partial |
 | [v2-import-inventory.md](v2-import-inventory.md) | Input to Steps 3–9. Removed in Step 12. Step 1 did not keep it as a finished doc. | No |

@@ -29,8 +29,8 @@ Items 1–4 are stated in [vision.md](vision.md) and come from the decisions in 
 
 ## Slice 2
 
-21. **What is the UI?** React is an open candidate. A Python API with a separate frontend matches later deployment. A thinner Python UI is still possible. NiceGUI is the option the briefing set aside. The architecture overview records this as still open if no earlier doc chooses.
-22. **Which views are the minimum?** [story-bible.md](story-bible.md) requires Events in story time, editable when selected, and Arcs laid over those Events. The suggested set also includes an entity editor and an assertion view. Confirm before building extra graph types. The build sequence names the slice.
+21. **What is the UI?** React is an open candidate. A Python API with a separate frontend matches later deployment. A thinner Python UI is still possible. NiceGUI is the option the briefing set aside. [build-sequence.md](build-sequence.md) assigns the choice to slice 2, before any view is built. The architecture overview records this as still open if that slice has not chosen.
+22. **Which views are the minimum?** [story-bible.md](story-bible.md) requires Events in story time, editable when selected, and Arcs laid over those Events. The suggested set also includes an entity editor and an assertion view. Confirm before building extra graph types. Slice 2 of [build-sequence.md](build-sequence.md) is where this is closed. The two pictures are already required. Extra graph types wait on this question.
 
 ## Slice 3
 

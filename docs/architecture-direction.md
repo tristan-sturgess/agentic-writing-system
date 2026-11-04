@@ -69,7 +69,7 @@ The arc agent gets a focused slice of the bible: the entities and arcs relevant 
 
 ## Prose, when it arrives
 
-Narrative units already exist in the model. Slice 5 adds a workflow that fills them from the arcs and events, then evaluates the prose. Version 2's scene workflow (stances, outline, bounded review, context dossier, draft) is a source of lessons: enforced step order, per-node models, continuity from neighboring scenes, and incremental saves so a failed later step leaves the earlier artifact. Those lessons are for slice 5.
+Narrative units already exist in the model. Slice 5 adds a workflow that fills them from the arcs and events, then evaluates the prose. The lessons worth keeping, and the ones to leave behind, are the prose note in [build-sequence.md](build-sequence.md).
 
 ## Story Space
 
