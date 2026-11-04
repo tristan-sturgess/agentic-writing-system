@@ -6,7 +6,7 @@ This is how the user chooses models, and how a system-prompt prefix rides along 
 
 A model config belongs to a user. Each user has their own configs, in the local build and on the hosted deployment. The configs are not part of a story and are not in a story export. Copying or deleting a story leaves that user's configs alone.
 
-The user provides their own OpenRouter API key in the UI. The key belongs to that user, with their configs. It is not a field on a config. The config document, its export, and a story export contain no key. How the key is stored is open in [open-questions.md](open-questions.md). The persistence doc chooses a store that keeps it out of exports and logs. The screen that collects it waits with the rest of the UI. Editing configs works with no key. A model call without a key fails with a clear error and does not send the request.
+The user provides their own OpenRouter API key in the UI. The key belongs to that user, with their configs. It is not a field on a config. The config document, its export, and a story export contain no key. The persistence doc puts it in a secrets store, separate from the config document, and keeps it out of exports and logs. The screen that collects it waits with the rest of the UI. Editing configs works with no key. A model call without a key fails with a clear error and does not send the request.
 
 A config has:
 

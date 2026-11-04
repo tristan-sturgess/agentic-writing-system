@@ -112,7 +112,7 @@ Step 12 does not add these back.
 | 4 | Model configuration | Done |
 | 5 | Prompt assembly | Done |
 | 6 | LLM debug logging | Done |
-| 7 | Persistence, tenancy, and concurrency | Not started |
+| 7 | Persistence, tenancy, and concurrency | In review |
 | 8 | Agents and arc planning | Not started |
 | 9 | Evaluations and observability | Not started |
 | 10 | Build sequence | Not started |
@@ -249,11 +249,13 @@ Version 2's form bindings mutated memory and then saved, so a failed save left m
 
 Version 2 serialized every tool call in a message because concurrent calls raced. Record that failure and the replacement rule. A process-global file lock and a single in-memory world are the version 2 implementation, not the version 3 design.
 
-Two application stores are handed to this step by Steps 4 and 6, and they are not story data. The per-user config document in [architecture/model-configuration.md](architecture/model-configuration.md) and the call-log store in [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md) each fix an interface and the properties an implementation must keep. This doc chooses what is behind each interface, locally and on Railway, so that a local file and a hosted database are both implementations of the same object and nothing above the store knows which one is in use. For the call log that includes: keyed writes that two concurrent calls cannot tear, a sync and an async form of every operation so a store call never blocks the async middleware hook, how an instance identifies itself for the interrupted rule, what recovery from an unreadable log means, and a retention policy that keeps records an evaluation run cites (open question 27). Version 2's single JSON file under a process lock is one acceptable local implementation for either store, not the design. Name the local data directory here, once, for every store.
+Two application stores are handed to this step by Steps 4 and 6, and they are not story data. The per-user config document in [architecture/model-configuration.md](architecture/model-configuration.md) and the call-log store in [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md) each fix an interface and the properties an implementation must keep. This doc chooses what is behind each interface, locally and on Railway, so that a local file and a hosted database are both implementations of the same object and nothing above the store knows which one is in use. For the call log that includes: keyed writes that two concurrent calls cannot tear, a sync and an async form of every operation so a store call never blocks the async middleware hook, how an instance identifies itself for the interrupted rule, what recovery from an unreadable log means, and a retention policy that keeps records an evaluation run cites. Version 2's single JSON file under a process lock is one acceptable local implementation for either store, not the design. Name the local data directory here, once, for every store.
 
 Workflows that must survive a process restart stay an open question (DEF-51). The doc should say the durable artifact of an early run is the last successful story transaction, and point durability-beyond-that at open questions.
 
 Done when slice 1 could implement the story store from this doc, and a hosted deployment would not require a new ownership model.
+
+Drafted in [architecture/persistence.md](architecture/persistence.md). In review. Two layers: a store is an adapter with a conditional `save` guarded by the story revision, and the Story Bible object above it applies writes to a snapshot, checks the reference rules, and saves. A commit is committed, refused, or in conflict; user edits, tool calls, drafts, and imports all use it. Each write tool call is its own commit, so a batch can run in parallel without a gate; the agents doc chooses whether to restrict the model's batching. Local structured data is SQLite in `data/`; Railway uses Postgres. A conversation is a LangGraph thread with an owned row per user and story, left out of the export. Configs, the API key, and call logs are separate stores for the user. An early run's durable artifact is the last successful commit. Restart durability and authentication stay open. The old [deployment-and-concurrency.md](deployment-and-concurrency.md) is left in place.
 
 ### 8. Agents and arc planning
 
@@ -263,7 +265,9 @@ Question: how does an agent change the Story Bible, and what does the first work
 
 Read [architecture-direction.md](architecture-direction.md), the Story Bible doc from Step 3, the persistence doc from Step 7, [v3-concept/issues/DEF-54.md](v3-concept/issues/DEF-54.md), [v3-concept/issues/DEF-55.md](v3-concept/issues/DEF-55.md), [v3-concept/issues/DEF-56.md](v3-concept/issues/DEF-56.md), and the plot sub-agent section of [v2/architecture_agent_workflows.md](v2/architecture_agent_workflows.md). Use [v2/architecture.md](v2/architecture.md) for the tool-boundary rule.
 
-Keep these patterns: agents mutate the bible only through tools; tools reject unknown ids and return the valid ones; a failed write tool is a recoverable error for the model, not a reason to abort the run or to retry the write blindly; a tool rejects markup that leaked into a field value. A fixed workflow can be a graph with its own step order when the product needs that order. A batch of related edits can be drafted aside and committed once. The first workflow takes a description and writes the entities, properties, assertions, events, and arcs it needs. The user can edit between prompts. Prose is out of this workflow.
+Keep these patterns: agents mutate the bible only through tools; tools reject unknown ids and return the valid ones; a failed write tool is a recoverable error for the model, not a reason to abort the run or to retry the write blindly; a tool rejects markup that leaked into a field value. A fixed workflow can be a graph with its own step order when the product needs that order. A batch of related edits can be drafted aside and committed once.
+
+Each write tool call is its own commit through the Story Bible layer in the persistence doc: load a snapshot, apply, check the rules, save at the revision it loaded. A batch of tool calls from one message may run in parallel. A call that conflicts reloads and reapplies; a call that names an id a sibling in the batch has not yet created is refused with the legal ids and the model issues it again. Do not serialize tool calls process-wide. Whether to restrict the model's parallel tool calls is a cost choice this doc makes; the working direction is to allow the batch and accept the occasional dependent retry. The first workflow takes a description and writes the entities, properties, assertions, events, and arcs it needs. The user can edit between prompts. Prose is out of this workflow.
 
 An in-flight arc run can be cancelled, and starting it does not freeze the chat turn until the run finishes. Version 2 recorded a cancel flag and never connected it, and `plan_plot` blocked the turn. Whether the user reviews the draft before that single commit is an open choice; name it and point it at [open-questions.md](open-questions.md). Multiple conversations and how tool calls appear in the chat are the same kind of choice, not a separate document.
 
@@ -334,7 +338,7 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [v2/overview.md](v2/overview.md) | [vision.md](vision.md). The LangGraph-over-product goal priority is dropped. | Yes |
 | [v2/README.md](v2/README.md) | [vision.md](vision.md), for the product description only. Setup and NiceGUI run instructions are out until there is a build. | Yes |
 | [v2/AGENTS.md](v2/AGENTS.md) | Drop as a repo guide until code exists. Mine the tool-validation and "docs are the authority" habits if a later contributor guide is added. | No |
-| [v2/architecture.md](v2/architecture.md) | Architecture overview, persistence, and agents. Drop the NiceGUI module map and the single `world.json` design. | No |
+| [v2/architecture.md](v2/architecture.md) | [architecture/persistence.md](architecture/persistence.md) took the world-state and file-lock lessons. The architecture overview and the agents doc still owe the module boundaries and the tool rule. The NiceGUI map and `world.json` are dropped. | Partial |
 | [v2/story_bible_model.md](v2/story_bible_model.md) | [story-bible.md](story-bible.md). Readable ids and the time/presentation split stay. Replay, signals, and ranks are dropped. | Yes |
 | [v2/forms_and_data_models.md](v2/forms_and_data_models.md) | [story-bible.md](story-bible.md), for which fields were editable. Form layout is dropped with NiceGUI. Scene blueprints wait with prose. | Yes |
 | [v2/model_configuration.md](v2/model_configuration.md) | [architecture/model-configuration.md](architecture/model-configuration.md). The scene and intimacy node lists are dropped. | Yes |
@@ -342,11 +346,11 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [v2/architecture_prompt_assembly.md](v2/architecture_prompt_assembly.md) | [architecture/prompt-assembly.md](architecture/prompt-assembly.md), for the message-channel rule and the stream filter. The prefix mechanism is in [architecture/model-configuration.md](architecture/model-configuration.md). The version 2 chat primer and scene-workflow prompt sequence are dropped. | Yes |
 | [v2/architecture_llm_debug_logging.md](v2/architecture_llm_debug_logging.md) | [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md). The callback-on-the-model tap is replaced by middleware on the shared agent builder. Evaluations cite the records and do not redefine the tap. | Yes |
 | [v2/architecture_agent_workflows.md](v2/architecture_agent_workflows.md) | Agents, for workflow shape and the plot-draft commit. Scene-writing and intimacy workflows wait or drop. | No |
-| [v2/architecture_async_jobs.md](v2/architecture_async_jobs.md) | Persistence, for claims versus real transactions. In-memory job manager is not the hosted design. | No |
+| [v2/architecture_async_jobs.md](v2/architecture_async_jobs.md) | [architecture/persistence.md](architecture/persistence.md), for claims versus transactions. The in-memory job manager and the scene queue are not the design. | Yes |
 | [v2/architecture_document_editing.md](v2/architecture_document_editing.md) | No document now. The build-sequence step records the stream-and-patch salvage for the prose slice. | No |
-| [v2/zip_import_export.md](v2/zip_import_export.md) | Persistence, as a later export requirement. Secrets stay out of exports. | No |
+| [v2/zip_import_export.md](v2/zip_import_export.md) | [architecture/persistence.md](architecture/persistence.md). Slice 1 exports one JSON story document. The zip returns with prose blobs. Secrets, configs, logs, and chat stay out. | Yes |
 | [v2/intimacy-state-change-workflow.md](v2/intimacy-state-change-workflow.md) | Dropped in [story-bible.md](story-bible.md). A belief is a Property or an Assertion. | Yes |
-| [v2/known_issues.md](v2/known_issues.md) | No document. [story-bible.md](story-bible.md) took generic blank ids and dangling references. Persistence, agents, and the prose salvage still owe their failures. The rest is version 2 debt. | Partial |
+| [v2/known_issues.md](v2/known_issues.md) | No document. [story-bible.md](story-bible.md) took generic blank ids and dangling references. [architecture/persistence.md](architecture/persistence.md) took the non-transactional form save, the UI-thread retry, and chat left out of export. Agents and the prose salvage still owe their failures. The rest is version 2 debt. | Partial |
 | [v2/future_work.md](v2/future_work.md) | No document. Relationship tracking and arcs are in [story-bible.md](story-bible.md). User review before commit is an agents choice. Scene-workflow ideas wait in the prose salvage. | Partial |
 | [v2/implementation_plan.md](v2/implementation_plan.md) | Drop. It records finished version 2 phases. | No |
 | [v2/agentic_development.md](v2/agentic_development.md) | Drop until this repo has its own contributor and tooling guide. | No |
@@ -358,8 +362,8 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [v3-concept/project.md](v3-concept/project.md) | [vision.md](vision.md) has the product direction and drops the architecture-only framing. The architecture overview still owes the workstream map. | Partial |
 | [v3-concept/story-bible-data-model-draft-2.md](v3-concept/story-bible-data-model-draft-2.md) | [story-bible.md](story-bible.md). | Yes |
 | [v3-concept/issues/DEF-49.md](v3-concept/issues/DEF-49.md) | The whole plan. This documentation effort is that revision. Step 12 confirms the migration inventory lives in the finished docs. | No |
-| [v3-concept/issues/DEF-50.md](v3-concept/issues/DEF-50.md) | Persistence. | No |
-| [v3-concept/issues/DEF-51.md](v3-concept/issues/DEF-51.md) | Persistence, with long-running durability left open. | No |
+| [v3-concept/issues/DEF-50.md](v3-concept/issues/DEF-50.md) | [architecture/persistence.md](architecture/persistence.md) for storage and tenancy. The UI and the frontend split stay open. | Partial |
+| [v3-concept/issues/DEF-51.md](v3-concept/issues/DEF-51.md) | [architecture/persistence.md](architecture/persistence.md) states the early-run artifact. Checkpoint and resume stay open. | Partial |
 | [v3-concept/issues/DEF-52.md](v3-concept/issues/DEF-52.md) | Evaluations. | No |
 | [v3-concept/issues/DEF-53.md](v3-concept/issues/DEF-53.md) | [story-bible.md](story-bible.md) for the event model. Signals are out. Causal claims between Events are Assertions. The planner-facing slice is still the agents doc. Physical state stays in Story Space. | Partial |
 | [v3-concept/issues/DEF-54.md](v3-concept/issues/DEF-54.md) | Agents. | No |
@@ -377,7 +381,7 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [story-bible.md](story-bible.md) | Rewritten in place by Step 3. | Yes |
 | [architecture-direction.md](architecture-direction.md) | Folded into the architecture overview and the agents doc, then removed. | No |
 | [evaluations.md](evaluations.md) | Replaced by `architecture/evaluations.md` in Step 9. | No |
-| [deployment-and-concurrency.md](deployment-and-concurrency.md) | Replaced by `architecture/persistence.md` in Step 7. | No |
+| [deployment-and-concurrency.md](deployment-and-concurrency.md) | Rewritten as [architecture/persistence.md](architecture/persistence.md). The old draft stays until Step 12 so review can diff it. | Yes |
 | [build-sequence.md](build-sequence.md) | Replaced by Step 10. | No |
-| [open-questions.md](open-questions.md) | Kept. Step 2 settled questions 1–4. Step 3 settled the slice 1 model, including dropping Event links. Step 4 settled per-user model configs and a user-provided API key. Step 5 left the research-step mechanism open. Step 6 left tool-result logging open. Secure key storage, overlap, epistemic markers, and assertion roles stay open. Later steps keep updating it. | Partial |
+| [open-questions.md](open-questions.md) | Kept. Steps 2–4 settled the product frame, the Story Bible, and per-user model configs. Step 7 settled the local and hosted stores, the conversation thread and its export, the secrets store, and call-log retention. Overlap, restart durability, authentication, the research step, and tool-result logging stay open. Later steps keep updating it. | Partial |
 | [v2-import-inventory.md](v2-import-inventory.md) | Input to Steps 3–9. Removed in Step 12. Step 1 did not keep it as a finished doc. | No |

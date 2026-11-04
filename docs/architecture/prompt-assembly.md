@@ -45,7 +45,7 @@ How that step searches, what it compresses, and which model runs it stay open in
 
 A note about the page or record the user currently has open goes with the current user message. It is not part of the system prompt, and the prefix middleware does not touch it.
 
-The note is there so the model can see what the user is looking at. The assistant's visible reply is still only assistant text. Which of the two per-turn placements it takes is the open question of whether chat history belongs to the story: if later turns should know what the user was looking at when they said "change this", the note is a content block on the user message as the app submits it, and the transcript stores it; if only this run should, a `wrap_model_call` middleware appends it to `request.messages` and nothing is stored. The mechanism follows the answer. It is not decided here.
+The note is there so the model can see what the user is looking at. The assistant's visible reply is still only assistant text. Which of the two per-turn placements it takes is still open. The conversation persists per story, as the persistence doc says, so both are possible: if later turns should know what the user was looking at when they said "change this", the note is a content block on the user message as the app submits it, and the thread stores it; if only this run should, a `wrap_model_call` middleware appends it to `request.messages` and nothing is stored. The agents doc decides when it writes the arc agent's turn.
 
 ## The stream
 
