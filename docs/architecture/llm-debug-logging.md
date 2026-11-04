@@ -64,7 +64,7 @@ A missing field is stored empty, except `user_id`. The agent builder requires it
 
 ### The record
 
-`kind` is `model_call`. The log can later hold another kind. [Tool results](#tool-results) says what that kind would be.
+`kind` is `model_call` or `tool_call`. [Tool results](#tool-results) is the second kind.
 
 | Field | Role |
 | --- | --- |
@@ -142,10 +142,25 @@ The view can show the record's fields: status, times, duration, the attribution 
 
 ## Tool results
 
-Version 2 recorded the tool calls the model requested, and not what the tools returned. For the arc-planning agent, the tool results are often the part worth reading.
+Version 2 recorded the tool calls the model requested, and not what the tools returned. The evaluation checks read the result, so the log records it.
 
-`wrap_tool_call` sits in the same middleware list and can see the tool name, the arguments, the result or the error, and the duration. A later record of `kind` `tool_call` can share this log. It would carry its own id, the `call_id` of the model call that requested it, and those four facts. That kind is not required for this step. The `kind` field is what leaves room for it. Whether to add it is open in [open-questions.md](../open-questions.md).
+`wrap_tool_call` and `awrap_tool_call` sit in the same middleware list. The class implements both, for the same reason the logging middleware does. One record is written per tool invocation.
+
+| Field | Role |
+| --- | --- |
+| `call_id` | This record's key. |
+| `kind` | `tool_call`. |
+| `parent_call_id` | The model call that requested it. |
+| `user_id` | Owner. Reads are scoped by it, as for a model call. |
+| `status` | `success` or `error`. |
+| `tool_name` | The tool that ran. |
+| `arguments` | The arguments the tool received. |
+| `result` | The tool's result. Empty on error. |
+| `error` | The error text. Empty on success. |
+| `duration_ms` | Wall-clock time of the tool invocation. |
+
+A tool record is kept when its `parent_call_id` is a model call an evaluation run cites. The deletion routine in the persistence doc excludes those parents, and it excludes a tool record that points at one of them.
 
 ## What an evaluation run uses
 
-An evaluation run stores the `call_id`s it wants to cite, the `run_id` of an agent invoke when it wants every attempt in that invoke, or the `workflow_run_id` it minted when it wants every call of one workflow run. It can filter on `story_id`, `workflow`, `node_id`, and `config_id`. The prompts, responses, tool calls, token usage, and durations come from these records. The evaluations doc defines the run and the scores, and states what the store must keep for a cited record. It does not define another capture path.
+An evaluation run stores the model-call `call_id`s it cites. It finds the tool records by `parent_call_id`. Prompts, responses, requested tool calls, token usage, and durations come from the model-call records. The tool name, arguments, result or error, and duration come from the tool records. The evaluations doc defines the run, the checks, and the scores. It does not define another capture path.

@@ -42,7 +42,7 @@ Add evaluations before changing the arc workflow further. The first evals cover:
 - Characters and other generated entities.
 - The Story Bible as a whole, at a coarse level.
 
-Each run records the prompt, the workflow version, the model, the inputs, the resulting bible, and the scores, so a later change can be compared. Cost and latency are recorded on the same run. Details are in [evaluations.md](evaluations.md).
+Each run records the prompt, the workflow version, the model, the inputs, the resulting bible, and the scores, so a later change can be compared. Cost and latency are recorded on the same run. Details are in [architecture/evaluations.md](architecture/evaluations.md).
 
 Prose evals wait for slice 5.
 

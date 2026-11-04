@@ -44,7 +44,7 @@ Poetry is a reasonable default for the Python project because version 2 used it.
 - **Planning aims at arcs.** The plot agent reasons from the user's narrative intent and writes entities, events, and arcs. It does not depend on a chain of character interpretations to decide what happens next. That is the main shift in the Linear project description and in DEF-54.
 - **The UI is not NiceGUI.** Version 2's three-column NiceGUI app (navigation, editor, chat) is the interaction to learn from: keep the bible in view while talking to the agent. The widget layer fought the visualizations this version needs. Slice 2 chooses the UI. A separate frontend and a Python API is an open option (DEF-50), and it matches a later Railway deployment more cleanly than a server-rendered UI tied to one process.
 - **Storage is not one process-global `world.json`.** Version 2's single in-memory `World` singleton cannot host multiple users or multiple stories safely. The story is the isolation boundary. See [deployment-and-concurrency.md](deployment-and-concurrency.md).
-- **Evaluation is part of the system**, not a hope that the author notices improvement. See [evaluations.md](evaluations.md).
+- **Evaluation is part of the system**, not a hope that the author notices improvement. See [architecture/evaluations.md](architecture/evaluations.md).
 
 ## Arc-planning agent (slice 3)
 
@@ -77,4 +77,4 @@ Locations can be Entities in the bible from slice 1, with Properties and Asserti
 
 ## Observability
 
-Every model call in an agent run should be attributable to a story, a workflow, a step, and a model, with token counts, latency, and enough of the prompt and response to debug a bad result. Version 2 logged LLM calls for a debug page ([v2/architecture_llm_debug_logging.md](v2/architecture_llm_debug_logging.md)). Version 3 uses the same kind of record as the raw material for evals and for the cost comparison in DEF-57. Concrete budgets wait until the arc workflow has been run a few times. The capture path should exist when the agent exists, so those runs are not lost.
+Every model call in an agent run should be attributable to a story, a workflow, a step, and a model, with token counts, latency, and enough of the prompt and response to debug a bad result. Version 2 logged LLM calls for a debug page ([v2/architecture_llm_debug_logging.md](v2/architecture_llm_debug_logging.md)). Version 3 uses the same kind of record as the raw material for evals and for the cost recorded on a run, in total and per step. There is no budget. The capture path should exist when the agent exists, so those runs are not lost.

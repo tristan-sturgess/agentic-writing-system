@@ -30,7 +30,7 @@ The writer chooses the models the agents use. How a choice is stored, and how a 
 
 The writer and an agent can both change a story. Those writes land in order, and a failed save does not leave the screen and the stored story disagreeing. That is a requirement of the first agent workflow. The persistence doc specifies the mechanism.
 
-A change to a prompt, a model, or a workflow should be comparable to the previous run on the same task, including whether the result got better and what it cost in tokens, money, and time. Version 2 could not answer that. This version treats the answer as part of the product. Arcs are the first thing to measure. Characters, other generated entities, and the bible as a whole are measured too. Prose is measured once prose exists. The evaluations doc specifies the run record.
+A change to a prompt, a model, or a workflow should be comparable to the previous run on the same task, including whether the result got better and what it cost in tokens, money, and time. Version 2 could not answer that. This version treats the answer as part of the product. Arcs are the first thing to measure. Characters, other generated entities, and the bible as a whole are measured too. Prose is measured once prose exists. The [evaluations doc](architecture/evaluations.md) specifies the run record.
 
 ## What ships in what order
 

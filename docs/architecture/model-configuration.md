@@ -51,11 +51,12 @@ Nodes select a config through a registry. The UI does not hard-code model ids, a
 | `label` | Name shown to the user. |
 | `default_config_id` | Role used when the user has no selection for this node. |
 
-The registry starts with the arc-planning conversation:
+The registry starts with the arc-planning conversation and the evaluation judge:
 
 | `node_id` | Label | Default |
 | --- | --- | --- |
 | `chat` | Arc-planning chat | `orchestration` |
+| `judge` | Evaluation judge | `judgment` |
 
 Add a registry entry, with a role as its default, before the UI exposes a selector for that node. Version 2's scene-writing nodes and intimacy nodes are not in this registry. When the prose slice adds model calls, those nodes are classified then. An imported version 2 config file keeps the four roles and a `chat` selection. Selections for nodes this registry does not have are dropped.
 

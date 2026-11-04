@@ -64,7 +64,7 @@ Accepted in Step 1. Paths are relative to `docs/`.
 
 LLM debug logging is its own file because the tap was easy to get wrong, and the evaluations doc only cites the records. Other version 2 material folds into the document named in the salvage list. The step that writes that document is responsible for it.
 
-[vision.md](vision.md) is the concept doc from Step 2. [story-bible.md](story-bible.md) is the Story Bible model from Step 3. The remaining drafts this list still replaces or folds in are [architecture-direction.md](architecture-direction.md), [evaluations.md](evaluations.md), [deployment-and-concurrency.md](deployment-and-concurrency.md), and [build-sequence.md](build-sequence.md). [open-questions.md](open-questions.md) stays and is updated as decisions are deferred or settled. [v2-import-inventory.md](v2-import-inventory.md) is an input to the writing steps. It does not survive as its own finished doc.
+[vision.md](vision.md) is the concept doc from Step 2. [story-bible.md](story-bible.md) is the Story Bible model from Step 3. The remaining drafts this list still replaces or folds in are [architecture-direction.md](architecture-direction.md), [evaluations.md](evaluations.md) (rewritten as [architecture/evaluations.md](architecture/evaluations.md); the draft stays so review can diff it), [deployment-and-concurrency.md](deployment-and-concurrency.md), and [build-sequence.md](build-sequence.md). [open-questions.md](open-questions.md) stays and is updated as decisions are deferred or settled. [v2-import-inventory.md](v2-import-inventory.md) is an input to the writing steps. It does not survive as its own finished doc.
 
 ### Version 2 salvage inside the existing documents
 
@@ -114,7 +114,7 @@ Step 12 does not add these back.
 | 6 | LLM debug logging | Done |
 | 7 | Persistence, tenancy, and concurrency | Done |
 | 8 | Agents and arc planning | Done |
-| 9 | Evaluations and observability | Not started |
+| 9 | Evaluations and observability | Done |
 | 10 | Build sequence | Not started |
 | 11 | Architecture overview | Not started |
 | 12 | Final coverage review | Not started |
@@ -233,7 +233,7 @@ Capture the rules that took iteration in version 2:
 
 Done when a later implementation can record a prefixed, tool-calling model call from the chat agent and a structured one-shot call from a workflow node, both attributed to a story, node id, and config id, and an evaluation run can cite those records, without reading the version 2 logging doc.
 
-Accepted. The tap is the last middleware on the shared agent builder, with sync and async hooks. The record is the model request that middleware sees, keyed by a per-attempt `call_id`, and attributed from the agent context, including `user_id` and a caller-minted `workflow_run_id`. The store is an interface with keyed writes. What is behind it, retention, and the data directory belong to the persistence doc. A dead process leaves `running`, and the view shows that as interrupted per instance. Tool-result records stay open.
+Accepted. The tap is the last middleware on the shared agent builder, with sync and async hooks. The record is the model request that middleware sees, keyed by a per-attempt `call_id`, and attributed from the agent context, including `user_id` and a caller-minted `workflow_run_id`. The store is an interface with keyed writes. What is behind it, retention, and the data directory belong to the persistence doc. A dead process leaves `running`, and the view shows that as interrupted per instance. Step 9 requires the tool-result record, because the evaluation checks read it.
 
 ### 7. Persistence, tenancy, and concurrency
 
@@ -292,6 +292,8 @@ The first scored targets are story arcs, then characters and other generated ent
 Version 2 had the call log and no repeatable quality comparison. The comparison is this doc. Leave the tap, the redaction, and the record shape in the logging doc. Judge-model versus human score, the concrete rubrics, and numeric cost budgets stay open. The doc should still fix the run record so those can be added without a new storage shape.
 
 Done when two arc-workflow versions could be run on the same fixture and compared using only this doc's record.
+
+Accepted. A run stores the fixture, the workflow version, the resolved model, copies of the bible before and after, deterministic checks, and judge scores, and it cites the call log for tokens, cost, and latency. Cost is a total and a per-step figure. There is no budget, and evaluations do not run in CI. Checks cover tool-call validity and id handling, so the debug log records tool results. The judge scores arcs and Story Bible construction on three dimensions from 1 to 5, with a reason on each score, and holds the judge model fixed across a comparison. Scene scores wait for prose. A pairwise comparison is optional. The first suite is five arc fixtures and five bible fixtures.
 
 ### 10. Build sequence
 
@@ -366,12 +368,13 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [v3-concept/issues/DEF-49.md](v3-concept/issues/DEF-49.md) | The whole plan. This documentation effort is that revision. Step 12 confirms the migration inventory lives in the finished docs. | No |
 | [v3-concept/issues/DEF-50.md](v3-concept/issues/DEF-50.md) | [architecture/persistence.md](architecture/persistence.md) for storage and tenancy. The UI and the frontend split stay open. | Partial |
 | [v3-concept/issues/DEF-51.md](v3-concept/issues/DEF-51.md) | [architecture/persistence.md](architecture/persistence.md) states the early-run artifact. Checkpoint and resume stay open. | Partial |
-| [v3-concept/issues/DEF-52.md](v3-concept/issues/DEF-52.md) | Evaluations. | No |
+| [v3-concept/issues/DEF-52.md](v3-concept/issues/DEF-52.md) | [architecture/evaluations.md](architecture/evaluations.md). The first suite is five arc fixtures and five bible fixtures. Scene fixtures wait for prose. Checks and a judge are both in. The judge uses three dimensions, scored from 1 to 5. Evaluations do not run in CI. | Yes |
 | [v3-concept/issues/DEF-53.md](v3-concept/issues/DEF-53.md) | [story-bible.md](story-bible.md) for the event model. [architecture/agents.md](architecture/agents.md) for the planner: it writes Events and Arcs, and a cause is an Assertion. Signals are out. Physical state stays in Story Space. | Yes |
 | [v3-concept/issues/DEF-54.md](v3-concept/issues/DEF-54.md) | [architecture/agents.md](architecture/agents.md). Direct writes, the story as the unit, no conversion step. The location-agent negotiation stays with Story Space. | Yes |
 | [v3-concept/issues/DEF-55.md](v3-concept/issues/DEF-55.md) | [architecture/agents.md](architecture/agents.md), as a later addition. Candidates stay off the bible until adopted. Character answers are unstored reads. Count, ranking, and the knowledge boundary stay open. | Partial |
 | [v3-concept/issues/DEF-56.md](v3-concept/issues/DEF-56.md) | [architecture/prompt-assembly.md](architecture/prompt-assembly.md) places bible context and requires synthesized text to stay distinguishable from stored statements. [architecture/agents.md](architecture/agents.md) confirms the arc chat reads through tools. Retrieval versus an exploring agent, and the Story Space queries, stay open. | Partial |
-| [v3-concept/issues/DEF-57.md](v3-concept/issues/DEF-57.md) | Evaluations. | No |
+| [v3-concept/issues/DEF-57.md](v3-concept/issues/DEF-57.md) | [architecture/evaluations.md](architecture/evaluations.md). Cost is recorded in total and per step from the cited call records. There is no budget. | Yes |
+| [v3-concept/writing_system_evaluation_recommendations.md](v3-concept/writing_system_evaluation_recommendations.md) | [architecture/evaluations.md](architecture/evaluations.md). Arc and bible rubrics, the 1–5 scale, judge inputs, calibration, and optional pairwise comparison are kept. The scene rubric waits for prose. Reader-preference is deferred. | Yes |
 | [v3-concept/issues/DEF-90.md](v3-concept/issues/DEF-90.md) | [story-bible.md](story-bible.md). | Yes |
 | [v3-concept/related-story-space/](v3-concept/related-story-space/project.md) | No finished doc in the first set. Step 12 records it as deferred related work, still available in Linear and in git history. | No |
 
@@ -382,8 +385,8 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [vision.md](vision.md) | Rewritten in place by Step 2. | Yes |
 | [story-bible.md](story-bible.md) | Rewritten in place by Step 3. | Yes |
 | [architecture-direction.md](architecture-direction.md) | [architecture/agents.md](architecture/agents.md) took the arc agent. The architecture overview still owes the system map, then this draft is removed. | Partial |
-| [evaluations.md](evaluations.md) | Replaced by `architecture/evaluations.md` in Step 9. | No |
+| [evaluations.md](evaluations.md) | Replaced by [architecture/evaluations.md](architecture/evaluations.md). The old draft stays until Step 12 so review can diff it. | Yes |
 | [deployment-and-concurrency.md](deployment-and-concurrency.md) | Rewritten as [architecture/persistence.md](architecture/persistence.md). The old draft stays until Step 12 so review can diff it. | Yes |
 | [build-sequence.md](build-sequence.md) | Replaced by Step 10. | No |
-| [open-questions.md](open-questions.md) | Kept. Steps 2–4 settled the product frame, the Story Bible, and per-user model configs. Step 7 settled the local and hosted stores, the conversation thread and its export, the secrets store, and call-log retention. Step 8 settled direct writes, the story as the planning unit, and waiting on exploration and character interviews. Review before a draft commit, the conversation list, tool calls in the chat, overlap, restart durability, authentication, the research step, and tool-result logging stay open. Later steps keep updating it. | Partial |
+| [open-questions.md](open-questions.md) | Kept. Steps 2–4 settled the product frame, the Story Bible, and per-user model configs. Step 7 settled the local and hosted stores, the conversation thread and its export, the secrets store, and call-log retention. Step 8 settled direct writes, the story as the planning unit, and waiting on exploration and character interviews. Step 9 settled the evaluation run, deterministic checks plus a model judge, the 1–5 rubric, cost logged with no budget, no CI, and tool-result records. Review before a draft commit, the conversation list, tool calls in the chat, overlap, restart durability, authentication, and the research step stay open. Later steps keep updating it. | Partial |
 | [v2-import-inventory.md](v2-import-inventory.md) | Input to Steps 3–9. Removed in Step 12. Step 1 did not keep it as a finished doc. | No |

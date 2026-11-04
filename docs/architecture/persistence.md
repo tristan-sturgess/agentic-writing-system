@@ -26,7 +26,7 @@ Local files live in `data/` under the application root. The path can be set by a
 
 | File | What it holds |
 | --- | --- |
-| `data/app.sqlite` | The user, stories with their current document and revision, config documents, conversation rows, and evaluation runs once Step 9 defines them. |
+| `data/app.sqlite` | The user, stories with their current document and revision, config documents, conversation rows, and evaluation runs, as [evaluations.md](evaluations.md) defines them. |
 | `data/checkpoints.sqlite` | LangGraph checkpoints for conversation threads. The checkpointer library owns these tables. |
 | `data/call_log.sqlite` | Call-log records and instance heartbeats. Disposable. Recoverable without touching `app.sqlite`. |
 | `data/secrets.sqlite` | The user's API key. Never read by an export. |
@@ -141,7 +141,7 @@ On Railway a failed read of the log does not latch the store into a failed state
 
 ### Retention
 
-A record an evaluation run cites is kept. The evaluation store records the cited `call_id`s. One deletion routine removes call records, whether an age job or the user's "clear log" runs it, and it excludes every id the evaluation store cites. The log store itself has no delete that bypasses that routine. The evaluations doc says what a run cites. It does not choose a second retention rule.
+A record an evaluation run cites is kept. The evaluation store records the cited model-call `call_id`s. One deletion routine removes call records, whether an age job or the user's "clear log" runs it, and it excludes every id the evaluation store cites. It also excludes a tool record whose `parent_call_id` is one of those ids. The log store itself has no delete that bypasses that routine. The evaluations doc says what a run cites. It does not choose a second retention rule.
 
 The local log has no count cap and no age cap. Version 2 kept the newest 200, which would have dropped records a later evaluation still named. The user can clear the log, which removes that user's uncited records.
 
