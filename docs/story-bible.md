@@ -140,8 +140,10 @@ A Property, an Assertion, and an Event each store story time in one field, `when
 
 A **time point** is one of:
 
-- a story-time timestamp, an ordered value whose storage format is an implementation choice, as long as two timestamps can be compared
+- a story-time timestamp, an ISO 8601 date (`YYYY-MM-DD`) or date-time (`YYYY-MM-DDTHH:MM` or `YYYY-MM-DDTHH:MM:SS`)
 - an Event id
+
+A timestamp is story-local time in the proleptic Gregorian calendar, with no time zone. Years run from `0001` to `9999`, the range common date libraries accept. Two timestamps compare chronologically, and a date-only value is the start of that day. The calendar is nominal: a world with no Gregorian calendar still uses these values, and the writer reads year 1000 as whatever the story calls it. Months and days are then ordinals, nothing more. A story that needs its own calendar, with its own names, month lengths, or a year outside that range, would add a new kind of time point to this list, beside the timestamp and the Event id. It would not add a field to any record.
 
 A **span** is one of these kinds:
 
@@ -166,11 +168,13 @@ This reading is for Properties and Assertions. Slice 1 uses it. A stricter overl
 - Spans on the same statement are stored as written. Slice 1 does not merge them, and an `at` that falls outside a `range` is allowed.
 - A time point that is a timestamp compares as that value. A time point that is an Event resolves to a timestamp only along a chain of Events that each have a single span yielding one timestamp: an `at` whose point is a timestamp, or the bound in use when that bound is a timestamp. Several spans, a cycle, or a bound that does not resolve leave the comparison unresolved. The view still includes the statement and marks the comparison unresolved.
 - An Assertion that names Events is a claim about them. It is not a substitute for their spans.
-- Two statements may contradict. Slice 1 saves both and surfaces a warning. The warning does not block the writer or the agent.
+- Two statements may contradict. Slice 1 saves both. Nothing in the model detects a contradiction between two sentences, and nothing blocks the writer or the agent over one.
 
 A Property or Assertion means what its `statement` says. The sentence does not change meaning as story time moves. An in-world change is a new record. The older record keeps its sentence. Its spans can be adjusted, and the new record can `supersede` it. `caused_by` is optional. No Event is required for every new statement.
 
-Histories are views over these records. They are not a second object.
+`supersedes` is meant to imply an end: the superseded statement stops holding when the new one starts. Slice 1 does not derive that end or check for it. The in-force view reads the spans as written, so an agent that supersedes a statement also closes the old one's open `range` at the point the new one starts, as the agents doc requires. A writer who leaves the old range open sees both statements in force, which is allowed. A later view may read the end from `supersedes` when the old record's spans do not give one. That is a change to the view, not to the records.
+
+Histories are views over these records. They are not a second object. The persistence doc keeps a separate history of edits, which commit changed which record. That is bookkeeping about the records, not story time, and it is not a second copy of the current state.
 
 ```yaml
 events:
@@ -233,7 +237,7 @@ assertions:
     statement: Mara's leaving is her journey from distrust toward trust.
 ```
 
-The ids in the example follow the identity rules below. `t1` and the other timestamp labels stand for ordered story-time values. The example is the shape of the data, not a storage format.
+The ids in the example follow the identity rules below. `t1` and the other timestamp labels stand for ISO 8601 story-time values in order, such as `1847-03-02`. The example is the shape of the data, not a storage format.
 
 ## The writer and the agent
 
@@ -245,7 +249,7 @@ An agent-written Property or Assertion should be concise, narrow, clear, and che
 
 ## Identity
 
-Record ids inside a story are readable slugs, minted once and then frozen. Renaming a record does not change its id. Anything that pointed at it keeps pointing at it.
+Record ids inside a story are readable slugs, minted once and then frozen. Renaming a record does not change its id. Anything that pointed at it keeps pointing at it. An import, and a revert that restores a deleted record, keep the id the record already had; they do not mint a new one.
 
 Mint an id only when the primary text is non-empty. The primary text is the Entity `name`, the Property or Assertion `statement`, or the Event, Narrative Unit, or Arc `title`. A blank create does not mint a placeholder such as `char` or `event`. The screen collects the name or title before the record exists.
 
@@ -260,7 +264,9 @@ The id is a prefix plus a slug of that text:
 | Narrative Unit | `unit_` |
 | Arc | `arc_` |
 
-The slug is lowercase words from the primary text, separated by underscores. An Event titled "The Letter" mints `event_the_letter`. A collision appends `_2`, `_3`, and so on.
+The slug is lowercase words from the primary text, separated by underscores, capped at the first eight words. An Event titled "The Letter" mints `event_the_letter`. A Property whose statement is "Mara is generally distrustful of strangers, especially men from the capital" mints `prop_mara_is_generally_distrustful_of_strangers_especially_men`. A collision appends `_2`, `_3`, and so on.
+
+A slug minted from a statement can read differently from the sentence after a rewrite. That is acceptable. An agent does not reword a stored statement; it creates a new one and supersedes the old. Only the writer edits a sentence in place, so a Property or Assertion slug goes stale only when the writer chose to change the sentence, and the id's job is to stay stable through that, not to describe it.
 
 Version 2 froze slugs the same way, then minted `char` and `char_2` when the screen created a character before anyone typed a name. Those generic ids are the case this rule avoids.
 
@@ -305,3 +311,4 @@ These stay open on purpose. [open-questions.md](open-questions.md) is the list.
 - Whether statements gain a marker for objective fact, belief, or plan. Slice 1 has no such marker. Adding one later must not block a writer's edit.
 - Whether an Assertion's references need roles.
 - Whether Properties should ever link to other Properties, or whether a change should propagate on its own. Slice 1 does neither.
+- Whether a story-specific calendar is ever added as a new kind of time point. Slice 1 uses the ISO 8601 timestamp above.

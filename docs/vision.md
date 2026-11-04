@@ -20,7 +20,7 @@ An agent turns that description into Story Bible records: entities, their proper
 
 Prose comes after the arcs. The same loop applies once a prose workflow exists: the agent drafts, the writer revises by hand or with a prompt, and the bible stays the source the draft has to agree with.
 
-The end people want is a polished story. The ordinary path is many revisions. A revision should be cheap to ask for and easy to inspect.
+The end people want is a polished story. The ordinary path is many revisions. A revision should be cheap to ask for and easy to inspect. The writer can see what each prompt changed in the bible and put a change back the way it was. The persistence doc specifies that history.
 
 ## What the writer can rely on
 
@@ -43,7 +43,7 @@ The build follows the order a writer would notice. [build-sequence.md](build-seq
 
 Prose stays out until the earlier slices exist.
 
-The interface is still an open choice, recorded in [open-questions.md](open-questions.md). Being able to see and edit the story matters more than matching any earlier screen.
+The interface is a separate frontend on a Python API, so the application can later be hosted without being rebuilt. Which framework draws that frontend is still an open choice, recorded in [open-questions.md](open-questions.md). Being able to see and edit the story matters more than matching any earlier screen.
 
 ## What waits
 
@@ -51,4 +51,4 @@ Locations can be entities in the Story Bible. Routes, travel, and a scrubber for
 
 Plot is planned directly, as events and arcs. An agent may look harder at a character or a place when a step needs that. That deeper look is not the mechanism that decides the plot.
 
-Ways to explore alternate plots, or to interview a character about the world, wait until the arc workflow exists. The first workflow saves each tool call as it succeeds. Whether a later run holds a batch for the writer to approve before one commit stays open in [open-questions.md](open-questions.md). The agents doc names that choice.
+Ways to explore alternate plots, or to interview a character about the world, wait until the arc workflow exists. An agent's changes land as they succeed. The writer is never asked to approve a batch before it is saved; instead the writer sees what each turn changed and can put any of it back. That is the review this product aims at, and the agents doc records it.

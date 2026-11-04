@@ -11,6 +11,8 @@ This file is the plan. A later session should be able to carry out one step from
 | This file | The plan, the accepted document list, and the status of each step. |
 | [vision.md](vision.md) | The concept doc. |
 | [story-bible.md](story-bible.md) | The Story Bible model. |
+| [architecture.md](architecture.md) | The architecture overview: the parts and the authority for each. |
+| [architecture/](architecture/) | The subsystem docs from Steps 4–9 and 12. |
 | Other drafts in `docs/*.md` | Working notes from the first pass. A later step rewrites or replaces each one. |
 | [v2/](v2/SOURCE.md) | Frozen copy of the version 2 docs, README, and `AGENTS.md`, from `E:\dev\writing-agent-v2` at commit `f158920` (2026-08-27), repository https://github.com/tristan-sturgess/creative-writing-assistant. |
 | [v3-concept/](v3-concept/README.md) | Frozen copy of the Linear project [Creative Writing System V3](https://linear.app/tristansturgess/project/creative-writing-system-v3-f6bf311c12a2), its issues, and Story Bible Data Model Draft 2, plus the related Story Space & Timeline project. Retrieved 2026-11-02. |
@@ -59,12 +61,13 @@ Accepted in Step 1. Paths are relative to `docs/`.
 | `architecture/persistence.md` | How a story is stored locally, how that maps to Railway and multiple users, and how concurrent updates land. |
 | `architecture/agents.md` | How agents read and write the Story Bible, and what the arc-planning workflow is responsible for. |
 | `architecture/evaluations.md` | What is scored, what an evaluation run stores, and how cost and latency sit on that same run. |
+| `architecture/application.md` | What the Python API does: how a request becomes a user, how a turn is started, streamed, and stopped, which endpoints each slice adds, and where the background routines run. The frontend is a client of it. Added in the Step 11 review when the application layer was settled as an API. Written in Step 12. |
 | `build-sequence.md` | The order to implement the system, and which docs each slice depends on. |
 | `open-questions.md` | Decisions still deferred, each one naming the doc that will close it. |
 
 LLM debug logging is its own file because the tap was easy to get wrong, and the evaluations doc only cites the records. Other version 2 material folds into the document named in the salvage list. The step that writes that document is responsible for it.
 
-[vision.md](vision.md) is the concept doc from Step 2. [story-bible.md](story-bible.md) is the Story Bible model from Step 3. The remaining drafts this list still replaces or folds in are [architecture-direction.md](architecture-direction.md), [evaluations.md](evaluations.md) (rewritten as [architecture/evaluations.md](architecture/evaluations.md); the draft stays so review can diff it), and [deployment-and-concurrency.md](deployment-and-concurrency.md). [build-sequence.md](build-sequence.md) was rewritten in place by Step 10. [open-questions.md](open-questions.md) stays and is updated as decisions are deferred or settled. [v2-import-inventory.md](v2-import-inventory.md) is an input to the writing steps. It does not survive as its own finished doc.
+[vision.md](vision.md) is the concept doc from Step 2. [story-bible.md](story-bible.md) is the Story Bible model from Step 3. [architecture.md](architecture.md) is the overview from Step 11. The drafts it and earlier steps replaced, kept until Step 13 so review can diff them, are [architecture-direction.md](architecture-direction.md) (replaced by [architecture.md](architecture.md)), [evaluations.md](evaluations.md) (rewritten as [architecture/evaluations.md](architecture/evaluations.md)), and [deployment-and-concurrency.md](deployment-and-concurrency.md) (rewritten as [architecture/persistence.md](architecture/persistence.md)). [build-sequence.md](build-sequence.md) was rewritten in place by Step 10. [open-questions.md](open-questions.md) stays and is updated as decisions are deferred or settled. [v2-import-inventory.md](v2-import-inventory.md) is an input to the writing steps. It does not survive as its own finished doc.
 
 ### Version 2 salvage inside the existing documents
 
@@ -86,7 +89,7 @@ These are worth keeping and are not a new file. The named step writes them into 
 
 ### Documents considered and not added
 
-Step 12 does not add these back.
+Step 13 does not add these back.
 
 | Candidate | Why it is not a document |
 | --- | --- |
@@ -99,7 +102,7 @@ Step 12 does not add these back.
 | Forms, layout, and the NiceGUI module map | That UI is not the starting point. Which objects are editable belongs to the Story Bible doc. |
 | A workspace or UI specification | The framework is still open. Minimum views are already an open question. |
 | A testing guide | The invariants live in the subsystem docs. A harness belongs with the contributor setup. |
-| The import inventory, as a finished doc | It is an input to Steps 3–9 and is removed in Step 12. |
+| The import inventory, as a finished doc | It is an input to Steps 3–9 and is removed in Step 13. |
 | Model-selection analysis as its own doc | The role rationale folds into model configuration. The July 2026 price table stays historical. |
 
 ## Status
@@ -116,8 +119,9 @@ Step 12 does not add these back.
 | 8 | Agents and arc planning | Done |
 | 9 | Evaluations and observability | Done |
 | 10 | Build sequence | Done |
-| 11 | Architecture overview | Not started |
-| 12 | Final coverage review | Not started |
+| 11 | Architecture overview | Done |
+| 12 | Application layer | Not started |
+| 13 | Final coverage review | Not started |
 
 ## Steps
 
@@ -127,7 +131,7 @@ Confirm the proposed list above before writing any finished document.
 
 Read the proposed list, the decisions already in force, and the source-coverage table. Check the draft filenames and the version 2 doc titles in [v2/](v2/SOURCE.md) so a real topic is not left without a home.
 
-Produce an updated list in this file. For each kept document, leave the question it answers specific enough that a later session knows when it is done. Reorder or renumber later steps if the list changes. Record any document that was considered and rejected, with a one-line reason, so Step 12 does not add it back.
+Produce an updated list in this file. For each kept document, leave the question it answers specific enough that a later session knows when it is done. Reorder or renumber later steps if the list changes. Record any document that was considered and rejected, with a one-line reason, so Step 13 does not add it back.
 
 Accepted. The eleven documents above are the set, including LLM debug logging as its own file. Salvage and rejected candidates are recorded under the list. Later steps write the salvage into the document named there.
 
@@ -237,7 +241,7 @@ Accepted. The tap is the last middleware on the shared agent builder, with sync 
 
 ### 7. Persistence, tenancy, and concurrency
 
-Add `architecture/persistence.md`. Rewrite the useful parts of [deployment-and-concurrency.md](deployment-and-concurrency.md) into it. After this step, the old draft can remain until Step 12 deletes leftover drafts, or this step can remove it if the new doc fully replaces it. Prefer leaving the old file in place and pointing this README at the new one, so review can diff them.
+Add `architecture/persistence.md`. Rewrite the useful parts of [deployment-and-concurrency.md](deployment-and-concurrency.md) into it. After this step, the old draft can remain until Step 13 deletes leftover drafts, or this step can remove it if the new doc fully replaces it. Prefer leaving the old file in place and pointing this README at the new one, so review can diff them.
 
 Question: how is a story saved, who owns it, and what happens when the user and an agent write at the same time?
 
@@ -305,7 +309,7 @@ Read the current [build-sequence.md](build-sequence.md) and the docs written so 
 
 Leave version 2's completed phase list in [v2/implementation_plan.md](v2/implementation_plan.md) as history. Do not renumber this plan to match those phases.
 
-The prose slice's entry in this doc carries the deferred salvage, in enough detail that Step 12 can delete the version 2 snapshots. Create long text by intercepting a tagged stream. Edit it with a targeted patch. Exact match is the fast path; a patch that hits nothing or more than one place returns an error. Unbounded fuzzy search stalled large scenes. If the open document changes mid-stream, roll the partial write back. The pattern worth reusing is an enforced step order, a model config per node, continuity from neighboring units, staleness when the inputs change, and saving each finished step. The version 2 stance and intimacy prompts are not part of that pattern. Readable HTML export waits until there is prose. This is a note for the later slice, not a prose design.
+The prose slice's entry in this doc carries the deferred salvage, in enough detail that Step 13 can delete the version 2 snapshots. Create long text by intercepting a tagged stream. Edit it with a targeted patch. Exact match is the fast path; a patch that hits nothing or more than one place returns an error. Unbounded fuzzy search stalled large scenes. If the open document changes mid-stream, roll the partial write back. The pattern worth reusing is an enforced step order, a model config per node, continuity from neighboring units, staleness when the inputs change, and saving each finished step. The version 2 stance and intimacy prompts are not part of that pattern. Readable HTML export waits until there is prose. This is a note for the later slice, not a prose design.
 
 Done when a builder can start slice 1 from the Story Bible and persistence docs and can see what is deliberately waiting.
 
@@ -323,7 +327,25 @@ Cover: Python and the agent layer, the Story Bible as the shared state, tools as
 
 Done when a reader can find the authority for any subsystem in one page, and this file does not disagree with the subsystem docs.
 
-### 12. Final coverage review
+Review of the whole set during this step changed two accepted docs. [architecture/persistence.md](architecture/persistence.md) now puts a revision on each record row instead of on the story, with a changeset save, a generic name check inside the save, and guards for the unit tree and span chains, so unrelated parallel writes never conflict; [architecture/agents.md](architecture/agents.md) bounds the reapply at three attempts. The persistence doc also gained a commit history: every save writes a record with its source and each change's before and after, and a revert is a commit built from that record; the agent has no revert tool, slice 2 shows the history, and [open-questions.md](open-questions.md) records both as settled items 35 and 36. [story-bible.md](story-bible.md) no longer promises a contradiction warning in slice 1; two statements that contradict both save and nothing detects it. It also fixes the story-time timestamp as an ISO 8601 date or date-time in a nominal Gregorian calendar, years `0001`–`9999`, with a story-specific calendar deferred as a future kind of time point (settled item 37, open item 38). It caps a slug at eight words, notes that a statement slug goes stale only by the writer's choice, and records that `supersedes` is meant to imply an end the slice 1 view does not yet derive. The agents doc says the agent leaves `unit_ids` alone rather than that it stays empty. The logging doc records that `runtime.execution_info` was verified against the LangChain docs and that the caller must mint `run_id` in the invoke config. The evaluation checks read the commit history by `tool_call_id` instead of inferring from `bible_after`. The agents, evaluations, build-sequence, and open-questions docs were updated to match. The application layer was recorded as question 34.
+
+Review then settled question 34: the application layer is a Python API, and the UI is a separate frontend that is a client of it. Version 2's in-process UI owned the wire and tied the application to one process, and that is not repeated. [open-questions.md](open-questions.md) records it as settled item 34, narrows question 21 to the frontend framework, places authentication at the API edge in question 33, and added the API's own choices as questions 39–41, which the same review then settled: a turn is a job with a turn row and a row-based stop, the stream is typed events over SSE, and the background routines run in the service process. [architecture.md](architecture.md) gained the application layer and the frontend as parts. [build-sequence.md](build-sequence.md) slice 2 now builds the first endpoints and the frontend, and slice 3 adds the turn stream and the stop. The persistence, evaluations, and vision docs were reworded to match. `architecture/application.md` was added to the document list as the doc that closes 39–41, and Step 12 was inserted to write it; the final coverage review became Step 13. The same review settled question 23 against a review gate: an agent's writes land as they succeed, and the history view with a turn's diff and revert is the writer's review. Question 25 was closed as a rendering choice, since item 40 puts tool calls on the stream either way. [architecture/agents.md](architecture/agents.md), [vision.md](vision.md), [build-sequence.md](build-sequence.md), and [architecture.md](architecture.md) were reworded to match, and question 22 now names the turn status and the history view as views the frontend owes.
+
+### 12. Application layer
+
+Add `architecture/application.md`.
+
+Question: what does the Python API do, and what does the frontend get from it? How does a request become a user, how is a turn started, streamed, and stopped, which endpoints each slice adds, and where do the heartbeat, the retention routine, and the evaluation runner run?
+
+Read settled items 34 and 39–41 and question 33 in [open-questions.md](open-questions.md), the application-layer paragraphs of [architecture.md](architecture.md), and the parts of the subsystem docs that name the caller: the agent context and `run_id` minting in [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md), cancellation and the one-run-per-conversation rule in [architecture/agents.md](architecture/agents.md), the conversation row and the instance heartbeat in [architecture/persistence.md](architecture/persistence.md), and the run record and launch in [architecture/evaluations.md](architecture/evaluations.md). Read [v2/architecture_async_jobs.md](v2/architecture_async_jobs.md) only for what the in-memory job manager got wrong.
+
+Questions 39, 40, and 41 were decided in the Step 11 review and are settled items in [open-questions.md](open-questions.md): a turn is a job with a turn row and a row-based stop, the stream is typed events over SSE with an in-process replay buffer, and the heartbeat, retention, turn task, and evaluation runner all run in the service process. Write the doc from those items; do not reopen them. Question 33 is placed, not closed: the doc fixes that the API resolves every request to a user id before it touches a store or an agent, that the local resolver returns the one implicit user, and that the hosted mechanism is an adapter behind that step.
+
+The doc owns the contract and the service. It does not own the subsystems it calls, and it does not repeat their rules. It says which endpoints slice 2 adds (stories, records, the commit, history and revert, export and import), which slice 3 adds (conversations, the turn, the stream, the stop, configs, the key, the call list), and which slice 4 adds (fixtures, runs, the comparison). It says what the frontend may never do: open a store, build an agent, hold a secret. It names the transport for the stream and the shape of a stop. It says where the background routines run locally and hosted. The frontend framework stays question 21; this doc does not choose it.
+
+Done when slice 2 could build its first endpoint and the frontend's first call from this doc, and slice 3 could add the turn without a second design for the stream or the stop.
+
+### 13. Final coverage review
 
 Review the finished set against every source row below.
 
@@ -344,7 +366,7 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [v2/overview.md](v2/overview.md) | [vision.md](vision.md). The LangGraph-over-product goal priority is dropped. | Yes |
 | [v2/README.md](v2/README.md) | [vision.md](vision.md), for the product description only. Setup and NiceGUI run instructions are out until there is a build. | Yes |
 | [v2/AGENTS.md](v2/AGENTS.md) | Drop as a repo guide until code exists. Mine the tool-validation and "docs are the authority" habits if a later contributor guide is added. | No |
-| [v2/architecture.md](v2/architecture.md) | [architecture/persistence.md](architecture/persistence.md) took the world-state and file-lock lessons. [architecture/agents.md](architecture/agents.md) took the tool rule. The architecture overview still owes the module boundaries. The NiceGUI map and `world.json` are dropped. | Partial |
+| [v2/architecture.md](v2/architecture.md) | [architecture/persistence.md](architecture/persistence.md) took the world-state and file-lock lessons. [architecture/agents.md](architecture/agents.md) took the tool rule. [architecture.md](architecture.md) took the module boundaries as the parts table and the boundaries list, and recorded the unowned application layer as question 34. The NiceGUI map, `world.json`, `JobManager`, and the serialize-tools middleware are dropped. | Yes |
 | [v2/story_bible_model.md](v2/story_bible_model.md) | [story-bible.md](story-bible.md). Readable ids and the time/presentation split stay. Replay, signals, and ranks are dropped. | Yes |
 | [v2/forms_and_data_models.md](v2/forms_and_data_models.md) | [story-bible.md](story-bible.md), for which fields were editable. Form layout is dropped with NiceGUI. Scene blueprint fields are not Narrative Unit fields; [build-sequence.md](build-sequence.md) leaves any generated outline to the prose slice. | Yes |
 | [v2/model_configuration.md](v2/model_configuration.md) | [architecture/model-configuration.md](architecture/model-configuration.md). The scene and intimacy node lists are dropped. | Yes |
@@ -357,7 +379,7 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [v2/zip_import_export.md](v2/zip_import_export.md) | [architecture/persistence.md](architecture/persistence.md). Slice 1 exports one JSON story document. The zip returns with prose blobs. Secrets, configs, logs, and chat stay out. The readable HTML package waits in [build-sequence.md](build-sequence.md) until there is prose. | Yes |
 | [v2/intimacy-state-change-workflow.md](v2/intimacy-state-change-workflow.md) | Dropped in [story-bible.md](story-bible.md). A belief is a Property or an Assertion. | Yes |
 | [v2/known_issues.md](v2/known_issues.md) | [story-bible.md](story-bible.md) took generic blank ids and dangling references. [architecture/persistence.md](architecture/persistence.md) took the non-transactional form save, the UI-thread retry, and chat left out of export. [architecture/agents.md](architecture/agents.md) took the blocked plot turn, the unwired cancel, and the markup leak. [build-sequence.md](build-sequence.md) took the fuzzy-search stall and the single-snapshot canvas rollback. The rest is version 2 debt. | Yes |
-| [v2/future_work.md](v2/future_work.md) | Relationship tracking and arcs are in [story-bible.md](story-bible.md). Review before a draft commit, and tool calls in the chat, stay open in [architecture/agents.md](architecture/agents.md). Scene-workflow ideas are notes on the prose slice in [build-sequence.md](build-sequence.md). Chat-history editing and the version 2 CI note are dropped. | Yes |
+| [v2/future_work.md](v2/future_work.md) | Relationship tracking and arcs are in [story-bible.md](story-bible.md). Review before a draft commit is settled against in [architecture/agents.md](architecture/agents.md): the history view and its revert are the review. Tool calls ride the turn stream, and showing them is a rendering choice. Scene-workflow ideas are notes on the prose slice in [build-sequence.md](build-sequence.md). Chat-history editing and the version 2 CI note are dropped. | Yes |
 | [v2/implementation_plan.md](v2/implementation_plan.md) | Dropped. [build-sequence.md](build-sequence.md) names it as finished history and does not renumber the slices to match those phases. | Yes |
 | [v2/agentic_development.md](v2/agentic_development.md) | Drop until this repo has its own contributor and tooling guide. | No |
 
@@ -365,10 +387,10 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 
 | Source | Home | Accounted for |
 | --- | --- | --- |
-| [v3-concept/project.md](v3-concept/project.md) | [vision.md](vision.md) has the product direction and drops the architecture-only framing. [architecture/agents.md](architecture/agents.md) has the arc-planning workstream. The architecture overview still owes the workstream map. | Partial |
+| [v3-concept/project.md](v3-concept/project.md) | [vision.md](vision.md) has the product direction and drops the architecture-only framing. [architecture/agents.md](architecture/agents.md) has the arc-planning workstream. [architecture.md](architecture.md) has the workstream map, one home per workstream. | Yes |
 | [v3-concept/story-bible-data-model-draft-2.md](v3-concept/story-bible-data-model-draft-2.md) | [story-bible.md](story-bible.md). | Yes |
-| [v3-concept/issues/DEF-49.md](v3-concept/issues/DEF-49.md) | The whole plan. This documentation effort is that revision. Step 12 confirms the migration inventory lives in the finished docs. | No |
-| [v3-concept/issues/DEF-50.md](v3-concept/issues/DEF-50.md) | [architecture/persistence.md](architecture/persistence.md) for storage and tenancy. The UI and the frontend split stay open. | Partial |
+| [v3-concept/issues/DEF-49.md](v3-concept/issues/DEF-49.md) | The whole plan. This documentation effort is that revision. Step 13 confirms the migration inventory lives in the finished docs. | No |
+| [v3-concept/issues/DEF-50.md](v3-concept/issues/DEF-50.md) | [architecture/persistence.md](architecture/persistence.md) for storage and tenancy. The frontend split is settled as a Python API with a separate frontend, item 34, owned by `architecture/application.md`. The frontend framework and authentication stay open. | Partial |
 | [v3-concept/issues/DEF-51.md](v3-concept/issues/DEF-51.md) | [architecture/persistence.md](architecture/persistence.md) states the early-run artifact. Checkpoint and resume stay open. | Partial |
 | [v3-concept/issues/DEF-52.md](v3-concept/issues/DEF-52.md) | [architecture/evaluations.md](architecture/evaluations.md). The first suite is five arc fixtures and five bible fixtures. Scene fixtures wait for prose. Checks and a judge are both in. The judge uses three dimensions, scored from 1 to 5. Evaluations do not run in CI. | Yes |
 | [v3-concept/issues/DEF-53.md](v3-concept/issues/DEF-53.md) | [story-bible.md](story-bible.md) for the event model. [architecture/agents.md](architecture/agents.md) for the planner: it writes Events and Arcs, and a cause is an Assertion. Signals are out. Physical state stays in Story Space. | Yes |
@@ -378,7 +400,7 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [v3-concept/issues/DEF-57.md](v3-concept/issues/DEF-57.md) | [architecture/evaluations.md](architecture/evaluations.md). Cost is recorded in total and per step from the cited call records. There is no budget. | Yes |
 | [v3-concept/writing_system_evaluation_recommendations.md](v3-concept/writing_system_evaluation_recommendations.md) | [architecture/evaluations.md](architecture/evaluations.md). Arc and bible rubrics, the 1–5 scale, judge inputs, calibration, and optional pairwise comparison are kept. The scene rubric waits for prose. Reader-preference is deferred. | Yes |
 | [v3-concept/issues/DEF-90.md](v3-concept/issues/DEF-90.md) | [story-bible.md](story-bible.md). | Yes |
-| [v3-concept/related-story-space/](v3-concept/related-story-space/project.md) | No finished doc in the first set. Step 12 records it as deferred related work, still available in Linear and in git history. | No |
+| [v3-concept/related-story-space/](v3-concept/related-story-space/project.md) | No finished doc in the first set. Step 13 records it as deferred related work, still available in Linear and in git history. | No |
 
 ### Current drafts
 
@@ -386,9 +408,9 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | --- | --- | --- |
 | [vision.md](vision.md) | Rewritten in place by Step 2. | Yes |
 | [story-bible.md](story-bible.md) | Rewritten in place by Step 3. | Yes |
-| [architecture-direction.md](architecture-direction.md) | [architecture/agents.md](architecture/agents.md) took the arc agent. The architecture overview still owes the system map, then this draft is removed. | Partial |
-| [evaluations.md](evaluations.md) | Replaced by [architecture/evaluations.md](architecture/evaluations.md). The old draft stays until Step 12 so review can diff it. | Yes |
-| [deployment-and-concurrency.md](deployment-and-concurrency.md) | Rewritten as [architecture/persistence.md](architecture/persistence.md). The old draft stays until Step 12 so review can diff it. | Yes |
+| [architecture-direction.md](architecture-direction.md) | [architecture/agents.md](architecture/agents.md) took the arc agent. [architecture.md](architecture.md) took the system map and the retained-versus-changed lists. The draft stays until Step 13 so review can diff it. | Yes |
+| [evaluations.md](evaluations.md) | Replaced by [architecture/evaluations.md](architecture/evaluations.md). The old draft stays until Step 13 so review can diff it. | Yes |
+| [deployment-and-concurrency.md](deployment-and-concurrency.md) | Rewritten as [architecture/persistence.md](architecture/persistence.md). The old draft stays until Step 13 so review can diff it. | Yes |
 | [build-sequence.md](build-sequence.md) | Rewritten in place by Step 10. | Yes |
-| [open-questions.md](open-questions.md) | Kept. Steps 2–4 settled the product frame, the Story Bible, and per-user model configs. Step 7 settled the local and hosted stores, the conversation thread and its export, the secrets store, and call-log retention. Step 8 settled direct writes, the story as the planning unit, and waiting on exploration and character interviews. Step 9 settled the evaluation run, deterministic checks plus a model judge, the 1–5 rubric, cost logged with no budget, no CI, and tool-result records. Step 10 assigns the UI and the minimum views to slice 2 and does not close them. Review before a draft commit, the conversation list, tool calls in the chat, overlap, restart durability, authentication, and the research step stay open. Later steps keep updating it. | Partial |
-| [v2-import-inventory.md](v2-import-inventory.md) | Input to Steps 3–9. Removed in Step 12. Step 1 did not keep it as a finished doc. | No |
+| [open-questions.md](open-questions.md) | Kept. Steps 2–4 settled the product frame, the Story Bible, and per-user model configs. Step 7 settled the local and hosted stores, the conversation thread and its export, the secrets store, and call-log retention. Step 8 settled direct writes, the story as the planning unit, and waiting on exploration and character interviews. Step 9 settled the evaluation run, deterministic checks plus a model judge, the 1–5 rubric, cost logged with no budget, no CI, and tool-result records. Step 10 assigns the UI and the minimum views to slice 2 and does not close them. Step 11 added the application layer as question 34 and its review settled it as a Python API with a separate frontend, narrowed question 21 to the frontend framework, settled the API's own choices as items 39–41, settled against a review gate before a commit (item 23), and closed tool calls in the chat as a rendering choice (item 25). The conversation list, overlap, restart durability, the authentication mechanism, and the research step stay open. Later steps keep updating it. | Partial |
+| [v2-import-inventory.md](v2-import-inventory.md) | Input to Steps 3–9. Removed in Step 13. Step 1 did not keep it as a finished doc. | No |

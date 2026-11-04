@@ -6,7 +6,7 @@ The Story Bible doc is the authority for what a story contains and which saves i
 
 ## Two layers
 
-A store is an adapter over an engine: SQLite locally, Postgres on Railway, a JSON file in a test. It reads and writes rows. One of its operations writes a row only if that row's revision is unchanged. A store does not know the Story Bible's rules.
+A store is an adapter over an engine: SQLite locally, Postgres on Railway, a JSON file in a test. It reads and writes rows. One of its operations writes a set of rows only if each row's revision is unchanged. A store does not know the Story Bible's rules. It knows which rows name which other rows, because the layer above tells it, and that is all it checks.
 
 The Story Bible object sits above the story store. It applies a set of writes to a copy of the story, checks the rules in [story-bible.md](../story-bible.md), and asks the store to save the result. The other stores have the same split with their own callers: the model-configuration layer fills in roles above the config store, the model binding reads the key from the secrets store, the logging middleware and the debug view use the call-log store, and the chat loop uses the conversation thread.
 
@@ -16,7 +16,7 @@ Nothing above a store opens its engine. Swapping SQLite for Postgres changes the
 
 A story is the isolation boundary. Every Story Bible record belongs to one story. A story has one owner, a user. Locally there is one user, created on first run. That user id is still passed into every store call. A second user is an authorization check, not a new shape for a story.
 
-A request acts as one user. A read or a write of a story succeeds only for that story's owner. Slice 1 has no sharing. How a hosted request becomes a user id is authentication, which waits with the UI and API decision in [open-questions.md](../open-questions.md). Every store call takes the user id either way.
+A request acts as one user. A read or a write of a story succeeds only for that story's owner. Slice 1 has no sharing. The API in [application.md](application.md) resolves every request to a user id before it calls a store; locally that is the one implicit user. How a hosted request proves who it is from is authentication, which waits in [open-questions.md](../open-questions.md). Every store call takes the user id either way.
 
 The same boundary covers the data that is not a story. Model configs, the API key, call logs, and conversations belong to the user. A conversation also belongs to one story. One user's rows are never returned to another user.
 
@@ -26,7 +26,7 @@ Local files live in `data/` under the application root. The path can be set by a
 
 | File | What it holds |
 | --- | --- |
-| `data/app.sqlite` | The user, stories with their current document and revision, config documents, conversation rows, and evaluation runs, as [evaluations.md](evaluations.md) defines them. |
+| `data/app.sqlite` | The user, story rows and record rows with their revisions, commit records, config documents, conversation rows, and evaluation runs, as [evaluations.md](evaluations.md) defines them. |
 | `data/checkpoints.sqlite` | LangGraph checkpoints for conversation threads. The checkpointer library owns these tables. |
 | `data/call_log.sqlite` | Call-log records and instance heartbeats. Disposable. Recoverable without touching `app.sqlite`. |
 | `data/secrets.sqlite` | The user's API key. Never read by an export. |
@@ -41,36 +41,58 @@ Async methods of every store do their work off the event loop. A blocking lock o
 
 ## Story store
 
-The story store is the adapter slice 1 codes against. It has five operations and no knowledge of the records inside a story.
+The story store is the adapter slice 1 codes against. It has six operations and no knowledge of the rules inside a story.
 
-A story row holds the story id, the owner id, the revision, and the story document. The story id is assigned by the store and may be opaque. The document is the story in [story-bible.md](../story-bible.md): the framing fields and the records, with a schema version. The revision is an integer. It starts at 1 and increases by one on each successful save.
+A story is a story row and a row per record. The story row holds the story id, the owner id, the schema version, the framing fields, and `unit_ids`. The story id is assigned by the store and may be opaque. A record row holds the story id, the record id, the kind, the record's fields, and the ids the record names: for an Assertion its `entity_ids`, `event_ids`, and `arc_ids`; for an Event its `entity_ids`; for an Arc its `event_ids`; for a Narrative Unit its `child_ids` and `subject_ids`; for a Property its `entity_id`, `caused_by`, and `supersedes`; and for any record the Event ids its spans use as time points. The Story Bible layer computes that list from the record's fields when it writes the row. The store does not read the fields to find it. Every row, the story row included, has a revision: an integer that starts at 1 and increases by one each time a save writes or guards that row. There is no story-wide revision. The whole story is the document in [story-bible.md](../story-bible.md); the rows are how the store holds it.
 
 | Operation | Role |
 | --- | --- |
-| `create(user_id)` | A new empty story owned by the acting user, at revision 1. |
-| `load(user_id, story_id)` | The document and its revision, for a story the acting user owns. |
-| `save(user_id, story_id, document, expected_revision)` | Replace the document, only if the stored revision equals `expected_revision`. Returns the new revision, or a conflict carrying the current document and revision. |
+| `create(user_id)` | A new empty story owned by the acting user. The story row is at revision 1. |
+| `load(user_id, story_id)` | Every row of a story the acting user owns, each with its revision, read in one transaction so the snapshot is consistent. |
+| `save(user_id, story_id, changeset, source)` | Apply a set of row operations, each guarded by a revision, as one transaction, and write the commit record in [Commit history](#commit-history) in that same transaction. Returns the new revisions and the commit id, or a conflict naming the rows that did not match and their current state. |
+| `history(user_id, story_id, filters)` | The story's commit records, newest first. Filters are the source fields below and a time range. |
 | `list(user_id)` | The acting user's stories. |
-| `delete(user_id, story_id)` | Remove the story, for its owner. Removes that story's conversation rows and their threads. Call records keep their `story_id`; they are debug data, not story data. |
+| `delete(user_id, story_id)` | Remove the story, its rows, and its commit records, for its owner. Removes that story's conversation rows and their threads. Call records keep their `story_id`; they are debug data, not story data. |
 
-`save` is one atomic conditional replace: an update guarded by the revision in SQLite and Postgres, a lock, a revision check, and a file replace for a JSON file. It lands completely or not at all. Two saves on one story are ordered by that guard. The second does not overwrite the first in silence. Two different stories can save at the same time.
+A changeset holds row operations of four kinds:
 
-One row holds one story's current document. The store keeps no history of earlier revisions. An evaluation run that needs the story before and after a workflow copies the document into its own record; the evaluations doc owns that record. A row per record, with a revision per record, is a later refinement behind these same five operations, if a story grows large enough to need it.
+| Operation | Guard | Effect |
+| --- | --- | --- |
+| `create` | The row must not exist. | Inserts it at revision 1. |
+| `update` | The row's revision equals the expected revision. | Replaces the fields and the named ids. Revision moves by one. |
+| `delete` | The row's revision equals the expected revision. | Removes the row. |
+| `guard` | The row's revision equals the expected revision. | Changes nothing in the row. Revision moves by one, so a concurrent write or guard on the same row conflicts. |
+
+The save also checks the names. Inside the same transaction, every id a created or updated row names exists in this story, and no row outside the changeset still names a deleted row. A row that fails that check is a conflict, reported with the rows involved. The check is generic. The store does not know that an Assertion needs two participants or that a Narrative Unit has one parent. It knows that a row names another row, and it refuses to let two saves interleave into a dangling name. The Story Bible layer makes the same check first, against its snapshot, and produces the refusal with the legal ids. The store's check is the race guard behind it.
+
+`save` is one transaction. Every guard is checked and every operation applied, or none is. A conflict on one row means nothing in the changeset landed. In SQLite the transaction is one writer at a time. In Postgres the save locks the rows it touches and the rows it names before it checks them, or runs at serializable isolation and treats a serialization failure as a busy error, so two saves on one story cannot both pass their checks against a state neither one leaves behind. For a JSON file in a test, the same guards run under a lock before one file replace.
+
+Two saves that touch different rows do not conflict. Two saves that write, delete, or guard the same row are ordered by that row's revision, and the second sees a conflict instead of overwriting the first. Two saves that both create the same id are ordered the same way: the second one's `create` fails, which is how a slug collision between two parallel creates is caught. Two different stories never conflict.
+
+The store keeps no history of earlier revisions. A row holds its current state. An evaluation run that needs the story before and after a workflow copies the document into its own record; the evaluations doc owns that record.
 
 ## A commit
 
-A commit is the Story Bible layer's algorithm, above the store. Every change to a story goes through it: a user's edit, a tool call, an agent's draft, an import.
+A commit is the Story Bible layer's algorithm, above the store. Every change to a story goes through it: a user's edit, a tool call, an agent's draft, an import, a revert.
 
-1. `load` a snapshot of the story at revision N.
+1. `load` a snapshot of the story, every row with its revision.
 2. Apply the writes to that copy, in order. A write is a create, an update, or a delete of one record, or a change to the framing fields or `unit_ids`. A later write in the set can see what an earlier one created, so several creates can refer to each other. That is the case version 2 broke.
 3. Check the resulting document against the rules in [story-bible.md](../story-bible.md): an unknown id, a delete something still names, a Narrative Unit in two lists or inside itself, a blank primary text, a span cycle. A failure returns the refusal, with the legal ids for that kind of record. Nothing was written.
-4. `save` with `expected_revision` N. A conflict returns the current story and its revision.
+4. Build the changeset: a `create` for each record the writes made, an `update` or `delete` at the snapshot revision for each record they changed or removed, an `update` of the story row when the framing or `unit_ids` changed, and the guards below. `save` it with the source of the change, so the store writes the commit record in [Commit history](#commit-history). A conflict returns the rows that moved and their current state.
 
-Three outcomes: committed, refused, conflict. A refusal comes from the Story Bible layer, and the document on disk never held the bad state. A conflict comes from the store, and means someone else committed first. The caller decides what to do with either. A tool returns a refusal to the model as a tool message with status `error`. After a conflict, a caller may reload and apply its writes again at the new revision when the records those writes touch are unchanged. A write whose target changed is not reapplied. The caller returns the current record and writes nothing. A write that would now break a rule is refused on the retry.
+The changeset guards a record the writes did not change when a rule's answer depends on that record staying put:
+
+- A write that puts a Narrative Unit into a `child_ids` list or into `unit_ids`, or takes it out, guards that unit and every unit below it in the snapshot. Two parallel writes that each give the same unit a parent then conflict instead of leaving it in two lists, and a write that would make a unit contain itself through a longer chain conflicts with the guard on the subtree instead of landing beside the write that closes the loop.
+- A write that adds a span whose time point is an Event guards that Event and every Event the snapshot reaches from it by following time points. A cycle can only close if another write changes an Event on that chain, and that write then conflicts with this guard instead of both landing. Chains are short, so the guard set is small.
+- A delete of an Entity carries a `delete` for each Property the snapshot shows it owning. A Property created on that Entity after the snapshot is a row that still names the Entity, and the store's name check turns the delete into a conflict.
+
+Nothing else is guarded. Creating a Property on an Entity, naming an Entity in an Event, or naming an Event in an Arc does not guard the named record; the store's name check already keeps it from being deleted out from under the write. Five parallel creates of unrelated records touch five different rows and all land. Five parallel Properties on one Entity touch five different rows and all land.
+
+Three outcomes: committed, refused, conflict. A refusal comes from the Story Bible layer, and the stored story never held the bad state. A conflict comes from the store, and means someone else committed first on a row this commit needed. The caller decides what to do with either. A tool returns a refusal to the model as a tool message with status `error`. After a conflict, a caller may reload and run the commit again from step 1. A write that updates or deletes a record whose fields changed since the first snapshot is not reapplied; the caller returns the current record and writes nothing. A create, a guard that only moved a revision, and an update or delete of a record whose fields are as they were are reapplied, and the re-check in step 3 can now refuse what the first check allowed. The agents doc bounds how many times a tool does this.
 
 There is no live object beside the store. Version 2 kept one in-memory world, mutated it, and saved afterward, so a failed save left memory and disk disagreeing and the model's retry then duplicated the phantom change. Here the copy in step 2 is private to the commit and is discarded if the commit does not land.
 
-The screen holds the user's edit until the commit succeeds. The stored story changes only at that commit. A failed commit, including a refusal, a conflict, and a busy error that ran out of retries, leaves the stored story as it was and leaves the edit on the screen so the user can retry or reload. A whole-story revision means an agent's commits during a run move the revision under a user's pending edit. The screen may reload and reapply a single-record edit when that record is unchanged at the new revision, and shows the conflict otherwise. The store does only the revision check.
+The screen holds the user's edit until the commit succeeds. The stored story changes only at that commit. A failed commit, including a refusal, a conflict, and a busy error that ran out of retries, leaves the stored story as it was and leaves the edit on the screen so the user can retry or reload. An agent's commits during a run move only the rows they write, so a user's pending edit of another record is not disturbed by them. A pending edit conflicts when the record it edits, or a record it guards, moved. The screen then shows the current record beside the edit. The store does only the revision and name checks.
 
 A user edit and an agent write use this same commit. Version 2 gave rollback to tool calls only.
 
@@ -78,20 +100,59 @@ A user edit and an agent write use this same commit. Version 2 gave rollback to 
 
 Version 2 ran the tool calls of one model message at the same time, against one in-memory world. A later call in the batch could name a record an earlier call had not created yet, or could validate against a half-updated story. The mitigation serialized every tool call in the process. That was correct, and it gave up every other kind of parallelism.
 
-The problem was the shared live object, not the parallelism. Here each write tool call is its own commit against a committed snapshot, so a batch of tool calls can run at once without a gate:
+The problem was the shared live object, not the parallelism. Here each write tool call is its own commit against a committed snapshot, and a revision belongs to a row rather than to the story, so a batch of tool calls can run at once without a gate:
 
-- Two independent writes in one batch. The second one's `save` conflicts. The tool reloads and applies its write again when the records it touches are unchanged at the new revision. If those records changed, the tool returns them and writes nothing. Neither call saw a torn story.
+- Independent writes in one batch. Each one's changeset touches its own rows. All of them land, in whatever order the store runs them. None saw a torn story, because each validated a consistent snapshot and the store checked the names inside each save.
+- Two writes in one batch on the same record, or two creates that mint the same slug. The second one's `save` conflicts. The tool reloads and runs its commit again. An update of a record the sibling just changed is returned, not reapplied. A create whose slug is now taken mints the next one.
 - A dependent batch, where call B names an id that call A creates. If B commits first, it is refused with the legal ids. The model sees A's result in the same tool round and issues B again. That costs a turn, only when the model batched dependent writes.
 
 Independent reads of a story run together. Writes to two stories run together. A middleware that serializes every tool call in the process is not part of this design. Restricting the model's parallel tool calls is a cost choice, and the agents doc declines it. A batch runs, and a dependent call that loses the race is refused and issued again.
 
 ### A draft commit
 
-A multi-step agent draft is the same commit with a longer-lived snapshot. The draft holds the writes until one commit, and that commit passes the revision from when the draft started. The story has moved: the commit conflicts, returns the current revision, and writes nothing. The story is still the one the user has. The agents doc says the caller reports that conflict and does not reapply the draft onto the new revision. The plot-draft commit in version 2 is the pattern. The process-wide story-bible claim it also required is not.
+A multi-step agent draft is the same commit with a longer-lived snapshot. The draft holds the writes until one commit. That changeset carries the snapshot revisions for every record the draft writes, and a `guard` for every record the draft read while planning, so the commit lands only if nothing it saw has moved. If anything has, the commit conflicts, returns the rows that moved, and writes nothing. The story is still the one the user has. The agents doc says the caller reports that conflict and does not reapply the draft onto the new state. The plot-draft commit in version 2 is the pattern. The process-wide story-bible claim it also required is not.
 
 If the process dies before that commit, the draft is gone. The draft is in-process state; it is not in the conversation thread's checkpoints. The story stays at the last successful commit. Call records already written stay in the log. Resuming a workflow after a restart, and checkpointing a run that must survive the process, stay open in [open-questions.md](../open-questions.md).
 
 A busy flag in the UI can tell the user a run is in progress. It is not what keeps the story consistent. Version 2's in-memory job claims died on restart and were not a transaction. They are not ported.
+
+## Commit history
+
+Every save writes one commit record, in the same transaction as the rows it changes. The record is what the writer reads to see what a turn did, and it is what a revert is built from. The changeset the commit already built is the record; the store keeps it instead of discarding it.
+
+| Field | Role |
+| --- | --- |
+| `commit_id` | Key. Assigned by the store. |
+| `story_id`, `user_id` | The story and the acting user. |
+| `committed_at` | When the save landed. |
+| `source` | `user`, `tool`, `import`, `draft`, `revert`, or `eval`. |
+| `thread_id`, `run_id`, `tool_call_id` | For `tool` and `draft`: the conversation, the agent run that is the turn, and the id the model gave the tool call, which the logging doc's `tool_call` record also carries. Empty for the others. For `eval`, the evaluation run's `workflow_run_id` is in `run_id`. |
+| `reverts` | For `revert`: the commit ids this one undid. Empty otherwise. |
+| `changes` | One entry per record the save created, updated, or deleted, in the order the writes were applied. |
+
+A change entry has the record id, the kind, the operation, the fields before, and the fields after. A create has no before. A delete has no after. An update has both. A change to the story row's framing or `unit_ids` is an entry on the story row. Guards are not changes and are not recorded. A conflict or a refusal writes no commit record, because nothing landed.
+
+The before-image is taken from the row the save read to check its revision, inside the transaction, so it is the state the write replaced and not a later one. That read already happens. Keeping what it returned is the whole cost.
+
+A turn's changes are the `tool` commits with that `thread_id` and `run_id`. The write tool passes those from the agent context and from its own tool-call id, as the agents doc says. The call log records what the model asked and what the tool answered; this record is what the story did. The two are joined by `tool_call_id`.
+
+### Revert
+
+A revert is a commit. It takes one commit record, or every commit of one turn, and applies the inverse of each change in reverse order: a created record is deleted, a deleted record is created again with its original id and its before-image, an updated record gets its before-image back. Those writes go through the same load, apply, check, and save as any other commit, guarded by the current revisions of the records they touch. The result is a new commit with source `revert` naming the commits it undid. The reverted commits stay in the history. Nothing is erased.
+
+The same rules apply. If the writer has since built on a record the revert would delete, the delete is refused with the referring records. If a record the revert would restore has been edited since, that is a conflict on its revision, and the revert returns the current record. A turn-level revert is one commit, so it lands whole or not at all. The screen shows what is in the way, and the writer edits that or reverts a smaller set. The revert does not force the story back.
+
+A recreated record keeps the id it had. The identity rules in [story-bible.md](../story-bible.md) mint an id when a record is first created. A revert is not a first creation, and an import already keeps the ids from its file. The revert is the only path besides import that creates a record with an id it did not mint.
+
+The agent does not revert. A revert is an action the writer takes on the history view. The agents doc keeps it off the toolset.
+
+### What the history is not
+
+The history is edit history: who changed the story and what they changed. It is not story time, and it is not a second copy of the current state. The current state is the record rows. The in-force view in [story-bible.md](../story-bible.md) is over those rows, not over the history.
+
+Commit records are story data. They are deleted with the story. They are not in the story export; the export is the story, not how it got there, and an imported story starts its history with the import commit. There is no retention cap on them in slice 1. A story's history grows by one small row per commit, and a story that has thousands of commits is a story that has been worked on. If a cap is ever needed, it is a cap on the oldest records, and a revert of a commit whose record is gone is simply unavailable.
+
+An evaluation run still copies `bible_before` and `bible_after` into its own record. Reconstructing a document from the history is possible and is not what the evaluations doc relies on. The copies are simpler and they survive a history cap.
 
 ## Config store
 
@@ -103,7 +164,7 @@ Locally the document is a row in `app.sqlite`. On Railway it is a row in Postgre
 
 The user provides their own OpenRouter API key. The secrets store is `set`, `get`, and `delete` for the acting user's key. The model binding in [model-configuration.md](model-configuration.md) reads the key through `get` when it builds a chat model. Nothing else reads it.
 
-The key is not a field on the config document. It is not written into a story export, a config export, or a call record. Locally it is a row in `data/secrets.sqlite`, in plain text; the local install is the user's own machine, and the separate file keeps the key out of a copied `app.sqlite`. On Railway it is a row in its own table, encrypted by the application with a key from the environment before it is written, so a database dump does not contain usable keys. Platform encryption at rest protects the disk, not a dump. No export query reads that table. The screen that collects the key waits with the UI choice in [open-questions.md](../open-questions.md).
+The key is not a field on the config document. It is not written into a story export, a config export, or a call record. Locally it is a row in `data/secrets.sqlite`, in plain text; the local install is the user's own machine, and the separate file keeps the key out of a copied `app.sqlite`. On Railway it is a row in its own table, encrypted by the application with a key from the environment before it is written, so a database dump does not contain usable keys. Platform encryption at rest protects the disk, not a dump. No export query reads that table. The key reaches this store through the API's `set` endpoint; the screen that collects it waits with the frontend framework in [open-questions.md](../open-questions.md).
 
 ## Conversations
 
@@ -149,7 +210,7 @@ On Railway, the routine may delete uncited records older than 90 days. Cited rec
 
 ## Export and import
 
-A story export is a serialization of that story's document, for a story the acting user owns. It includes the schema version. It does not include other stories, configs, the API key, call logs, or conversations.
+A story export is a serialization of that story's document, for a story the acting user owns. It includes the schema version. It does not include row revisions, the commit history, other stories, configs, the API key, call logs, or conversations.
 
 Slice 1 has no prose, so the export is one JSON document. When prose exists, the export can be a zip with that document and the prose blobs. Version 2's zip was `world.json` plus scene files because the prose lived beside the world. The extra members, when they exist, are the blobs. The exclusion list does not change.
 
@@ -161,7 +222,7 @@ Import checks the schema version and fails with a clear error when it does not m
 
 Workflows that must survive a process restart stay open in [open-questions.md](../open-questions.md). Until that is decided, a run lives in the process. The story does not hold a half-applied draft.
 
-Which interface the user sees, and how a hosted request authenticates, are still open there. These stores can be called from a Python API or from the same process. That choice does not change the ownership model.
+These stores are called from the Python API in [application.md](application.md), and from nothing else; the frontend never opens one. Which framework draws the frontend, and how a hosted request authenticates, are still open there. Neither changes the ownership model.
 
 ## Coverage note
 
@@ -170,7 +231,7 @@ Remove this section after review.
 | Source | Disposition | Reason |
 | --- | --- | --- |
 | [deployment-and-concurrency.md](../deployment-and-concurrency.md) | Adapted | The write rules, the story boundary, Railway, and Postgres are this doc. The transaction is now split into a store primitive and a Story Bible commit. The old draft stays in place so review can diff it. |
-| [DEF-50](../v3-concept/issues/DEF-50.md) storage and tenancy | Kept | Local SQLite and hosted Postgres behind one interface. Owner on every story. Secrets out of exports. The UI, the frontend split, and authentication stay open. |
+| [DEF-50](../v3-concept/issues/DEF-50.md) storage and tenancy | Kept | Local SQLite and hosted Postgres behind one interface. Owner on every story. Secrets out of exports. The frontend split is settled as a Python API with a separate frontend, item 34. The frontend framework and authentication stay open. |
 | [DEF-51](../v3-concept/issues/DEF-51.md) | Left open | The early durable artifact is the last successful commit. The chat agent's checkpointer is conversation memory. Checkpoint and resume for workflows stay open. |
 | [v2/architecture.md](../v2/architecture.md) world state and the file lock | Adapted | The commit and the revision check replace the in-memory world and the process lock. The agents doc took the tool boundary. The module map is the overview's. |
 | [v2/architecture_async_jobs.md](../v2/architecture_async_jobs.md) | Adapted | Claims are not the consistency mechanism. The in-memory job manager and the scene queue are not ported. |

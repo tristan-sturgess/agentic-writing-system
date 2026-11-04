@@ -11,7 +11,7 @@ The accepted docs are the gate. Slice 1 starts from [story-bible.md](story-bible
 | Slice | Bound by | Starts when |
 | --- | --- | --- |
 | 1. Story Bible | [story-bible.md](story-bible.md). [architecture/persistence.md](architecture/persistence.md), for the story store, the commit, ownership, and the JSON export. | These docs are accepted. |
-| 2. Editing and visualization | The early pictures in the Story Bible doc. Questions 21 and 22 in [open-questions.md](open-questions.md), which this slice closes. The same commit as slice 1. | A story can be saved and loaded. |
+| 2. Editing and visualization | The early pictures in the Story Bible doc. [architecture/application.md](architecture/application.md), for the API the views call. Questions 21 and 22 in [open-questions.md](open-questions.md), which this slice closes. The same commit as slice 1. | A story can be saved and loaded, and the application doc is accepted. |
 | 3. Arc-planning agent | [architecture/agents.md](architecture/agents.md), [architecture/model-configuration.md](architecture/model-configuration.md), [architecture/prompt-assembly.md](architecture/prompt-assembly.md), [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md). The persistence doc, for the config, secrets, conversation, and call-log stores. | A person can build a bible by hand and see it. |
 | 4. Evaluations | [architecture/evaluations.md](architecture/evaluations.md). The logging doc, by citation. This slice does not capture a prompt a second way. | The arc chat's calls are in the log. |
 | 5. Prose | The note in this file. Narrative Units in the Story Bible doc. The scene-score place already reserved in the evaluations doc. | Slices 1–4 are in place. |
@@ -20,7 +20,7 @@ The accepted docs are the gate. Slice 1 starts from [story-bible.md](story-bible
 
 Implement the model in [story-bible.md](story-bible.md) on the story store in [architecture/persistence.md](architecture/persistence.md).
 
-A story has an owner. Locally there is one implicit user, and the owner is still stored. A write is a commit: committed, refused, or in conflict. User edits and later tool calls use that same commit. Two writes to one story are ordered. The caller sees the store interface. It does not see SQLite. A JSON file under a process lock is not what this slice builds.
+A story has an owner. Locally there is one implicit user, and the owner is still stored. A write is a commit: committed, refused, or in conflict. User edits and later tool calls use that same commit. A revision belongs to a record, so two writes to one record are ordered and two writes to different records both land. The caller sees the store interface. It does not see SQLite. A JSON file under a process lock is not what this slice builds.
 
 The schema includes every record in the Story Bible doc, including Narrative Units and the story's framing. A unit's `prose` field exists and stays empty. Leaving the field out would make prose a migration.
 
@@ -28,11 +28,11 @@ Slice 1 exports and imports one JSON story document. There are no blobs and no b
 
 This slice has no UI, no agent, and no prose workflow.
 
-Slice 1 is done when a story can be created, saved, and loaded, the integrity rules hold, two concurrent writes have a defined outcome, and an export of that story is one JSON document that imports as a new story.
+Slice 1 is done when a story can be created, saved, and loaded, the integrity rules hold, two concurrent writes have a defined outcome, every commit leaves a history record with before-images that a revert can be built from, and an export of that story is one JSON document that imports as a new story.
 
 ## Slice 2 — Editing and visualization
 
-A small set of views on the model from slice 1. This is where the UI is chosen. React is an open candidate. A Python API with a separate frontend matches a later hosted deployment. NiceGUI is the option the briefing set aside. The choice closes question 21 before any view is built. Accounts and a hosted login are not part of the choice. Locally there is still one implicit user.
+A small set of views on the model from slice 1. The application layer is a Python API with a separate frontend, settled item 34 in [open-questions.md](open-questions.md), so this slice builds two things: the first endpoints of that API, and the frontend that calls them. The API endpoints in this slice are stories, records, the commit, the history and its revert, and export and import, as [architecture/application.md](architecture/application.md) defines them. The frontend framework is chosen here. React is a candidate. NiceGUI and the other in-process Python frameworks are out with item 34. The choice closes question 21 before any view is built. Accounts and a hosted login are not part of the choice. Locally there is still one implicit user, and the API resolves every request to it.
 
 The Story Bible doc already requires these pictures, whatever widget draws them:
 
@@ -42,6 +42,8 @@ The Story Bible doc already requires these pictures, whatever widget draws them:
 The same slice edits the records as structured fields: Entities and their notes and Properties, Assertions, Events, Narrative Units, Arcs, and the story framing. A Narrative Unit is edited as structure: its place in the reading order, its children, and its subjects. Its prose stays empty, and this slice does not grow a prose editor. The in-force view is read-only.
 
 A hand edit is a commit. A failed save leaves the screen and the stored story in agreement. A retry after a transient lock does not freeze the screen.
+
+The slice also shows the story's commit history from the persistence doc, newest first, with what each commit changed, and lets the writer revert one commit. In this slice every commit is a hand edit or an import. Slice 3 adds the agent's commits to the same list, grouped by turn, and the turn-level revert. The view is part of question 22.
 
 "A little" is the bar. The views make the model inspectable and hand-editable. They do not cover later workflows, and they do not add graph types beyond the two pictures until question 22 is closed. The widget that draws those pictures is part of that question. It is not specified here.
 
@@ -57,12 +59,13 @@ This is the first slice that calls a model, so the docs that exist only to suppo
 - Prompt layers and the stream filter, from the prompt-assembly doc. The chat renders assistant text only.
 - The logging middleware and the tool-result record, from the logging doc, on every call the shared builder makes. The read-only call list is part of this slice. Prompt markup is shown literally. The page layout follows the UI from slice 2 and is not specified.
 - The config store, the secrets store, the conversation rows, and the call-log store, from the persistence doc.
+- The conversation endpoints, the turn stream, the stop, and the heartbeat, from the application doc. The chat is the first endpoint that streams, and the first one that has to carry a stop to a running turn.
 
 The arc chat records its calls through that tap. Slice 4 cites those records. A chat that cannot be attributed to the story, the `chat` node, and the config is not done, because the evaluation slice would otherwise have to capture the prompt a second way.
 
-The workflow does not write prose. It does not hold a draft for review. Candidate explorations, character interviews, and a research summary stay out, as the agents doc says. How many conversations the workspace lists, and whether the transcript shows tool calls, stay open with the UI.
+The workflow does not write prose. It does not hold a draft for review, and no run waits for the writer to approve a commit; the history view with its turn-level revert is the review, as item 23 settles. Candidate explorations, character interviews, and a research summary stay out, as the agents doc says. How many conversations the workspace lists stays open with the UI, and whether the transcript renders the tool calls the stream already carries is a rendering choice in this slice.
 
-Slice 3 is done when a prompt can produce arcs in that same bible, the user can revise the result by hand or with another prompt, an in-flight run can be cancelled, and the calls of that turn are in the log.
+Slice 3 is done when a prompt can produce arcs in that same bible, the user can revise the result by hand or with another prompt, the history shows what that turn changed and the turn can be reverted, an in-flight run can be cancelled, and the calls of that turn are in the log.
 
 ## Slice 4 — Evaluations
 
@@ -131,5 +134,5 @@ These are not missing slices. The docs already say they wait.
 - A workflow that must survive a process restart. An early run lives in the process. The durable artifact is the last successful commit. Question 29.
 - The Story Space location agent, routes, and time scrubber. Location entities can exist from slice 1. The writer and the arc agent edit them directly until that project is pulled in.
 - Candidate plot explorations, character-query interviews, and a research step that compresses the bible. Questions 31 and 32. The arc chat reads through tools until then.
-- Review before a draft commit, how many conversations the workspace lists, and tool calls in the chat. Questions 23–25. Any of them can be added without reordering these slices.
-- A stricter overlap rule, a fact-or-belief marker, and richer Assertion references. Questions 26–28. They are Story Bible revisions if a story needs them, not build slices.
+- How many conversations the workspace lists. Question 24. It can be added without reordering these slices.
+- A stricter overlap rule, a fact-or-belief marker, richer Assertion references, and a story-specific calendar. Questions 26–28 and 38. They are Story Bible revisions if a story needs them, not build slices.

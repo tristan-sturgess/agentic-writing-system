@@ -13,7 +13,7 @@ This is how a prompt, model, or workflow change is judged, and what that run cos
 
 One run of the arc chat is judged on its arcs and on the bible it wrote. Scoring the second target does not mean running the fixture again.
 
-Plot structure in the Linear evaluation issue is these arcs and the Events they organize. Story-bible updates are the construction scores. A dangling reference is not a judge dimension: a commit already refuses one, so a bible that saved has none. That rule is a check. A contradiction still saves, as the Story Bible doc says. An unintended clash is the judge's concern. A belief that conflicts with another belief, or a fact the brief left unspecified, is not a clash.
+Plot structure in the Linear evaluation issue is these arcs and the Events they organize. Story-bible updates are the construction scores. A dangling reference is not a judge dimension: a commit already refuses one, so a bible that saved has none. That rule is a check. A contradiction saves, and nothing in the model detects it, as the Story Bible doc says. An unintended clash is the judge's concern. A belief that conflicts with another belief, or a fact the brief left unspecified, is not a clash.
 
 Every run also runs deterministic checks. Those checks call no model. They read the saved bible and the tool results, and they pass or fail. The first checks are tool-call validity and id handling, in [Checks](#checks). The judge does not repeat them. A structurally valid bible can still be a weak arc, and that split is the point of having both.
 
@@ -45,7 +45,7 @@ The first suite is ten fixtures, and it is a regression set rather than a benchm
 
 A run is one execution of a named workflow version against one fixture version. The runner uses the same agent the product uses. For the arc chat that is the `chat` node, the same base prompt, the same tools, and the same recursion limit. The runner does not add an instruction of its own.
 
-It differs from a writing session in three ways. It creates a new story, owned by the launching user. An empty starting document is that story as `create` returns it. Any other starting document is one commit of that document, under the same rules as any commit. The runner does not write framing the fixture left empty. It creates a new conversation thread on that story and sends the fixture's messages in order, one invoke at a time. It mints a `workflow_run_id` and passes it on every invoke.
+It differs from a writing session in three ways. It creates a new story, owned by the launching user. An empty starting document is that story as `create` returns it. Any other starting document is one commit of that document, under the same rules as any commit, with source `eval` and the run's `workflow_run_id`, so the story's history shows where the fixture ended and the agent's turns began. The runner does not write framing the fixture left empty. It creates a new conversation thread on that story and sends the fixture's messages in order, one invoke at a time. It mints a `workflow_run_id` and passes it on every invoke.
 
 The logging context on those invokes is the owner's `user_id`, the new story's `story_id`, `workflow` `chat`, `node_id` `chat`, the resolved `config_id`, and that `workflow_run_id`. The interactive chat still leaves the workflow run id empty, because there the agent is the run. The logging doc is why the eval caller mints one: the calls of a multi-turn run are grouped by it.
 
@@ -81,7 +81,7 @@ Quality is not a status. A failed check does not change it. An unscored run is s
 
 ## Checks
 
-The runner writes the checks when the workflow returns, before the judge runs. A check reads `bible_after` and the tool records whose parent is one of the cited model calls. The logging doc defines that tool record. A check calls no model.
+The runner writes the checks when the workflow returns, before the judge runs. A check reads `bible_after`, the tool records whose parent is one of the cited model calls, and the story's commit history for the run's thread. The logging doc defines the tool record. The persistence doc defines the commit record, and its `tool_call_id` is the tool record's `tool_call_id`, so each tool call is matched to the commit it made, or to no commit. A check calls no model.
 
 | Field | Role |
 | --- | --- |
@@ -92,9 +92,9 @@ The runner writes the checks when the workflow returns, before the judge runs. A
 
 Two checks run on every arc-chat run. Further checks of this same shape can be added without a new record.
 
-`tool_calls` passes when every tool call the model requested names a tool that call offered, a success result matches a change actually stored, and no stored string contains a tool-call tag. The agents doc refuses leaked markup before the commit. This check is the run's record of that rule.
+`tool_calls` passes when every tool call the model requested names a tool that call offered, every success result from a write tool has exactly one commit with its `tool_call_id` and that commit's `changes` match what the result reported, every error result has no commit, and no string in any commit's after-image contains a tool-call tag. A record a later turn deleted still has its commit, so the check does not depend on the record surviving to `bible_after`. The agents doc refuses leaked markup before the commit. This check is the run's record of that rule.
 
-`id_handling` passes when an unknown id comes back as an error result that names the legal ids and stores nothing, a create's stored id is the id the tool returned rather than one the model supplied, and an update, a delete, or a reference names an id that existed. A reference in `bible_after` that does not resolve fails the check.
+`id_handling` passes when an unknown id comes back as an error result that names the legal ids and has no commit, a create's commit holds the id the tool result returned rather than one the model supplied, and an update, a delete, or a reference names an id that existed at that commit. A reference in `bible_after` that does not resolve fails the check.
 
 A tool error the model then corrects is a pass. The check is that the tool told the truth and the bible matches it. The check is not that the model's first attempt was perfect.
 
@@ -229,7 +229,7 @@ The runner writes this record itself. A library may replace that runner only if 
 
 ## The first surface
 
-The user launches a fixture against a workflow version and a model config, then reads the comparison. That launch runs the workflow, the checks, and the judge. That user is the owner of the run. There is no separate admin role. The screen follows the UI choice that is still open. This doc says what the surface does, and not which framework draws it.
+The user launches a fixture against a workflow version and a model config, then reads the comparison. That launch runs the workflow, the checks, and the judge. That user is the owner of the run. There is no separate admin role. The launch and the comparison are endpoints of the API in [application.md](application.md), and the screen is in the frontend framework that is still open. This doc says what the surface does, and not which framework draws it.
 
 Evaluations do not run in CI.
 
