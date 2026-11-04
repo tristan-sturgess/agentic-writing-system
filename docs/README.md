@@ -109,8 +109,8 @@ Step 12 does not add these back.
 | 1 | Finalize the document list | Done |
 | 2 | Vision | Done |
 | 3 | Story Bible | Done |
-| 4 | Model configuration | Not started |
-| 5 | Prompt assembly | Not started |
+| 4 | Model configuration | Done |
+| 5 | Prompt assembly | Done |
 | 6 | LLM debug logging | Not started |
 | 7 | Persistence, tenancy, and concurrency | Not started |
 | 8 | Agents and arc planning | Not started |
@@ -175,15 +175,17 @@ Capture these rules from version 2. They took several iterations to get right:
 
 - A model config is application data, separate from a story, and it is not part of a story export.
 - The user can select an OpenRouter model in the UI, set sampling and reasoning options, and set a system-prompt prefix on that config.
-- The prefix is bound to the resolved model client and applied on every call that uses the config, including streaming. The prefix is merged before the call is recorded, on both the one-shot and streaming paths. The logging doc owns the record. This doc owns that order.
-- The prefix is merged into the leading system message for that request. It is not written into the conversation's stored message list. Writing it into message state caused the prefix to show up in the chat transcript.
-- Applying the prefix is idempotent, so a retry or stream fallback cannot prepend it twice.
-- The node's own base system prompt is separate. The model client applies the prefix. The prompt builder does not need to know the prefix text.
+- The prefix is bound to the resolved config and applied on every call that uses it, including streaming and one-shot structured calls. The prefix is on the request before the call is recorded. The logging doc owns the record. This doc owns that order.
+- The prefix goes on the model request's system message. It is not written into the conversation's stored message list. Writing it into message state caused the prefix to show up in the chat transcript.
+- Version 2 applied the prefix inside a chat-model subclass so calls outside `create_agent` got it, and needed an idempotency rule to survive the stream-to-invoke fallback. Version 3 makes every model call an agent and applies the prefix in a `wrap_model_call` middleware on `ModelRequest.system_message`. The subclass and the idempotency rule are not carried over.
+- The node's own base system prompt is separate. The middleware applies the prefix. The prompt builder does not need to know the prefix text.
 - Resolution order for a node is: the user's saved selection for that node, then that node's default config, then one fallback config.
 - A small set of role configs is always available. Version 2 used orchestration, writing, judgment, and structure, each describing why a model was chosen. Keep the role idea. Rebuild the node registry as version 3 nodes appear. Do not copy the scene-writing and intimacy node lists.
 - Specific model ids in the version 2 analysis are a point-in-time recommendation. The doc can record them as the version 2 defaults and the reason each role existed. They are not a frozen version 3 requirement.
 
-Done when a later implementation can build the config store, the selector, and the prefixed client without reading the version 2 docs.
+Done when a later implementation can build the config store, the selector, and the prefixed agent builder without reading the version 2 docs.
+
+Accepted. Each user has their own configs, separate from their stories. The user provides their own OpenRouter API key in the UI; how that key is stored is left to the persistence doc. Every model call is a `create_agent` agent, one-shots included. The prefix is a `wrap_model_call` middleware listed before the logging middleware. Scene and intimacy nodes are not in the registry.
 
 ### 5. Prompt assembly
 
@@ -203,6 +205,8 @@ One stream rule belongs here because it is how the prefix bug became visible. A 
 
 Done when Step 4 and this doc agree on where the prefix is applied, and a caller can tell where a new piece of context should go.
 
+Accepted. Static prompt text stays on the model request, with the prefix applied by the model-configuration middleware. Context for this call only is a messages override on that request. Context later turns should keep is put on the user message when the turn is built. The arc agent reads the Story Bible through tools. A research summary, when that step exists, stays distinguishable from a stored statement. The stream renders assistant chunks only.
+
 ### 6. LLM debug logging
 
 Add `architecture/llm-debug-logging.md`.
@@ -213,17 +217,20 @@ Read [v2/architecture_llm_debug_logging.md](v2/architecture_llm_debug_logging.md
 
 Capture the rules that took iteration in version 2:
 
-- One tap, on the shared model factory, so every current and later workflow is logged without each node opting in.
-- The prefix is already merged before the tap runs, on both the one-shot and streaming entry points. Logging the conversation message list would miss the system prompt and the prefix. Version 2 checked this directly: the start callback sees the merged system message.
-- Record start, success, and error. A call that is still running stays visible. If the finish event arrives without a start, still store a record.
-- The record includes the run id, status, times, duration, the node or step when the runtime provides it, the model, scrubbed parameters, the prompt both as text and as structured messages, the response text, the tool calls the model requested, response metadata, and the error. Keep the requested tool calls even when the tool later fails.
-- Scrub secrets recursively before writing. A key that looks like an API key, authorization header, token, or secret is redacted, including when it is nested.
+- One tap, in the fixed middleware list the shared agent builder passes to `create_agent`, so every current and later workflow is logged without each node opting in. Version 2 attached a callback handler to the chat model in the factory; the version 3 equivalent is a `wrap_model_call` logging middleware, since every call is an agent.
+- The logging middleware is last in the list, so it is innermost and wraps only the provider call. The `ModelRequest` it sees already carries the prefix and the node's base prompt; logging the conversation message list would miss both. Being innermost also means a retry middleware produces one record per attempt, each with its own error and duration, which is what version 2's callbacks produced. A logger outside the retry would collapse the attempts into one record and lose the intermediate errors.
+- The logger is one function around the handler: write the `running` record, call the handler in a try/except, update that record to `success` or `error`. There is no separate start and finish event, so there is no orphaned finish to handle. The one remaining case is the process dying mid-call, which leaves a record at `running`. The doc says what the view does with those: show them as-is, or mark records older than the process start as `interrupted`.
+- Streaming needs no second path. The handler returns the complete `AIMessage` after the stream finishes; tokens reach the UI through LangGraph's stream modes, not through the middleware. Version 2's "both entry points" language described the chat-model subclass and does not apply.
+- Identity is three ids, not one. The middleware generates a `call_id` for the record. `runtime.execution_info` supplies `run_id` (the graph run, shared by every model call in one agent invoke) and `thread_id` (the conversation). Version 2 used the callback run id, which was per call, and had no way to group the calls of one agent turn. Do not use the graph run id as the record key.
+- Attribution is explicit, not scraped. With one-shot calls nested as agents inside a workflow graph, the innermost `langgraph_node` is always the agent's own `model` node and the outer step name is buried in the checkpoint namespace. The shared agent builder passes a context object (`context_schema`) carrying `story_id`, `workflow`, the registry `node_id`, and `config_id`; the logger reads `request.runtime.context`. The registry node id from Step 4 is the attribution key an evaluation run filters on.
+- The record includes: `call_id`, `run_id`, `thread_id`, status, times, duration, the context fields above, the model id and the config's sampling options (temperature, max tokens, reasoning effort) taken from the config rather than scraped from the chat model, the prompt both as text and as structured messages, the names of the tools offered and the response schema name when `response_format` is set, the response text, the tool calls the model requested, the parsed `structured_response` for a structured one-shot, response metadata including token usage, and the error. Keep the requested tool calls even when the tool later fails.
+- Scrub secrets recursively before writing anything copied from `response_metadata` or model settings. A key that looks like an API key, authorization header, token, or secret is redacted, including when it is nested. The config fields never contain a key, so the scrub is a safety net rather than the main line of defense it was in version 2.
 - Call logs are application debug data. They are not part of a story and they are not in a story export.
-- Concurrent calls must not tear the log. Version 2 locked the whole read-modify-write after parallel nodes corrupted the file on Windows. A corrupt log is discarded so the next call can be recorded. A logging failure must not fail the model call. The JSON file and the process lock are the version 2 implementation. They are not a requirement that the hosted store be one file.
-- Attribute a call to the story and the workflow step when those exist, so an evaluation run can point at these records for the prompt, the tokens, and the latency. Version 2's log was process-local and had no story id.
-- The debug view is read-only. It lists calls newest-first, including failures and calls still running. Prompt markup is shown literally. Version 2's markdown view executed tags such as `<canvas>` that appeared inside prompts. Token counts prefer the client usage metadata and fall back to the provider usage field. The NiceGUI page is not the view to copy.
+- Concurrent calls must not tear the log. Version 2 locked the whole read-modify-write after parallel nodes corrupted the file on Windows. A corrupt log is discarded so the next call can be recorded. A logging failure must not fail the model call: store writes are wrapped so they cannot raise, and the model's own exception is always re-raised unchanged. The JSON file and the process lock are the version 2 implementation. They are not a requirement that the hosted store be one file.
+- The debug view is read-only. It lists calls newest-first, including failures and calls still running. Prompt markup is shown literally. Version 2's markdown view executed tags such as `<canvas>` that appeared inside prompts. Token counts prefer the message's `usage_metadata` and fall back to the provider usage field. The NiceGUI page is not the view to copy.
+- Open: tool execution logging. `wrap_tool_call` sits in the same middleware list and gives the tool name, arguments, result or error, and duration. Version 2 logged only the tool calls the model requested, not what the tool returned, and for evaluating an arc-planning agent the tool results are often what you need to see. Not a requirement for this step, but the record shape should leave room for a `tool_call` record type.
 
-Done when a later implementation can record a prefixed, streaming, tool-calling model call, and an evaluation run can cite that record, without reading the version 2 logging doc.
+Done when a later implementation can record a prefixed, tool-calling model call from the chat agent and a structured one-shot call from a workflow node, both attributed to a story, node id, and config id, and an evaluation run can cite those records, without reading the version 2 logging doc.
 
 ### 7. Persistence, tenancy, and concurrency
 
@@ -325,9 +332,9 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [v2/architecture.md](v2/architecture.md) | Architecture overview, persistence, and agents. Drop the NiceGUI module map and the single `world.json` design. | No |
 | [v2/story_bible_model.md](v2/story_bible_model.md) | [story-bible.md](story-bible.md). Readable ids and the time/presentation split stay. Replay, signals, and ranks are dropped. | Yes |
 | [v2/forms_and_data_models.md](v2/forms_and_data_models.md) | [story-bible.md](story-bible.md), for which fields were editable. Form layout is dropped with NiceGUI. Scene blueprints wait with prose. | Yes |
-| [v2/model_configuration.md](v2/model_configuration.md) | Model configuration. | No |
-| [v2/model_selection_analysis.md](v2/model_selection_analysis.md) | Model configuration, for the role rationale. Specific model picks stay historical. | No |
-| [v2/architecture_prompt_assembly.md](v2/architecture_prompt_assembly.md) | Prompt assembly and model configuration. | No |
+| [v2/model_configuration.md](v2/model_configuration.md) | [architecture/model-configuration.md](architecture/model-configuration.md). The scene and intimacy node lists are dropped. | Yes |
+| [v2/model_selection_analysis.md](v2/model_selection_analysis.md) | [architecture/model-configuration.md](architecture/model-configuration.md), for the role rationale and the seed models. The July 2026 price table is dropped. | Yes |
+| [v2/architecture_prompt_assembly.md](v2/architecture_prompt_assembly.md) | [architecture/prompt-assembly.md](architecture/prompt-assembly.md), for the message-channel rule and the stream filter. The prefix mechanism is in [architecture/model-configuration.md](architecture/model-configuration.md). The version 2 chat primer and scene-workflow prompt sequence are dropped. | Yes |
 | [v2/architecture_llm_debug_logging.md](v2/architecture_llm_debug_logging.md) | LLM debug logging. Evaluations cite the records and do not redefine the tap. | No |
 | [v2/architecture_agent_workflows.md](v2/architecture_agent_workflows.md) | Agents, for workflow shape and the plot-draft commit. Scene-writing and intimacy workflows wait or drop. | No |
 | [v2/architecture_async_jobs.md](v2/architecture_async_jobs.md) | Persistence, for claims versus real transactions. In-memory job manager is not the hosted design. | No |
@@ -352,7 +359,7 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [v3-concept/issues/DEF-53.md](v3-concept/issues/DEF-53.md) | [story-bible.md](story-bible.md) for the event model. Signals are out. Causal claims between Events are Assertions. The planner-facing slice is still the agents doc. Physical state stays in Story Space. | Partial |
 | [v3-concept/issues/DEF-54.md](v3-concept/issues/DEF-54.md) | Agents. | No |
 | [v3-concept/issues/DEF-55.md](v3-concept/issues/DEF-55.md) | Agents, as optional later capability. | No |
-| [v3-concept/issues/DEF-56.md](v3-concept/issues/DEF-56.md) | Prompt assembly and agents. | No |
+| [v3-concept/issues/DEF-56.md](v3-concept/issues/DEF-56.md) | [architecture/prompt-assembly.md](architecture/prompt-assembly.md) places bible context and requires synthesized text to stay distinguishable from stored statements. Retrieval versus an exploring agent, and the Story Space queries, stay open. | Partial |
 | [v3-concept/issues/DEF-57.md](v3-concept/issues/DEF-57.md) | Evaluations. | No |
 | [v3-concept/issues/DEF-90.md](v3-concept/issues/DEF-90.md) | [story-bible.md](story-bible.md). | Yes |
 | [v3-concept/related-story-space/](v3-concept/related-story-space/project.md) | No finished doc in the first set. Step 12 records it as deferred related work, still available in Linear and in git history. | No |
@@ -367,5 +374,5 @@ Each writing step updates the rows it accounts for. "Accounted for" stays **No**
 | [evaluations.md](evaluations.md) | Replaced by `architecture/evaluations.md` in Step 9. | No |
 | [deployment-and-concurrency.md](deployment-and-concurrency.md) | Replaced by `architecture/persistence.md` in Step 7. | No |
 | [build-sequence.md](build-sequence.md) | Replaced by Step 10. | No |
-| [open-questions.md](open-questions.md) | Kept. Step 2 settled questions 1–4. Step 3 settled the slice 1 model, including dropping Event links. Overlap, epistemic markers, and assertion roles stay open. Later steps keep updating it. | Partial |
+| [open-questions.md](open-questions.md) | Kept. Step 2 settled questions 1–4. Step 3 settled the slice 1 model, including dropping Event links. Step 4 settled per-user model configs and a user-provided API key. Secure key storage, and how a later research step selects context, stay open. Overlap, epistemic markers, and assertion roles stay open. Later steps keep updating it. | Partial |
 | [v2-import-inventory.md](v2-import-inventory.md) | Input to Steps 3–9. Removed in Step 12. Step 1 did not keep it as a finished doc. | No |
