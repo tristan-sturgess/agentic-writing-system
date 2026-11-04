@@ -45,7 +45,7 @@ How that step searches, what it compresses, and which model runs it stay open in
 
 A note about the page or record the user currently has open goes with the current user message. It is not part of the system prompt, and the prefix middleware does not touch it.
 
-The note is there so the model can see what the user is looking at. The assistant's visible reply is still only assistant text. Which of the two per-turn placements it takes is still open. The conversation persists per story, as the persistence doc says, so both are possible: if later turns should know what the user was looking at when they said "change this", the note is a content block on the user message as the app submits it, and the thread stores it; if only this run should, a `wrap_model_call` middleware appends it to `request.messages` and nothing is stored. The agents doc decides when it writes the arc agent's turn.
+The note is there so the model can see what the user is looking at. The assistant's visible reply is still only assistant text. For the arc agent, the note is a content block on the user message as the app submits it, and the thread stores it, so a later turn can see what the user meant by "change this." The agents doc is the authority for that placement. A `wrap_model_call` override that hides the note from later turns is not used.
 
 ## The stream
 
@@ -59,7 +59,7 @@ That filter is part of keeping a system prompt out of the transcript. The other 
 - Instructions that define this node's job, and stay fixed for the run, go in the base prompt.
 - A fact the agent should look up from the Story Bible goes through a read tool. The result is a tool message.
 - A bundle prepared for this request, including a future research summary, is attached to this turn, or is the input of a one-shot node. If the bundle is not itself a stored statement, it is marked as synthesized. If only this call should see it, it goes on the request through the messages override instead of the channel.
-- What the user currently has open goes with the current user message, on the channel or on the request as decided above.
+- What the user currently has open goes on the current user message, and the thread stores it. The agents doc sets that placement for the arc agent.
 - The dialogue itself is the conversation: user, assistant, and tool messages.
 
 The logging middleware is last in the list. The request it records is the one the provider receives: the system message with the prefix and the base prompt, and the messages for this call after any override. Logging the stored conversation alone would miss the system message and anything added on the request.

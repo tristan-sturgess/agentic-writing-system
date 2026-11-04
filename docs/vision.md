@@ -51,4 +51,4 @@ Locations can be entities in the Story Bible. Routes, travel, and a scrubber for
 
 Plot is planned directly, as events and arcs. An agent may look harder at a character or a place when a step needs that. That deeper look is not the mechanism that decides the plot.
 
-Ways to explore alternate plots, or to interview a character about the world, wait until the arc workflow exists. Whether the writer approves an arc draft before it is saved is an open choice in [open-questions.md](open-questions.md). The agents doc will name it.
+Ways to explore alternate plots, or to interview a character about the world, wait until the arc workflow exists. The first workflow saves each tool call as it succeeds. Whether a later run holds a batch for the writer to approve before one commit stays open in [open-questions.md](open-questions.md). The agents doc names that choice.
