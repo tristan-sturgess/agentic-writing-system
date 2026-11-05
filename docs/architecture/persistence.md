@@ -26,7 +26,7 @@ Local files live in `data/` under the application root. The path can be set by a
 
 | File | What it holds |
 | --- | --- |
-| `data/app.sqlite` | The user, story rows and record rows with their revisions, commit records, config documents, conversation rows, and evaluation runs, as [evaluations.md](evaluations.md) defines them. |
+| `data/app.sqlite` | The user, story rows and record rows with their revisions, commit records, config documents, conversation rows, turn rows as [application.md](application.md) defines them, and evaluation runs, as [evaluations.md](evaluations.md) defines them. |
 | `data/checkpoints.sqlite` | LangGraph checkpoints for conversation threads. The checkpointer library owns these tables. |
 | `data/call_log.sqlite` | Call-log records and instance heartbeats. Disposable. Recoverable without touching `app.sqlite`. |
 | `data/secrets.sqlite` | The user's API key. Never read by an export. |
