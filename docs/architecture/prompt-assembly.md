@@ -24,7 +24,7 @@ One call is built from four layers, outermost first.
 | --- | --- | --- |
 | Model-config prefix | The model request's system message, in front of the base prompt | The prefix middleware in [model-configuration.md](model-configuration.md) |
 | Node or workflow base prompt | The rest of that system message | The node's prompt builder, passed to `create_agent` as the system prompt |
-| Retrieved Story Bible context | Tool messages on this turn, or a labeled bundle attached to this turn when a research step exists | Read tools now. An optional later research step, DEF-56 |
+| Retrieved Story Bible context | Tool messages on this turn | Read tools |
 | Conversation | The user, assistant, and tool messages for this run | The conversation store and the agent loop |
 
 The prefix and the base prompt are content blocks on `ModelRequest.system_message`, not one concatenated string. The prefix middleware prepends its block and leaves the base blocks as they are, including any cache-control metadata on them. The prompt builder does not read the prefix text.
@@ -37,9 +37,7 @@ A cached agent includes the base prompt in its cache key, along with the prefix,
 
 The arc agent reads the Story Bible through tools. A tool returns stored records, or the in-force view when the question is what holds at a time. The result is a tool message on that turn. It is not copied into the system prompt, and the tool does not paraphrase a record into a new claim.
 
-A summarizing research step can sit in front of a planner later (Linear DEF-56). Until it exists, the agent uses the read tools and skips the summary. When it exists, anything it writes is synthesized context. The bundle has to say so, in a way the model can tell from a stored Property, Assertion, or other Story Bible statement. A stored statement is quoted from the bible. A summary, a selection note, or a statement that something was missing is marked as produced for this request. The bundle is attached to the turn it was built for. It does not become a standing system prompt that later turns inherit.
-
-How that step searches, what it compresses, and which model runs it stay open in [open-questions.md](open-questions.md). Routes, whereabouts, and the other Story Space queries stay in that project. Until they are brought in, a location is an Entity and is read like any other record.
+Routes, whereabouts, and the other Story Space queries stay in that project. Until they are brought in, a location is an Entity and is read like any other record.
 
 ## What the user has open
 
@@ -58,7 +56,7 @@ That filter is part of keeping a system prompt out of the transcript. The other 
 - A standing instruction for every call that uses a model config goes in that config's prefix. The prefix middleware applies it.
 - Instructions that define this node's job, and stay fixed for the run, go in the base prompt.
 - A fact the agent should look up from the Story Bible goes through a read tool. The result is a tool message.
-- A bundle prepared for this request, including a future research summary, is attached to this turn, or is the input of a one-shot node. If the bundle is not itself a stored statement, it is marked as synthesized. If only this call should see it, it goes on the request through the messages override instead of the channel.
+- Input prepared for one request, such as a one-shot node's input for its step, goes on the user message for that step. If only this call should see it, it goes on the request through the messages override instead of the channel.
 - What the user currently has open goes on the current user message, and the thread stores it. The agents doc sets that placement for the arc agent.
 - The dialogue itself is the conversation: user, assistant, and tool messages.
 

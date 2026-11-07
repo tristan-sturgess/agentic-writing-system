@@ -69,7 +69,7 @@ The save also checks the names. Inside the same transaction, every id a created 
 
 Two saves that touch different rows do not conflict. Two saves that write, delete, or guard the same row are ordered by that row's revision, and the second sees a conflict instead of overwriting the first. Two saves that both create the same id are ordered the same way: the second one's `create` fails, which is how a slug collision between two parallel creates is caught. Two different stories never conflict.
 
-The store keeps no history of earlier revisions. A row holds its current state. An evaluation run that needs the story before and after a workflow copies the document into its own record; the evaluations doc owns that record.
+The store keeps no earlier state of a row. A row holds its current state, and the commit history in [Commit history](#commit-history) records each change with its before and after. An evaluation run that needs the story before and after a workflow copies the document into its own record, because a copy is simpler than a reconstruction and survives a history cap; the evaluations doc owns that record.
 
 ## A commit
 
@@ -170,7 +170,7 @@ The key is not a field on the config document. It is not written into a story ex
 
 A conversation is a LangGraph thread. The chat agent from `create_agent` is compiled with a checkpointer, and the conversation's id is the `thread_id` it is invoked with. The transcript the workspace shows is that thread's state. There is no second message table. The logging doc's `thread_id` is this id.
 
-The app keeps a conversation row in `app.sqlite`: the conversation id, the owner, the story, and a created time. The checkpointer's tables carry no user or story, so that row is the scope. A request resolves a conversation through its row, and the owner check happens there, before the agent is invoked with that `thread_id`. A thread has one invoke in flight. A second prompt on that conversation waits until the run has ended, as the agents doc says. Story edits during the run are commits, and they do not start a second invoke. The store allows more than one conversation per story. The agent runs on the conversation it was given. Whether the workspace lists more than one stays open in the agents doc.
+The app keeps a conversation row in `app.sqlite`: the conversation id, the owner, the story, and a created time. The checkpointer's tables carry no user or story, so that row is the scope. A request resolves a conversation through its row, and the owner check happens there, before the agent is invoked with that `thread_id`. A thread has one invoke in flight. A second prompt on that conversation waits until the run has ended, as the agents doc says. A turn whose process died is reported as interrupted under the heartbeat rule below and no longer counts as running; the application doc states that. Story edits during the run are commits, and they do not start a second invoke. The store allows more than one conversation per story. The agent runs on the conversation it was given. Whether the workspace lists more than one stays open in the agents doc.
 
 Locally the checkpointer is the SQLite checkpointer on `data/checkpoints.sqlite`. On Railway it is the Postgres checkpointer. Each is its async form for the streaming chat path and its sync form for a sync caller. The sync saver does not implement the async methods, so the chat loop, which streams, needs the async one. This is the same rule as the middleware hooks. The library's setup creates its tables; the app does not define them.
 
@@ -186,9 +186,9 @@ Every read and every list is scoped by `user_id`.
 
 ### Instances
 
-A process generates an `instance_id` when it starts and keeps it until it exits. It writes a heartbeat row in the call-log store at start and about every 30 seconds, with that id, the start time, and the time of the heartbeat. The rows live with the call log because only the debug view reads them, and they are the most disposable data the app has.
+A process generates an `instance_id` when it starts and keeps it until it exits. It writes a heartbeat row in the call-log store at start and about every 30 seconds, with that id, the start time, and the time of the heartbeat. The rows live with the call log because only the API reads them, to derive `interrupted` on a call, a turn, or a run, and they are the most disposable data the app has.
 
-The view's rule: a `running` record is interrupted when its `instance_id` has no heartbeat in the last 90 seconds, three missed beats, or has no heartbeat row at all. A crash never writes a stop row, so staleness is the rule, and a replica that scaled down looks the same as one that died. A local run is one process and uses the same heartbeat, so the view has one rule. Heartbeat rows older than a day are deleted by the same routine that handles retention.
+The rule, which the API applies and the logging doc defers to: a `running` record is interrupted when its `instance_id` has no heartbeat in the last 90 seconds, three missed beats, or has no heartbeat row at all. A crash never writes a stop row, so staleness is the rule, and a replica that scaled down looks the same as one that died. A local run is one process and uses the same heartbeat, so the view has one rule. Heartbeat rows older than a day are deleted by the same routine that handles retention.
 
 ### Recovery
 
@@ -202,7 +202,7 @@ On Railway a failed read of the log does not latch the store into a failed state
 
 ### Retention
 
-A record an evaluation run cites is kept. The evaluation store records the cited model-call `call_id`s. One deletion routine removes call records, whether an age job or the user's "clear log" runs it, and it excludes every id the evaluation store cites. It also excludes a tool record whose `parent_call_id` is one of those ids. The log store itself has no delete that bypasses that routine. The evaluations doc says what a run cites. It does not choose a second retention rule.
+A record an evaluation run cites is kept. The evaluation store records the cited model-call `call_id`s. One deletion routine removes call records, whether the retention routine or the user's "clear log" runs it, and it excludes every id the evaluation store cites. It also excludes a tool record whose `parent_call_id` is one of those ids. The log store itself has no delete that bypasses that routine. The evaluations doc says what a run cites. It does not choose a second retention rule.
 
 The local log has no count cap and no age cap. Version 2 kept the newest 200, which would have dropped records a later evaluation still named. The user can clear the log, which removes that user's uncited records.
 
@@ -223,18 +223,3 @@ Import checks the schema version and fails with a clear error when it does not m
 Workflows that must survive a process restart stay open in [open-questions.md](../open-questions.md). Until that is decided, a run lives in the process. The story does not hold a half-applied draft.
 
 These stores are called from the Python API in [application.md](application.md), and from nothing else; the frontend never opens one. Which framework draws the frontend, and how a hosted request authenticates, are still open there. Neither changes the ownership model.
-
-## Coverage note
-
-Remove this section after review.
-
-| Source | Disposition | Reason |
-| --- | --- | --- |
-| [deployment-and-concurrency.md](../deployment-and-concurrency.md) | Adapted | The write rules, the story boundary, Railway, and Postgres are this doc. The transaction is now split into a store primitive and a Story Bible commit. The old draft stays in place so review can diff it. |
-| [DEF-50](../v3-concept/issues/DEF-50.md) storage and tenancy | Kept | Local SQLite and hosted Postgres behind one interface. Owner on every story. Secrets out of exports. The frontend split is settled as a Python API with a separate frontend, item 34. The frontend framework and authentication stay open. |
-| [DEF-51](../v3-concept/issues/DEF-51.md) | Left open | The early durable artifact is the last successful commit. The chat agent's checkpointer is conversation memory. Checkpoint and resume for workflows stay open. |
-| [v2/architecture.md](../v2/architecture.md) world state and the file lock | Adapted | The commit and the revision check replace the in-memory world and the process lock. The agents doc took the tool boundary. The module map is the overview's. |
-| [v2/architecture_async_jobs.md](../v2/architecture_async_jobs.md) | Adapted | Claims are not the consistency mechanism. The in-memory job manager and the scene queue are not ported. |
-| [v2/known_issues.md](../v2/known_issues.md) items 2, 3, and 9 | Kept | Chat is per user and story and stays out of the export. User edits commit through the transaction. A retry does not run on the UI thread. |
-| The rest of that known-issues list | Left | The agents doc took the blocked plot turn, the unwired cancel, and the markup leak. The prose salvage still owes the fuzzy match and the canvas rollback. |
-| [v2/zip_import_export.md](../v2/zip_import_export.md) | Adapted | The export is the story, not the installation. Slice 1 is one JSON document. The zip returns with prose blobs. Import creates a new story through the commit. |

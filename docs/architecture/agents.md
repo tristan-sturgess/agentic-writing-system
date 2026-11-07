@@ -16,7 +16,7 @@ A string returned as an ordinary result is a success, and the model will treat t
 
 An unexpected exception leaves the tool and stops the run. `create_agent` does that for an exception the tool raises. A schema mismatch is already a tool message, before the tool body runs. These tools do not use retry middleware. The conflict retry below is the tool rerunning its own commit a bounded number of times. It is separate from that middleware.
 
-On a conflict, the tool reloads and runs the same commit again, as the persistence doc says. A revision belongs to a record, not to the story, so a sibling that wrote a different record causes no conflict at all, and the conflicts that remain are on the record this write is about: a create whose slug a sibling just took, a guard that moved, or an update of a record someone else changed. A create reapplies and mints the next slug. A guard that only moved a revision reapplies. If the writer, or another call, changed the fields of a record this write updates or deletes, the tool returns the error and the record now stored, and does not reapply. The writer's edit stands. If a reapply breaks a Story Bible rule, the refusal is the tool result. The tool makes at most three attempts, then returns the conflict as an error result with the current records. A conflict that survives three attempts means something is writing the same record repeatedly, and the model should read before it writes again.
+On a conflict, the tool reloads and runs the same commit again, as the persistence doc says. A revision belongs to a record, not to the story, so a sibling that wrote a different record causes no conflict at all, and the conflicts that remain are on the record this write is about: a create whose slug a sibling just took, a guard that moved, or an update of a record someone else changed. A create reapplies and mints the next slug. A guard that only moved a revision reapplies. If the writer, or another call, changed the fields of a record this write updates or deletes, the tool returns the error and the record now stored, and does not reapply. The writer's edit stands. If a reapply breaks a Story Bible rule, the refusal is the tool result. The tool makes a bounded number of attempts, then returns the conflict as an error result with the current records. A conflict that survives them means something is writing the same record repeatedly, and the model should read before it writes again.
 
 A write tool passes the source of its commit: `tool`, the conversation's `thread_id` and the agent `run_id` from `runtime.execution_info`, and its own tool-call id from `runtime.tool_call_id`, which the logging doc's tool record also carries. The `run_id` is the one the caller put in the invoke config, as the logging doc says. The persistence doc writes those on the commit record, so the history view can show what one turn changed and the writer can revert that turn. The agent has no revert tool. Undoing is the writer's action on the history, and a tool that could undo would let one turn erase another.
 
@@ -38,7 +38,7 @@ One turn does this:
 
 1. The user sends a description, or a revision of what is already stored.
 2. The agent reads what it needs and writes framing, Entities, Properties, Assertions, Events, and Arcs.
-3. Each write commits as it succeeds. The story on disk changes at that commit. The writer can inspect it and edit it during the run. When the turn ends, the history shows every commit it made, and the writer can revert the turn or any one commit in it. Another prompt on this conversation waits until the run has ended.
+3. Each write commits as it succeeds. The story on disk changes at that commit. The writer can inspect it and edit it during the run. When the turn ends, the history shows every commit it made, and the writer can revert the turn or any one commit in it. Another prompt on this conversation waits until the run has ended. A turn whose process died is not running: the application doc reports it as interrupted under the heartbeat rule, and it does not block the next prompt.
 
 Prose is out. The agent does not create Narrative Units, and it does not write scene text. It does not touch `unit_ids` or any unit's `child_ids`. The writer may build units by hand from slice 2; the agent leaves whatever is there alone until a prose workflow exists.
 
@@ -59,6 +59,7 @@ The base prompt carries these instructions. The wording is the prompt builder's.
 - When the world changes, leave the old Property or Assertion in place, adjust its spans, and create a new record. Do not rewrite the old sentence so that it means something else.
 - Keep an agent-written statement concise and narrow. Do not "correct" wording the writer saved unless the writer asks.
 - Missing information stays unspecified. Do not invent a fact to fill a gap the user did not ask for.
+- Do not create an Event for a detail nothing depends on. A large development is several Events, not one.
 - Locations are Entities. Do not invent routes or travel times.
 
 ### Tools
@@ -90,7 +91,7 @@ If the stop is already set when a model call finishes and that call requested to
 
 A stop ends the turn. The caller closes the thread before another prompt is accepted. Every tool call the model requested has a tool result, and each call that did not run says the turn was cancelled. The user can then send another prompt. The cancelled run is not resumed. Resuming it would run the tools the stop held back.
 
-The conversation accepts one run at a time. The writer can edit the story while the agent is running. Those edits are ordinary commits. A tool whose records are unchanged reapplies, as above. The chat input for this conversation waits until the run has ended. The workspace is not locked for the duration of the run, and the chat turn is not held silent until a nested planner finishes. There is no nested planner.
+The conversation accepts one run at a time. The writer can edit the story while the agent is running. Those edits are ordinary commits. A tool whose records are unchanged reapplies, as above. The chat input for this conversation waits until the run has ended, or until the application doc's heartbeat rule reports the turn as interrupted. The workspace is not locked for the duration of the run, and the chat turn is not held silent until a nested planner finishes. There is no nested planner.
 
 The chat invoke sets `recursion_limit`. The framework default is 10,007 super-steps. This invoke sets 80: one super-step for the model call and one for the tool batch, about forty rounds. Past the limit the turn ends the same way a stop ends. Commits that landed stay, and the caller closes any tool call that has no result.
 
@@ -122,10 +123,8 @@ When exploration is added, a candidate is not a Story Bible record. It stays off
 
 When a character query is added, it is a read. The input is a character and a story point. The answer uses only what that character could know there, from stored records, and it is not written into the bible. Persisting an answer would be a separate decision. The query does not decide the plot. The open choices for both additions, including how many candidates, how they are ranked, and the exact knowledge boundary, stay in [open-questions.md](../open-questions.md).
 
-A research step that selects and compresses the bible for the planner is the same kind of later work. The arc chat reads through tools. It does not take a summary bundle. The prompt-assembly doc already requires that a future bundle stay distinguishable from a stored statement. Which design produces the bundle stays open there.
-
 How many conversations the workspace lists stays open with the UI. The store already allows more than one conversation per story. The agent runs on the conversation it was given. The turn stream carries the assistant text and the tool calls and results as typed events, item 40 in [open-questions.md](../open-questions.md); the reply the frontend renders is the assistant text, and whether it also shows the calls is a rendering choice there.
 
 ## What stays open
 
-[open-questions.md](../open-questions.md) holds the choices this doc does not close: how many conversations the workspace shows, the shape of later exploration and character queries, and the research step. Review before a commit is settled there as item 23: there is none, and the history view with its revert is the writer's review.
+[open-questions.md](../open-questions.md) holds the choices this doc does not close: how many conversations the workspace shows, and the shape of later exploration and character queries. Review before a commit is settled there as item 23: there is none, and the history view with its revert is the writer's review.

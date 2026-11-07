@@ -22,7 +22,7 @@ A retry middleware is listed before the logging middleware. Each attempt then ca
 
 A fallback middleware, if one is ever listed, swaps `request.model` before the logger sees it. The record therefore stores the model the request names, not only the model the config names. See [The record](#the-record).
 
-Streaming has no second path. The handler returns the complete assistant message after the stream finishes. Tokens reach the UI through LangGraph's stream modes, not through this middleware. Version 2 logged both the streaming and one-shot entry points of a chat-model subclass. That split is gone.
+Streaming has no second path. The handler returns the complete assistant message after the stream finishes. Tokens reach the frontend as the typed events the service emits from the LangGraph stream, as the application doc defines them, not through this middleware. Version 2 logged both the streaming and one-shot entry points of a chat-model subclass. That split is gone.
 
 Store calls are wrapped so they cannot raise. If writing the `running` record fails, the handler still runs. If updating the record fails, the model's result is still returned, and the model's exception is still re-raised unchanged. A logging failure must not fail the call, and it must not replace the model's error with a store error. In the async hook the store is awaited, not called through a blocking lock. A blocking write inside the async hook would stall every agent sharing the event loop.
 
@@ -134,7 +134,7 @@ Whatever store is used has these properties:
 
 The debug view is read-only. It lists calls newest-first, including failures and calls still `running`. It does not edit records.
 
-A `running` record is shown as interrupted when the instance named by its `instance_id` is not the one serving the view, or is one that has since restarted. The stored status stays `running`. A call still in flight on this instance started after it did, so it stays running. The rule is per instance, not "earlier than process start", because the hosted deployment can run more than one process and the view may not be served by the one that made the call. How an instance announces itself is the persistence doc's. A `running` record older than a generous bound can also be shown as interrupted when the instance is unknown. Version 2 had no process-death case to show, because a missing finish was a separate event. Here the stored row is simply unfinished.
+A `running` record is shown as interrupted under the heartbeat rule in the persistence doc: the instance named by its `instance_id` has no recent heartbeat, or no heartbeat row at all. The API derives that on read, as the application doc says; the stored status stays `running`, and the view does not compare against its own process. The rule is per instance, not "earlier than process start", because the hosted deployment can run more than one process and the view may not be served by the one that made the call. Version 2 had no process-death case to show, because a missing finish was a separate event. Here the stored row is simply unfinished.
 
 Prompt and response markup is shown literally. Version 2 rendered the prompt as Markdown, and tags such as `<canvas>` inside a prompt were executed. Escape the text before any rendering that would interpret markup.
 

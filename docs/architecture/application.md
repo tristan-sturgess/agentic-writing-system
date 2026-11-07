@@ -78,7 +78,7 @@ The arc chat is the first endpoint that streams and the first that has to carry 
 | `GET /turns/{turn_id}/events` | The SSE stream. [The stream](#the-stream) below. |
 | `POST /turns/{turn_id}/stop` | Requests a stop. [The stop](#the-stop) below. |
 | `GET /configs`, `GET /configs/{config_id}`, `PUT /configs/{config_id}`, `DELETE /configs/{config_id}` | The config store's list, get, save, and delete, with the model-configuration doc's rules: a role is edited in place and a delete restores its seed. |
-| `GET /configs/nodes` | The node registry: each node id, its description, its default role, and the acting user's selection, resolved. The selector is drawn from this. |
+| `GET /configs/nodes` | The node registry: each node id, its label and description, its default role, and the acting user's selection, resolved. The selector is drawn from this. |
 | `PUT /configs/nodes/{node_id}` | The store's select. An unknown node or a missing config is `422`. |
 | `GET /configs/export`, `POST /configs/import` | The config document as one JSON file, under that doc's import rules. |
 | `GET /key` | Whether the acting user has an API key stored. Never the key. |
@@ -139,7 +139,7 @@ The handler, in order:
 3. Resolves the `chat` node to a binding through the model-configuration doc's resolution, for this user. No API key is `422` before any call is made.
 4. Builds the agent through the shared builder with the logging context: `user_id`, `story_id`, `workflow` `chat`, `node_id` `chat`, the resolved `config_id`, and an empty `workflow_run_id`. The builder's fixed middleware list applies: the prefix first, the stop check from [The stop](#the-stop) between, the logging middleware last.
 5. Mints a `run_id`, writes the turn row at `running` with this process's `instance_id`, and starts the task on the event loop.
-6. Returns `201` with the turn id. When the request accepts `text/event-stream`, the response is the stream itself, from sequence 1, so the common case is one round trip. The frontend can drop that response and `GET /turns/{turn_id}/events` later; the turn does not notice.
+6. Returns `201` with the turn id in the body and in a `Turn-Id` response header. When the request accepts `text/event-stream`, the response is the stream itself, from sequence 1, whose first event is `started` carrying the same `turn_id`, so the common case is one round trip and the id is available either way. The frontend can drop that response and `GET /turns/{turn_id}/events` later; the turn does not notice.
 
 The task invokes the agent on the conversation's `thread_id` with `run_id` in the invoke config and the agents doc's `recursion_limit`, consumes the LangGraph stream, emits the events in [The stream](#the-stream) into the turn's buffer, and when the invoke returns, writes the terminal event and calls `finish_turn`. The task writes nothing to the story. The write tools commit, as the agents doc says, and the task only reports what they returned.
 
@@ -161,6 +161,7 @@ Version 2 stored `cancel_requested` on its job and nothing read it. The check is
 
 | Event | Data | When |
 | --- | --- | --- |
+| `started` | `turn_id` | Always sequence 1. Gives a subscriber that received the stream as the start response the turn id to resubscribe with. |
 | `assistant_delta` | `text` | A chunk of the assistant's reply. The frontend appends it to the reply. |
 | `tool_call` | `tool_call_id`, `name`, `arguments` | The model requested a tool. Emitted when the model call that requested it completes. |
 | `tool_result` | `tool_call_id`, `status`, `result` or `error` | The tool returned. `status` is `success` or `error`, the same two the call log's `tool_call` record stores. |
@@ -208,15 +209,3 @@ The frontend does own rendering: the two pictures, the structured editors, the h
 ## What stays open
 
 Question 21, the frontend framework, is closed in slice 2. Question 33, the hosted authentication mechanism, is an adapter behind the edge described above and is closed when hosting is built. Question 24, how many conversations the workspace lists, is a frontend choice over `GET /stories/{story_id}/conversations`. Question 29, a workflow that survives a restart, is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting.
-
-## Coverage note
-
-Remove this section after review.
-
-| Source | Disposition | Reason |
-| --- | --- | --- |
-| Settled items 34, 39, 40, and 41 in [open-questions.md](../open-questions.md) | Kept | The service, the turn row and the row-based stop, the typed SSE stream with its buffer, and the routines in the service process are stated here as the contract and the service. The reasons the alternatives were set aside are carried in one sentence each. |
-| Question 33 in [open-questions.md](../open-questions.md) | Placed | The edge resolver, the local implicit user, and the hosted adapter are fixed. The mechanism stays open. |
-| [architecture.md](../architecture.md) application-layer paragraphs | Kept | The part's description and the boundary rules are this doc's sections. |
-| [v2/architecture_async_jobs.md](../v2/architecture_async_jobs.md) | Adapted | The `asyncio` chat task and the re-attachable live buffer are kept as the turn task and the replay buffer. The in-memory singleton, claims as consistency, the unread cancel flag, the timer-polled UI, and the scene queue are not. |
-| The caller named in the logging, agents, persistence, and evaluations docs | Kept | The minted `run_id` and the logging context, the one-run-per-conversation rule and the superstep stop, the conversation row and the heartbeat, and the run launch each have the endpoint or routine that performs them. |

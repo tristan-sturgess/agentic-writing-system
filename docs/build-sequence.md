@@ -4,7 +4,7 @@ This is the order the system is built in, and what each slice needs before the n
 
 An open question that does not block a slice stays in [open-questions.md](open-questions.md). A decision a subsystem doc already closed is not reopened here.
 
-Version 2's [implementation plan](v2/implementation_plan.md) records phases that are already finished. These slices are not those phases, and they are not numbered to match them.
+Version 2 was built in phases that are already finished. These slices are not those phases, and they are not numbered to match them.
 
 The accepted docs are the gate. Slice 1 starts from [story-bible.md](story-bible.md) and [architecture/persistence.md](architecture/persistence.md). Nothing in this file is a reason to read the version 2 snapshots to find out what to build.
 
@@ -56,14 +56,14 @@ A chat agent that takes a description and writes framing, entities, properties, 
 This is the first slice that calls a model, so the docs that exist only to support that call land here, not as a later pass:
 
 - Model configs, the four roles, the `chat` node, the user's API key, and the prefixed agent, from the model-configuration doc. The screen where the user edits a config and assigns it is part of this slice, in the UI chosen in slice 2.
-- Prompt layers and the stream filter, from the prompt-assembly doc. The chat renders assistant text only.
+- Prompt layers and the stream filter, from the prompt-assembly doc.
 - The logging middleware and the tool-result record, from the logging doc, on every call the shared builder makes. The read-only call list is part of this slice. Prompt markup is shown literally. The page layout follows the UI from slice 2 and is not specified.
 - The config store, the secrets store, the conversation rows, and the call-log store, from the persistence doc.
 - The conversation endpoints, the turn stream, the stop, and the heartbeat, from the application doc. The chat is the first endpoint that streams, and the first one that has to carry a stop to a running turn.
 
 The arc chat records its calls through that tap. Slice 4 cites those records. A chat that cannot be attributed to the story, the `chat` node, and the config is not done, because the evaluation slice would otherwise have to capture the prompt a second way.
 
-The workflow does not write prose. It does not hold a draft for review, and no run waits for the writer to approve a commit; the history view with its turn-level revert is the review, as item 23 settles. Candidate explorations, character interviews, and a research summary stay out, as the agents doc says. How many conversations the workspace lists stays open with the UI, and whether the transcript renders the tool calls the stream already carries is a rendering choice in this slice.
+The workflow does not write prose. It does not hold a draft for review, and no run waits for the writer to approve a commit; the history view with its turn-level revert is the review, as item 23 settles. Candidate explorations and character interviews stay out, as the agents doc says. How many conversations the workspace lists stays open with the UI, and whether the transcript renders the tool calls the stream already carries is a rendering choice in this slice.
 
 Slice 3 is done when a prompt can produce arcs in that same bible, the user can revise the result by hand or with another prompt, the history shows what that turn changed and the turn can be reverted, an in-flight run can be cancelled, and the calls of that turn are in the log.
 
@@ -133,6 +133,6 @@ These are not missing slices. The docs already say they wait.
 - Hosted deployment on Railway. Slice 1's store interface is what makes that a deployment rather than a new ownership model. Postgres, the bucket, encryption of the API key, and how a request authenticates are the hosted half of the persistence doc. Building them is later. The local app is the first runtime.
 - A workflow that must survive a process restart. An early run lives in the process. The durable artifact is the last successful commit. Question 29.
 - The Story Space location agent, routes, and time scrubber. Location entities can exist from slice 1. The writer and the arc agent edit them directly until that project is pulled in.
-- Candidate plot explorations, character-query interviews, and a research step that compresses the bible. Questions 31 and 32. The arc chat reads through tools until then.
+- Candidate plot explorations and character-query interviews. Question 32. The arc chat reads through tools until then.
 - How many conversations the workspace lists. Question 24. It can be added without reordering these slices.
 - A stricter overlap rule, a fact-or-belief marker, richer Assertion references, and a story-specific calendar. Questions 26–28 and 38. They are Story Bible revisions if a story needs them, not build slices.

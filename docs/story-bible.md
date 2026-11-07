@@ -138,10 +138,12 @@ The description can say who the thread follows and what changes. That prose is n
 
 A Property, an Assertion, and an Event each store story time in one field, `when`. The value is a list of spans. The list can be empty. Later kinds of span can be added to this list without adding a field to the records. `caused_by` and `supersedes` stay on the statement. They say why a claim changed, not when it holds.
 
-A **time point** is one of:
+A **time point** is an object with one of these shapes:
 
-- a story-time timestamp, an ISO 8601 date (`YYYY-MM-DD`) or date-time (`YYYY-MM-DDTHH:MM` or `YYYY-MM-DDTHH:MM:SS`)
-- an Event id
+- `{ timestamp }`, a story-time timestamp: an ISO 8601 date (`YYYY-MM-DD`) or date-time (`YYYY-MM-DDTHH:MM` or `YYYY-MM-DDTHH:MM:SS`)
+- `{ event_id }`, an Event id
+
+The object wraps the value so that a new kind of time point can be added later without changing the records that hold one.
 
 A timestamp is story-local time in the proleptic Gregorian calendar, with no time zone. Years run from `0001` to `9999`, the range common date libraries accept. Two timestamps compare chronologically, and a date-only value is the start of that day. The calendar is nominal: a world with no Gregorian calendar still uses these values, and the writer reads year 1000 as whatever the story calls it. Months and days are then ordinals, nothing more. A story that needs its own calendar, with its own names, month lengths, or a year outside that range, would add a new kind of time point to this list, beside the timestamp and the Event id. It would not add a field to any record.
 
@@ -237,7 +239,7 @@ assertions:
     statement: Mara's leaving is her journey from distrust toward trust.
 ```
 
-The ids in the example follow the identity rules below. `t1` and the other timestamp labels stand for ISO 8601 story-time values in order, such as `1847-03-02`. The example is the shape of the data, not a storage format.
+The ids in the example follow the identity rules below. `t1` and the other timestamp labels stand for ISO 8601 story-time values in order, such as `1847-03-02`. The time points are the objects defined above. The example is the shape of the data, not a storage format.
 
 ## The writer and the agent
 
@@ -245,7 +247,7 @@ Both write the same records.
 
 The writer can create, view, reword, and delete, including wording that is unconventional or poorly formed. A save may refuse a broken reference, an empty required field, or a length cap the implementation has set. It may not refuse a save because the sentence is redundant, broad, or badly written.
 
-An agent-written Property or Assertion should be concise, narrow, clear, and checked against the statements already stored. When the world changes, the agent leaves the old sentence in place, adjusts its spans, and creates a new record. The agent does not rewrite the old sentence so that it means something else. A writer's rewrite is a correction of the record. It does not need an Event or a `supersedes` link.
+An agent-written Property or Assertion should be concise, narrow, and clear. When the world changes, the agent leaves the old sentence in place, adjusts its spans, and creates a new record. The agent does not rewrite the old sentence so that it means something else. A writer's rewrite is a correction of the record. It does not need an Event or a `supersedes` link.
 
 ## Identity
 
@@ -302,6 +304,8 @@ A place is an Entity. An Event can name it. Routes, travel times, character wher
 Version 2 stored characters, world facts, and world-state entries as different types, and derived the state at a timeline position by replaying effects and intimacy signals over baselines. Chronology was four edge types between Events. Scenes were the prose unit and pointed at the Events they enacted.
 
 This model keeps stable ids, Events as things that happen, and a split between world time and the order the story is told. State at a time is the in-force view over Properties and Assertions. Relationships, including a cause or an order between Events, are Assertions. Story time is the span list on an Event. Threads are Arcs. Presentation is a Narrative Unit. There is no replay, no signal record, no derived rank, and no edge record between Events.
+
+Version 2's character identity fields (traits, appearance, background, voice), its world-fact tags, and its world-state kinds (pressure, thread, consequence) are not fields here. The same content is written as Properties and Assertions, which cover those cases without a fixed field set.
 
 ## Open modeling questions
 

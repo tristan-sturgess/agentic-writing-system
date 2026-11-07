@@ -37,7 +37,7 @@ The seeds are the models version 2 settled on in July 2026. They give the store 
 | `judgment` | Critique and targeted revision. The output is short, so a strong model stays cheap. Revision quotes existing text exactly and writes a short replacement, which is the same shape of work. | `anthropic/claude-sonnet-5` | `medium` |
 | `structure` | Schema-filling and summarization. Fast, cheap, reliable structured output. | `google/gemini-3.5-flash-lite` | `low` |
 
-A node that calls a model is classified into one of these roles before it gets a selector. A step that gathers context with tools uses `orchestration`, including when a later step writes prose. The writing role can then point at a prose specialist. Version 2's price tables, Elo scores, and candidate lists were a point-in-time survey. They are not part of this doc.
+A node that calls a model is classified into one of these roles before it gets a selector. A step that gathers context with tools uses `orchestration`, including when a later step writes prose. The writing role can then point at a prose specialist. Version 2's price tables, Elo scores, and candidate lists were a point-in-time survey. They are kept as background in [research/model_selection_analysis.md](../research/model_selection_analysis.md) and are not part of this doc.
 
 `orchestration` is also the fallback config in [Resolution](#resolution). It is always present, so resolution always returns a config.
 
@@ -49,14 +49,15 @@ Nodes select a config through a registry. The UI does not hard-code model ids, a
 | --- | --- |
 | `node_id` | Stable id stored in the selections map. |
 | `label` | Name shown to the user. |
+| `description` | One sentence on what the node does, shown with the selector. |
 | `default_config_id` | Role used when the user has no selection for this node. |
 
 The registry starts with the arc-planning conversation and the evaluation judge:
 
-| `node_id` | Label | Default |
-| --- | --- | --- |
-| `chat` | Arc-planning chat | `orchestration` |
-| `judge` | Evaluation judge | `judgment` |
+| `node_id` | Label | Description | Default |
+| --- | --- | --- | --- |
+| `chat` | Arc-planning chat | Turns the user's description into arcs and the Story Bible records they need. | `orchestration` |
+| `judge` | Evaluation judge | Scores an evaluation run's arcs and Story Bible construction. | `judgment` |
 
 Add a registry entry, with a role as its default, before the UI exposes a selector for that node. Version 2's scene-writing nodes and intimacy nodes are not in this registry. When the prose slice adds model calls, those nodes are classified then. An imported version 2 config file keeps the four roles and a `chat` selection. Selections for nodes this registry does not have are dropped.
 
@@ -101,7 +102,7 @@ The logging middleware is last in the list, so it is innermost. The request it s
 
 ## Store
 
-Each user has one config document of the shape below. Readers and writers go through a config store with the operations listed after it. Nothing else touches what is behind the store. The persistence doc chooses what that is, locally and hosted, alongside the story store and the call-log store, and how a user's document is addressed. Version 2 kept this document as one JSON file replaced atomically on each save. That is one acceptable local implementation. It is not a requirement of this doc.
+Each user has one config document of the shape below. Readers and writers go through a config store with the operations listed after it. Nothing else touches what is behind the store. The persistence doc chooses what that is, locally and hosted, alongside the story store and the call-log store, and how a user's document is addressed. Locally that is SQLite, as the persistence doc settles. Version 2's JSON file, replaced atomically on each save, is not the design.
 
 ```json
 {

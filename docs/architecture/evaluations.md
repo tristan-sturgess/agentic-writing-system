@@ -13,7 +13,7 @@ This is how a prompt, model, or workflow change is judged, and what that run cos
 
 One run of the arc chat is judged on its arcs and on the bible it wrote. Scoring the second target does not mean running the fixture again.
 
-Plot structure in the Linear evaluation issue is these arcs and the Events they organize. Story-bible updates are the construction scores. A dangling reference is not a judge dimension: a commit already refuses one, so a bible that saved has none. That rule is a check. A contradiction saves, and nothing in the model detects it, as the Story Bible doc says. An unintended clash is the judge's concern. A belief that conflicts with another belief, or a fact the brief left unspecified, is not a clash.
+Plot structure is these arcs and the Events they organize. Story-bible updates are the construction scores. A dangling reference is not a judge dimension: a commit already refuses one, so a bible that saved has none. That rule is a check. A contradiction saves, and nothing in the model detects it, as the Story Bible doc says. An unintended clash is the judge's concern. A belief that conflicts with another belief, or a fact the brief left unspecified, is not a clash.
 
 Every run also runs deterministic checks. Those checks call no model. They read the saved bible and the tool results, and they pass or fail. The first checks are tool-call validity and id handling, in [Checks](#checks). The judge does not repeat them. A structurally valid bible can still be a weak arc, and that split is the point of having both.
 
@@ -39,7 +39,7 @@ A fixture is one task, stored as application data, scoped to the user who wrote 
 
 A version is immutable. Changing the description, the starting document, or a message inserts a new version. Old runs keep the version they used.
 
-The first suite is ten fixtures, and it is a regression set rather than a benchmark. Five ask for arcs from an empty bible: a character change, a relationship, an external conflict, a mystery, and a subplot that is meant to stay unresolved. Five ask for Story Bible construction: a character, a location, relationships and assertions, an event together with a state update, and a change that has to stay consistent with facts already stored. The last two of those start from a document. The rest can start empty. The briefs leave some facts unspecified, and at least one allows a genuine conflict of belief, so a judge is not pushed to reward extra specification. Five scene fixtures join the suite when prose exists: dialogue, interpersonal conflict, introspection, action, and atmosphere. One description is not a suite. A prompt can be tuned to it and look improved. A full multi-scene story, the end-to-end case the Linear issue suggests, waits with that prose.
+The first suite is ten fixtures, and it is a regression set rather than a benchmark. Five ask for arcs from an empty bible: a character change, a relationship, an external conflict, a mystery, and a subplot that is meant to stay unresolved. Five ask for Story Bible construction: a character, a location, relationships and assertions, an event together with a state update, and a change that has to stay consistent with facts already stored. The last two of those start from a document. The rest can start empty. The briefs leave some facts unspecified, and at least one allows a genuine conflict of belief, so a judge is not pushed to reward extra specification. Five scene fixtures join the suite when prose exists: dialogue, interpersonal conflict, introspection, action, and atmosphere. One description is not a suite. A prompt can be tuned to it and look improved. A full multi-scene story, the end-to-end case, waits with that prose.
 
 ## A run
 
@@ -63,7 +63,7 @@ The model is the user's saved selection for the node, unless the launch names a 
 | `config_id`, `model`, `temperature`, `max_tokens`, `reasoning_effort`, `prefix_hash` | The resolved binding. `prefix_hash` is SHA-256 of the prefix's UTF-8 bytes, and of the empty string when the config has no prefix. |
 | `story_id`, `thread_id` | The story and conversation created for the run. |
 | `workflow_run_id` | The id passed to every invoke. The logging doc's grouping key. |
-| `bible_before`, `bible_after` | Copies of the story document. The story store keeps no history, so the copy is the record. |
+| `bible_before`, `bible_after` | Copies of the story document. The commit history records changes, not whole documents, and a copy is simpler to compare and survives a history cap. |
 | `workflow_call_ids` | The model-call `call_id`s of this `workflow_run_id`. |
 | `usage` | Totals and a per-step breakdown, read from those calls. Cost is the total and the cost of each step. |
 | `price_snapshot` | The prices the cost estimate used. |
@@ -73,7 +73,7 @@ The model is the user's saved selection for the node, unless the launch names a 
 
 The version string is declared beside the base prompt. It changes when the base prompt or the tool behavior changes. The hash makes a prompt change visible when the string was not bumped. A tool change that forgets the bump is not something the hash can see. The string is the label a comparison uses.
 
-`bible_before` is the document once the fixture's starting state is in place, and before the first message. `bible_after` is the document when the last invoke returns, including when the run then ends in error or is cancelled. A later edit to the live story does not change the copies. The story and the thread stay, so the result can be opened. They are ordinary rows. Whether the story list separates a run's story from stories the user started by hand waits with the views question in [open-questions.md](../open-questions.md). The comparison reads the copies.
+`bible_before` is the document once the fixture's starting state is in place, and before the first message. `bible_after` is the document when the last invoke returns, including when the run then ends in error or is cancelled. A later edit to the live story does not change the copies. The story and the thread stay, so the result can be opened. They are ordinary rows. Whether the story list separates a run's story from stories the user started by hand waits with question 22 in [open-questions.md](../open-questions.md). The comparison reads the copies.
 
 Status is `success` when every message was sent and each invoke returned, `error` when an invoke raises, and `cancelled` when the operator stops the run. A stop uses the arc chat's cancel, at a superstep boundary. Commits that landed stay in the story and in `bible_after`. A run left `running` because the process died is shown as interrupted under the same instance rule as a call record. The stored status stays `running`.
 
@@ -221,7 +221,7 @@ Fixtures and runs are rows in the application database: `data/app.sqlite` locall
 | `add_score` | Append a score. Judge call ids join the cited set. |
 | `add_pair` | Store an optional pairwise result that cites two runs. Its judge call ids join the cited set. |
 | `get_run`, `list_runs` | Newest first. Filters include the fixture, the workflow version, and the model. |
-| `cited_call_ids` | The union of `workflow_call_ids`, score `judge_call_ids`, and pairwise judge call ids. With a user id, that user's runs. With none, every run, which is what the age job reads. |
+| `cited_call_ids` | The union of `workflow_call_ids`, score `judge_call_ids`, and pairwise judge call ids. With a user id, that user's runs. With none, every run, which is what the retention routine reads. |
 
 The persistence doc's deletion routine asks `cited_call_ids` and excludes those records. This doc does not add a second retention rule. Deleting a run drops its citations. A call another run still cites stays. Deleting the story or the thread does not delete the run.
 
@@ -235,4 +235,4 @@ Evaluations do not run in CI.
 
 ## What stays open
 
-The judge rubric, the scale, and the suite are the ones in this doc. Whether the story list separates a run's story from stories the user started by hand stays with the views question in [open-questions.md](../open-questions.md).
+The judge rubric, the scale, and the suite are the ones in this doc. Whether the story list separates a run's story from stories the user started by hand stays with question 22 in [open-questions.md](../open-questions.md).

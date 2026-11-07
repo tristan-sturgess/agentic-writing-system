@@ -25,7 +25,7 @@ These come from the 2026-11-02 briefing. Later documents follow them. The docume
 
 1. **This repository is the build.** The Linear project text describes itself as architecture-only, with implementation as a later project. Here, design questions stay visible and implementation follows these docs.
 2. **Build order.** Story Bible data model, then a small set of editing and visualization tools, then a chat agent that writes story arcs into the model, then evaluations of arcs and other generated structure, then the prose workflow and prose evaluations. Prose stays out of the earlier slices.
-3. **Hosted target is Railway**, with multi-tenancy in the data model, after a local-first implementation. The Linear storage issue names Postgres and object storage. It does not name Railway, and it does not name Google Cloud.
+3. **Hosted target is Railway**, with multi-tenancy in the data model, after a local-first implementation. The Linear storage issue names Postgres and object storage. It does not name Railway.
 4. **NiceGUI is not the starting UI.** Version 2's interface got in the way of the visualizations this version needs. Whether the UI is React is still open.
 5. **Story Space & Timeline stays related reference** for the first document set. Location entities can exist in the Story Bible. The location agent, routes, and time scrubber stay in that separate Linear project until a later decision pulls them in.
 6. **Concurrent Story Bible updates are a prerequisite design**, taken from version 2's parallel tool-call failures, and they are specified before agent implementation.
