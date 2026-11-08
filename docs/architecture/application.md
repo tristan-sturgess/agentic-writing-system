@@ -8,7 +8,7 @@ Settled items 34 and 39–41 in [open-questions.md](../open-questions.md) fix th
 
 ## The service
 
-The service is one Python process: an ASGI application serving HTTP and SSE, with the turn tasks, the heartbeat, the retention routine, and the evaluation runner as tasks on its event loop. There is one kind of process, and one `instance_id` per process, generated at start and stamped on every call record, turn row, and run row it writes. Which ASGI framework serves the routes is a packaging choice, like Poetry, and belongs to the contributor guide; the contract below does not depend on it.
+The service is one Python process: an ASGI application serving HTTP and SSE, with the turn tasks, the heartbeat, the retention routine, and the evaluation runner as tasks on its event loop. There is one kind of process, and one `instance_id` per process, generated at start and stamped on every call record, turn row, and run row it writes. The application is FastAPI, served by Uvicorn, and the stream uses FastAPI's `EventSourceResponse`. The rest of the stack is listed in `AGENTS.md` at the repository root. The contract below does not depend on the framework.
 
 Locally the service also serves the built frontend as static files from the same port, so the local app is one process started by one command, and the frontend and the API share an origin. Hosted, Railway runs the same process. Whether the hosted frontend is served from the service or from a static host is a deployment detail; the API does not change.
 
@@ -45,9 +45,9 @@ A commit has three outcomes in the persistence doc, and the API returns them as 
 
 A busy error that outlives the store's retries is `503`, and the frontend may retry. The frontend holds the writer's edit on the screen through all four, as the persistence doc requires, and shows the current record beside the edit on a conflict.
 
-### Slice 2
+### Slices 1 and 2
 
-The first endpoints. Slice 2 builds these and the frontend that calls them. In this slice every commit is a hand edit, an import, or a revert.
+The first endpoints. Slice 1 builds the story endpoints, the commit, and import; slice 2 adds history, revert, and export, and the frontend that calls them. [build-sequence.md](../build-sequence.md) places each one. In these slices every commit is a hand edit, an import, or a revert.
 
 | Method and path | What it does |
 | --- | --- |

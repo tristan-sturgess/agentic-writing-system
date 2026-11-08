@@ -8,6 +8,8 @@ The Story Bible doc is the authority for what a story contains and which saves i
 
 A store is an adapter over an engine: SQLite locally, Postgres on Railway, a JSON file in a test. It reads and writes rows. One of its operations writes a set of rows only if each row's revision is unchanged. A store does not know the Story Bible's rules. It knows which rows name which other rows, because the layer above tells it, and that is all it checks.
 
+The SQLite and Postgres adapters are written with SQLAlchemy's async engine, through `aiosqlite` locally and `psycopg` hosted, so the two adapters share most of their code; the locking in [Story store](#story-store) is where they differ. Alembic owns the schema of the application's own tables. The LangGraph checkpointers create and own theirs.
+
 The Story Bible object sits above the story store. It applies a set of writes to a copy of the story, checks the rules in [story-bible.md](../story-bible.md), and asks the store to save the result. The other stores have the same split with their own callers: the model-configuration layer fills in roles above the config store, the model binding reads the key from the secrets store, the logging middleware and the debug view use the call-log store, and the chat loop uses the conversation thread.
 
 Nothing above a store opens its engine. Swapping SQLite for Postgres changes the adapter and nothing above it. The validation code runs once, in one place, for every engine.
