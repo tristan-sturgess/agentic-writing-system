@@ -31,7 +31,7 @@ Ownership is the persistence doc's rule: a story, a conversation, a config docum
 
 ## The contract
 
-The contract is JSON over HTTP, plus one SSE stream for a turn. Ids are opaque strings. Times are ISO 8601 in UTC. The paths below are the working names; a prefix such as `/api` is a packaging detail. The resources and their outcomes are the contract.
+The contract is JSON over HTTP, plus one SSE stream for a turn. Ids are opaque strings. Times are ISO 8601 in UTC. The paths below are the working names. The service serves them under the prefix `/api`, which leaves the rest of the port for the built frontend. The resources and their outcomes are the contract.
 
 A request body is validated against a schema before the handler runs. A body the schema rejects is `400`, naming the field. A schema the body passes and a rule then refuses is the subsystem's outcome, mapped as follows.
 
@@ -44,6 +44,8 @@ A commit has three outcomes in the persistence doc, and the API returns them as 
 | Conflict | `409` | The rows that moved since the request's revisions, each with its current state. Nothing was written. |
 
 A busy error that outlives the store's retries is `503`, and the frontend may retry. The frontend holds the writer's edit on the screen through all four, as the persistence doc requires, and shows the current record beside the edit on a conflict.
+
+The `400` body is `{ "detail": [...] }`, one entry per rejected value: where it is in the body (`loc`), a message (`msg`), and an error type (`type`). One mistake produces one entry. The `404` and `503` bodies are `{ "detail": "..." }`, one sentence. The OpenAPI document lists, for each path, the statuses that path returns and no others.
 
 ### Slices 1 and 2
 
@@ -59,9 +61,45 @@ The first endpoints. Slice 1 builds the story endpoints, the commit, and import;
 | `GET /stories/{story_id}/history` | The commit records, newest first, with the persistence doc's filters: source, `thread_id`, `run_id`, a time range. Each record carries its changes with the before and after. Grouping by turn is grouping by `thread_id` and `run_id`. |
 | `POST /stories/{story_id}/revert` | A revert commit. The body names commit ids, or a `thread_id` and `run_id` for a whole turn. One commit; it lands whole or not at all, with the three outcomes above. |
 | `GET /stories/{story_id}/export` | The story's export document, as the persistence doc defines it. No revisions, no history, no conversations, no application data. |
-| `POST /stories/import` | A new story from an export document. The import is a commit; a refusal is `422` and nothing is created. Returns the new story. |
+| `POST /stories/import` | A new story from an export document. The import is a commit; a refusal is `422` and nothing is created. A schema version that does not match is that refusal. Returns the new story. |
 
 A per-record read is not needed for the pictures, because `GET /stories/{story_id}` is one consistent snapshot and the frontend edits from it. One may be added when a view wants it; it is a projection of `load`, not a new store operation.
+
+#### The story document
+
+The story read, the import, the export, and an evaluation's bible copies use one document shape. It is flat:
+
+| Field | Contents |
+| --- | --- |
+| `schema_version` | The version of this shape. `1`. |
+| `title`, `description`, `premise`, `tone`, `themes`, `writing_style` | The framing fields. Each is text, and each may be empty. |
+| `unit_ids` | The top-level Narrative Units in reading order. |
+| `entities`, `properties`, `assertions`, `events`, `units`, `arcs` | One list per kind of record, each record with the fields [story-bible.md](../story-bible.md) gives that kind. |
+
+A Property is in `properties` and carries its `entity_id`. It is not nested under its Entity. The lists match the store's row per record, and a record read from the document has the same fields as one sent in a write. Within a list, records are in the order they were created.
+
+`GET /stories/{story_id}` returns that document plus the story's `id`, its `revision`, its created and updated times, and a `revision` on each record. The import and export document has none of those: no story id, no revisions, no times.
+
+#### The commit body
+
+The body of `POST /stories/{story_id}/commits` is `{ "writes": [...] }`, at least one write, applied in order. Each write has an `op`:
+
+| `op` | Fields | Effect |
+| --- | --- | --- |
+| `create` | `kind`, `fields`, and optionally `ref` | Creates one record. `kind` is `entity`, `property`, `assertion`, `event`, `unit`, or `arc`. `fields` are that kind's fields without `id`. The commit mints the id. |
+| `update` | `kind`, `id`, `revision`, `fields` | Changes the fields named in `fields` on one record. A field left out keeps its value. The `id` does not change. |
+| `delete` | `id`, `revision` | Deletes one record. Deleting an Entity deletes its Properties. |
+| `set_story` | `revision`, `fields` | Changes the framing fields or `unit_ids` named in `fields`. `revision` is the story's. |
+
+`revision` is the one the frontend loaded for that record or for the story. If the stored revision is different, or the record is gone, the commit is a conflict.
+
+A create may carry a `ref`, a label the caller chooses. A later write in the same body names that record as `@label` wherever an id goes: in a field that holds an id, in a list of ids, in a time point's `event_id`, or as the `id` of an `update` or `delete`. The commit puts the minted id in its place before it checks the rules. An `update` or `delete` whose `id` is a ref carries no `revision`, because the record did not exist when the frontend loaded. A label no earlier create in the body carries is a refusal. This is how an Entity and its first Property land in one commit, and how a Narrative Unit is created and placed in `unit_ids` or a `child_ids` list in one commit, which it has to be, because a unit outside every list is refused.
+
+The `200` body has the `commit_id`, the new `revision` of each record the commit created or updated, the story's new `revision` when the commit changed the story's own fields, the ids it deleted, and a `created` list with the `kind`, the minted `id`, and the `ref` of each create, in order. A commit whose writes leave the story as it was writes no commit record, and returns `200` with a null `commit_id`.
+
+The `422` body has a message and a list of problems. Each problem has a code, a message, and what applies of: the record and the field, the position of the write, the ids at fault, the legal ids for that kind, and the referring records. The `409` body lists the rows that moved, each with its current fields and revision, or marked as gone.
+
+The import does not use refs. Its ids come from the file.
 
 ### Slice 3
 

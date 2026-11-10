@@ -1,0 +1,399 @@
+{
+  "schema_version": 1,
+  "title": "The Last Lantern",
+  "description": "A remote signal station keeper answers a distress call that should not exist.",
+  "premise": "Elin Voss tends Brine Station alone until a lamp flashes a code no ship has used in forty years.",
+  "tone": "Quiet unease, salt wind, a single light on a reef",
+  "themes": "Isolation, duty, the cost of answering when no one else will",
+  "writing_style": "Close third person, spare sensory detail, short scenes",
+  "unit_ids": [
+    "unit_act_one"
+  ],
+  "entities": [
+    {
+      "id": "entity_elin_voss",
+      "name": "Elin Voss",
+      "notes": "Station keeper for eleven years; reads weather before she reads people."
+    },
+    {
+      "id": "entity_brine_station",
+      "name": "Brine Station",
+      "notes": "A stone tower on a reef, linked to the mainland only by cable and rumor."
+    },
+    {
+      "id": "entity_signal_lamp",
+      "name": "Signal Lamp",
+      "notes": "Brass housing, cracked lens, still bright enough to shame the fog."
+    },
+    {
+      "id": "entity_fog_shore",
+      "name": "Fog Shore",
+      "notes": "The lee where drowned hulls turn up after equinox gales."
+    },
+    {
+      "id": "entity_lighthouse_board",
+      "name": "Lighthouse Board",
+      "notes": "The council that owns the station and forgets who keeps it."
+    }
+  ],
+  "properties": [
+    {
+      "id": "prop_elin_trusts_routine_more_than_rescue",
+      "entity_id": "entity_elin_voss",
+      "statement": "Elin trusts routine more than rescue.",
+      "when": []
+    },
+    {
+      "id": "prop_the_station_groans_when_the_tide_turns",
+      "entity_id": "entity_brine_station",
+      "statement": "The station groans when the tide turns.",
+      "when": [
+        {
+          "kind": "range",
+          "start": {
+            "timestamp": "1921-03-10"
+          },
+          "end": {
+            "timestamp": "1921-09-30"
+          }
+        }
+      ]
+    },
+    {
+      "id": "prop_the_lamp_still_knows_the_old_distress_pattern",
+      "entity_id": "entity_signal_lamp",
+      "statement": "The lamp still knows the old distress pattern.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1921-06-14T03:15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "prop_elin_treats_every_visitor_as_a_liability",
+      "entity_id": "entity_elin_voss",
+      "statement": "Elin treats every visitor as a liability.",
+      "when": [
+        {
+          "kind": "range",
+          "start": {
+            "event_id": "event_the_long_watch"
+          },
+          "end": {
+            "event_id": "event_the_impossible_flash"
+          }
+        }
+      ]
+    },
+    {
+      "id": "prop_elin_is_willing_to_answer_even_when_the",
+      "entity_id": "entity_elin_voss",
+      "statement": "Elin is willing to answer even when the board will not.",
+      "when": [
+        {
+          "kind": "range",
+          "start": {
+            "event_id": "event_the_impossible_flash"
+          }
+        }
+      ],
+      "caused_by": "event_the_impossible_flash",
+      "supersedes": "prop_elin_treats_every_visitor_as_a_liability"
+    },
+    {
+      "id": "prop_fog_shore_keeps_what_the_sea_rejects",
+      "entity_id": "entity_fog_shore",
+      "statement": "Fog Shore keeps what the sea rejects.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1921-06-12"
+          }
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "id": "event_the_long_watch",
+      "title": "The long watch",
+      "description": "Elin logs another empty night.",
+      "entity_ids": [
+        "entity_elin_voss",
+        "entity_brine_station"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1921-06-10"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_board_letter",
+      "title": "Board letter",
+      "description": "Orders to stay on station and save fuel.",
+      "entity_ids": [
+        "entity_lighthouse_board",
+        "entity_elin_voss"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1921-06-11T09:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_fog_closes_in",
+      "title": "Fog closes in",
+      "description": "Visibility drops to one cable length.",
+      "entity_ids": [
+        "entity_fog_shore",
+        "entity_brine_station"
+      ],
+      "when": [
+        {
+          "kind": "range",
+          "start": {
+            "timestamp": "1921-06-12T18:00"
+          },
+          "end": {
+            "timestamp": "1921-06-13T06:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_the_impossible_flash",
+      "title": "The impossible flash",
+      "description": "The signal lamp repeats a retired distress code.",
+      "entity_ids": [
+        "entity_signal_lamp",
+        "entity_elin_voss",
+        "entity_brine_station"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1921-06-14T03:15:22"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_wreck_on_the_shore",
+      "title": "Wreck on the shore",
+      "description": "Morning finds a hull with no manifest.",
+      "entity_ids": [
+        "entity_fog_shore",
+        "entity_elin_voss"
+      ],
+      "when": [
+        {
+          "kind": "range",
+          "start": {
+            "event_id": "event_the_impossible_flash"
+          },
+          "end": {
+            "timestamp": "1921-06-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_elin_sends_reply",
+      "title": "Elin sends reply",
+      "description": "She acknowledges the code and breaks board orders.",
+      "entity_ids": [
+        "entity_elin_voss",
+        "entity_signal_lamp"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1921-06-14T04:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_the_reef_sings",
+      "title": "The reef sings",
+      "description": "Dockhands still swear the reef sings before a wreck.",
+      "entity_ids": [
+        "entity_fog_shore"
+      ],
+      "when": []
+    }
+  ],
+  "arcs": [
+    {
+      "id": "arc_answer_or_obey",
+      "title": "Answer or obey",
+      "description": "From board orders to Elin's reply.",
+      "event_ids": [
+        "event_board_letter",
+        "event_the_impossible_flash",
+        "event_elin_sends_reply"
+      ]
+    },
+    {
+      "id": "arc_what_the_shore_keeps",
+      "title": "What the shore keeps",
+      "description": "Fog, wreck, and the cost of looking.",
+      "event_ids": [
+        "event_fog_closes_in",
+        "event_the_impossible_flash",
+        "event_wreck_on_the_shore"
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "id": "assertion_elin_has_buried_more_from_fog_shore_than",
+      "entity_ids": [
+        "entity_elin_voss",
+        "entity_fog_shore"
+      ],
+      "statement": "Elin has buried more from Fog Shore than she has reported.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1921-06-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "assertion_the_flash_on_the_reef_preceded_the_hull",
+      "event_ids": [
+        "event_the_impossible_flash",
+        "event_wreck_on_the_shore"
+      ],
+      "statement": "The flash on the reef preceded the hull on the shore."
+    },
+    {
+      "id": "assertion_elins_reply_is_the_turn_of_the_answer",
+      "entity_ids": [
+        "entity_elin_voss"
+      ],
+      "arc_ids": [
+        "arc_answer_or_obey"
+      ],
+      "statement": "Elin's reply is the turn of the answer arc."
+    },
+    {
+      "id": "assertion_the_lamp_cannot_flash_without_the_stations_current",
+      "entity_ids": [
+        "entity_signal_lamp",
+        "entity_brine_station"
+      ],
+      "statement": "The lamp cannot flash without the station's current.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_the_impossible_flash"
+          }
+        }
+      ]
+    }
+  ],
+  "units": [
+    {
+      "id": "unit_act_one",
+      "title": "Act One",
+      "summary": "Orders, fog, and a code that should be dead.",
+      "child_ids": [
+        "unit_chapter_one",
+        "unit_chapter_two"
+      ],
+      "subject_ids": [
+        "entity_elin_voss",
+        "entity_brine_station"
+      ]
+    },
+    {
+      "id": "unit_chapter_one",
+      "title": "Chapter One",
+      "summary": "Routine before the flash.",
+      "child_ids": [
+        "unit_the_long_watch",
+        "unit_board_letter"
+      ],
+      "subject_ids": [
+        "entity_elin_voss"
+      ]
+    },
+    {
+      "id": "unit_chapter_two",
+      "title": "Chapter Two",
+      "summary": "Fog, signal, wreck.",
+      "child_ids": [
+        "unit_fog_closes_in",
+        "unit_the_impossible_flash",
+        "unit_wreck_on_the_shore"
+      ],
+      "subject_ids": [
+        "entity_elin_voss",
+        "entity_signal_lamp"
+      ]
+    },
+    {
+      "id": "unit_the_long_watch",
+      "title": "The long watch",
+      "summary": "Elin logs another empty night and likes it that way.",
+      "subject_ids": [
+        "event_the_long_watch"
+      ]
+    },
+    {
+      "id": "unit_board_letter",
+      "title": "Board letter",
+      "summary": "The board orders her to stay on station and save fuel.",
+      "subject_ids": [
+        "event_board_letter"
+      ]
+    },
+    {
+      "id": "unit_fog_closes_in",
+      "title": "Fog closes in",
+      "summary": "The shore disappears, and the station is alone with its lamp.",
+      "subject_ids": [
+        "event_fog_closes_in",
+        "arc_what_the_shore_keeps"
+      ]
+    },
+    {
+      "id": "unit_the_impossible_flash",
+      "title": "The impossible flash",
+      "summary": "The lamp repeats a code nobody has used in forty years. Elin answers.",
+      "subject_ids": [
+        "event_the_impossible_flash",
+        "event_elin_sends_reply",
+        "arc_answer_or_obey"
+      ]
+    },
+    {
+      "id": "unit_wreck_on_the_shore",
+      "title": "Wreck on the shore",
+      "summary": "Morning shows a hull with no manifest on Fog Shore.",
+      "subject_ids": [
+        "event_wreck_on_the_shore",
+        "arc_what_the_shore_keeps"
+      ]
+    }
+  ]
+}

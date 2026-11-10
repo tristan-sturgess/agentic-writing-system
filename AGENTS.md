@@ -8,7 +8,7 @@ A workspace for writing long-form fiction. The writer describes the story they w
 
 Measuring whether a prompt, model, or workflow change actually helped is part of the product, not a follow-up.
 
-Nothing is implemented yet. The design lives in `docs/`.
+Slice 1 of `docs/build-sequence.md` is built: the Story Bible records and rules, the story store on SQLite, the commit, the story endpoints, and import. There is no UI and no agent yet. The design lives in `docs/`.
 
 ## What the project is for
 
@@ -56,6 +56,18 @@ Use these. Changing one is an architecture change: update the docs first.
 
 Not yet decided: the frontend framework (question 21 in `docs/open-questions.md`, closed before slice 2 builds a view) and the LangChain integration used to reach OpenRouter (decided in slice 3). Update this section when they are.
 
+## Testing
+
+Test enough to show the step works as intended. At this stage that is not exhaustive coverage. Prefer a few tests that would catch a real break over many that restate the code.
+
+- A step is done when `pytest`, `ruff check`, `ruff format --check`, and `mypy` all pass.
+- A Story Bible rule gets a test for the case it refuses, and that test asserts what the refusal carries (the field or record, the legal ids, the referring records), because an agent corrects itself from that payload.
+- Store tests use a real SQLite file in a temporary directory, with the schema from the real migration. Do not mock the store or the engine.
+- Endpoint tests call the app in-process and test the mapping from outcome to response. They do not test the rules a second time.
+- Once a step touches the API, also use it the way a client would. Start the service on a scratch data directory and a spare port, never on the real `data/`, send requests with `scripts/story_api.py` or `curl`, and try a few inputs the tests do not name. Report what you sent and what came back.
+- A bug found that way becomes a failing test before it is fixed.
+- If a response is correct by the docs but hard to act on, tell the owner. Do not change the contract to suit the caller; the docs change first.
+
 ## Commands
 
 ```bash
@@ -64,4 +76,8 @@ poetry run pytest           # tests
 poetry run ruff check .     # lint
 poetry run ruff format .    # format
 poetry run mypy             # type check
+poetry run python -m agentic_writing_system serve    # the API on http://127.0.0.1:8000, docs at /api/docs
+poetry run python scripts/story_api.py --help        # command-line client for the story endpoints
 ```
+
+The service keeps its data in `data/`, or in the directory named by `WRITING_DATA_DIR`. `samples/sample_story.json` is a small story to import: `poetry run python scripts/story_api.py import samples/sample_story.json`.

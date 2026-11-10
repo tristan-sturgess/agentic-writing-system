@@ -1,6 +1,6 @@
 # Creative Writing System
 
-This repository is the version 3 build of a creative writing system for fiction. Nothing is implemented yet. The documents below are the design the build follows.
+This repository is the version 3 build of a creative writing system for fiction. Slice 1 of [build-sequence.md](build-sequence.md) is built; the later slices are not. The documents below are the design the build follows.
 
 The Story Bible is the shared object. The user can inspect and edit it directly. Agents do most of the work, with revision loops. Measuring whether a prompt or workflow change actually helped is a requirement, not a follow-up.
 

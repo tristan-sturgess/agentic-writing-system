@@ -121,7 +121,7 @@ A narrative thread defined by the Events that belong to it. A plot, a subplot, a
 | `id` | yes | Stable id. |
 | `title` | yes | Short name. |
 | `description` | no | What the thread does and what it is about, in prose. |
-| `event_ids` | no | The Events that make up the thread. List order is the thread's own order, which may differ from story time. |
+| `event_ids` | no | The Events that make up the thread. List order is the thread's own order, which may differ from story time. An Event is listed once. |
 
 The description can say who the thread follows and what changes. That prose is not a list of subjects. A character, a place, a relationship, or another Arc is tied to this one by an Assertion that names it. A character Arc will involve many other people through its Events. Those participants stay on the Events. The Assertion names only the link the story is actually claiming, such as "this Arc is Mara's journey" or "this Arc is Mara and John's relationship." An overarching plot may have no such Assertion.
 
@@ -158,11 +158,15 @@ On a Property or an Assertion, the list says when the claim is known to hold. Ea
 
 On an Event, the same list says when the occurrence happens. One `at` is an instantaneous Event. Several `at` spans mean it was occurring at those points, not that it continued between them. A `range` is a period with a start, an end, or both. A missing bound means that bound is unknown. It does not mean the Event is still happening, and it does not mean the Event covers the whole timeline. An empty list means the Event's time is unspecified. A momentary Event ordinarily has one `at`. The field is still a list, so a repeated or stretched occurrence uses the same field.
 
+When both bounds of a `range` are timestamps, `start` is not after `end`. A save that breaks this is refused. Equal bounds are allowed.
+
+Known issue: a `range` with an Event as either bound is not checked. Whether it starts after it ends depends on that Event's own spans, which may not resolve to a timestamp and which can change after the range is saved. Such a range is saved as written, and nothing reports it. A check here would be good to have. It is not required.
+
 A span on an Event cannot use that same Event as a time point. Following Event ids through spans cannot come back to an Event already on the chain. A save that would make such a cycle is refused.
 
 ### What is in force
 
-This reading is for Properties and Assertions. Slice 1 uses it. A stricter overlap rule can replace the view later. It must not add a new record type or a new field beside `when`. That replacement is still open. See [open-questions.md](open-questions.md).
+This reading is for Properties and Assertions. It is the reading the first in-force view uses. Slice 1 stores the spans and builds no view; the view is built in slice 2, with the read-only in-force view on screen, and the slice 3 read tool uses the same code. A stricter overlap rule can replace the view later. It must not add a new record type or a new field beside `when`. That replacement is still open. See [open-questions.md](open-questions.md).
 
 - A statement whose `when` is empty is included at every query point.
 - A statement is in force at a query point when any `range` covers that point: the point is at or after `start` (or `start` is absent) and before `end` (or `end` is absent). An absent `end` on a statement means the claim still applies after it starts. Ranges do not fill the gaps between them.
@@ -239,7 +243,7 @@ assertions:
     statement: Mara's leaving is her journey from distrust toward trust.
 ```
 
-The ids in the example follow the identity rules below. `t1` and the other timestamp labels stand for ISO 8601 story-time values in order, such as `1847-03-02`. The time points are the objects defined above. The example is the shape of the data, not a storage format.
+The ids in the example follow the identity rules below. `t1` and the other timestamp labels stand for ISO 8601 story-time values in order, such as `1847-03-02`. The time points are the objects defined above. The example is the shape of the data, not a storage format. It nests each Property under its Entity so the ownership is easy to read. The story document the API returns, imports, and exports is flat: one list per kind of record, with each Property in its own list carrying its `entity_id`. [architecture/application.md](architecture/application.md) defines that document.
 
 ## The writer and the agent
 
@@ -279,6 +283,7 @@ Every id field names a record in the same story.
 - A save that introduces an unknown id is refused. The refusal includes the ids that do exist for that kind of record, so an agent can correct itself.
 - An Assertion names at least two records, and each of them is an Entity, an Event, or an Arc.
 - A Narrative Unit appears in exactly one of the story's `unit_ids` or some unit's `child_ids`. Neither list contains a duplicate. No unit contains itself through `child_ids`.
+- A list of ids does not name the same record twice. Besides the unit lists above, this covers an Event's `entity_ids`, an Assertion's `entity_ids`, `event_ids`, and `arc_ids`, an Arc's `event_ids`, and a Narrative Unit's `subject_ids`. A save that repeats an id in one of them is refused. The refusal names the record, the field, and the repeated ids.
 - A record cannot `supersede` itself.
 - Deleting an Entity deletes the Properties it owns.
 - Deleting any record that something else still names is refused. The refusal lists the referring records. The writer or the agent edits or deletes those first. List fields count: an Assertion's `entity_ids`, `event_ids`, and `arc_ids`, an Arc's `event_ids`, an Event's `entity_ids`, a Narrative Unit's `child_ids` and `subject_ids`, the story's `unit_ids`, and any Event id used as a time point.
