@@ -1,6 +1,6 @@
 // The small pieces every section of the story view shares.
 
-import { Badge, Group, Stack, Text } from '@mantine/core'
+import { Anchor, Badge, Group, Stack, Text } from '@mantine/core'
 import type { ReactNode } from 'react'
 
 import type { Span } from '../api/client'
@@ -14,6 +14,38 @@ const KIND_COLORS: Record<RecordKind, string> = {
   unit: 'teal',
   property: 'gray',
   assertion: 'gray',
+}
+
+/** Selects a record, which opens it in the detail panel. */
+export type SelectRecord = (id: string) => void
+
+/**
+ * A record's primary text, or the text of a record it names.
+ * With `onSelect` it is a button that selects that record.
+ */
+export function RecordLink({
+  id,
+  onSelect,
+  children,
+  fw,
+}: {
+  id: string
+  onSelect?: SelectRecord
+  children: ReactNode
+  fw?: number
+}) {
+  if (!onSelect) {
+    return (
+      <Text span fw={fw}>
+        {children}
+      </Text>
+    )
+  }
+  return (
+    <Anchor component="button" type="button" fw={fw} ta="left" onClick={() => onSelect(id)}>
+      {children}
+    </Anchor>
+  )
 }
 
 /** A record's id, shown small beside its name. Refusals and agents speak in ids. */
@@ -39,23 +71,49 @@ export function Empty({ children }: { children: ReactNode }) {
 }
 
 /** Records named by id, each shown as its label and colored by its kind. */
-export function RecordRefs({ ids, index }: { ids: string[]; index: RecordIndex }) {
+export function RecordRefs({
+  ids,
+  index,
+  onSelect,
+}: {
+  ids: string[]
+  index: RecordIndex
+  onSelect?: SelectRecord
+}) {
   if (ids.length === 0) {
     return <Empty>None</Empty>
   }
   return (
     <Group gap={6}>
-      {ids.map((id) => (
-        <Badge
-          key={id}
-          variant="light"
-          color={KIND_COLORS[index.get(id)?.kind ?? 'property']}
-          tt="none"
-          title={id}
-        >
-          {labelOf(index, id)}
-        </Badge>
-      ))}
+      {ids.map((id) => {
+        const badge = (
+          <Badge
+            key={id}
+            variant="light"
+            color={KIND_COLORS[index.get(id)?.kind ?? 'property']}
+            tt="none"
+            title={id}
+          >
+            {labelOf(index, id)}
+          </Badge>
+        )
+        if (!onSelect) return badge
+        return (
+          <Badge
+            key={id}
+            component="button"
+            type="button"
+            variant="light"
+            color={KIND_COLORS[index.get(id)?.kind ?? 'property']}
+            tt="none"
+            title={id}
+            onClick={() => onSelect(id)}
+            style={{ cursor: 'pointer' }}
+          >
+            {labelOf(index, id)}
+          </Badge>
+        )
+      })}
     </Group>
   )
 }
@@ -89,10 +147,12 @@ export function StatementLinks({
   causedBy,
   supersedes,
   index,
+  onSelect,
 }: {
   causedBy: string | null
   supersedes: string | null
   index: RecordIndex
+  onSelect?: SelectRecord
 }) {
   if (causedBy === null && supersedes === null) {
     return null
@@ -101,12 +161,18 @@ export function StatementLinks({
     <Stack gap={0}>
       {causedBy !== null && (
         <Text size="sm" c="dimmed">
-          Caused by: {labelOf(index, causedBy)}
+          Caused by:{' '}
+          <RecordLink id={causedBy} onSelect={onSelect}>
+            {labelOf(index, causedBy)}
+          </RecordLink>
         </Text>
       )}
       {supersedes !== null && (
         <Text size="sm" c="dimmed">
-          Supersedes: {labelOf(index, supersedes)}
+          Supersedes:{' '}
+          <RecordLink id={supersedes} onSelect={onSelect}>
+            {labelOf(index, supersedes)}
+          </RecordLink>
         </Text>
       )}
     </Stack>

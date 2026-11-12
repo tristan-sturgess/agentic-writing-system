@@ -17,13 +17,13 @@ The layout in a view doc is the first attempt at answering the questions. It can
 | Address | Screen |
 | --- | --- |
 | `/` | The story list. |
-| `/stories/{story_id}` | One story. It opens on the records view. |
+| `/stories/{story_id}` | One story. The address redirects to `/stories/{story_id}/records`. |
 | `/stories/{story_id}/records` | The records view. |
 | `/stories/{story_id}/timeline` | The timeline. |
 | `/stories/{story_id}/entities` | The entities view. |
 | `/stories/{story_id}/graph` | The graph. |
 
-A story's page shows the story's title and a link to each of its views. Each view has its own address, so a view can be added, replaced, or dropped without touching the others, and the view on screen survives a reload.
+A story's page shows the story's title and a link to each view that is built, in a row under the title. The view on screen is marked. A view is linked once it has a screen, so the page does not offer a view that is not built yet. Each view has its own address, so a view can be added, replaced, or dropped without touching the others, and the view on screen survives a reload. The links keep the query string, so `?record=` carries from one view to the next.
 
 The selected record is part of the address, as `?record={record_id}`. It survives a reload, and it carries from one view to the next: an Entity selected on the graph is still selected when the writer opens the entities view. A view that does not show the selected record ignores it.
 
@@ -40,6 +40,8 @@ A view that shows story time also loads what the service computed about it, beca
 ### Selecting a record
 
 Selecting a record in any view opens the detail panel beside the view. The panel shows that record's fields as stored, the records it names, and the records that name it. Each of those is a link that selects that record in turn.
+
+On a wide window, the `md` breakpoint and wider, the panel is a column to the right of the view. On a narrower window it is a drawer over the view, open while a record is selected. Closing the panel clears `?record=`.
 
 In the view steps of slice 2 the panel is read-only. In the editing steps it becomes the editor. Every view opens the same panel, so a view does not need an editor of its own, and a new view gets editing by letting the writer select a record.
 
@@ -62,7 +64,7 @@ No screen saves anything until step 9 of slice 2. The application doc already fi
 | View | What it must answer | Built in | Doc |
 | --- | --- | --- | --- |
 | Records | What does each record store, field by field, exactly as stored? | Slice 2, step 1. Built. | [Below](#the-records-view). |
-| Timeline | When does each Event happen, in what order, what is happening and who is involved at a given time, which Arc is each Event in, and where could a new Event go? | Slice 2, steps 3 to 5. Step 3 is built: the service returns Event times. The screen is not. | [ui/timeline.md](ui/timeline.md) |
+| Timeline | When does each Event happen, in what order, what is happening and who is involved at a given time, which Arc is each Event in, and where could a new Event go? | Slice 2, steps 3 to 5. Steps 3 and 4 are built: the service returns Event times, and the screen draws the axis, the lanes, the Events with no place, and selecting an Event, a moment, or a stretch. Step 5, the Entities and Arcs, is not. | [ui/timeline.md](ui/timeline.md) |
 | Entities | What is true of an Entity and when, how its Properties replace each other and why, and how it is tied to other Entities? | Slice 2, step 6. | Written when step 6 starts. |
 | Graph | How are the records connected, what connects to nothing, and what surrounds one record or one Arc? | Slice 2, steps 7 and 8. | Written when step 7 starts. |
 
@@ -119,6 +121,5 @@ Logic that does not render has Vitest tests: laying out resolved spans, assignin
 
 ## What stays open
 
-- The widget each view is drawn with. It is chosen in the view's doc when its step starts. This is the part of question 22 that slice 2 closes one view at a time.
-- How the story's page lays out its view links, and where the detail panel sits on a narrow window. These are decided when step 4 builds them and are recorded here.
+- The widget each view is drawn with. It is chosen in the view's doc when its step starts. This is the part of question 22 that slice 2 closes one view at a time. The timeline is drawn with a grid, plain marks, and Mantine, as its doc says.
 - What the later screens look like. Each is decided at its step.

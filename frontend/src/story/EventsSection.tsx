@@ -1,14 +1,22 @@
-import { Table, Text } from '@mantine/core'
+import { Table } from '@mantine/core'
 
 import type { Story } from '../api/client'
-import { Empty, Prose, RecordId, RecordRefs, When } from './parts'
+import { Empty, Prose, RecordId, RecordLink, RecordRefs, When, type SelectRecord } from './parts'
 import type { RecordIndex } from './records'
 
 /**
- * The Events as a list, in the order they were created. Arranging them in
- * story time is the first picture, which a later step draws.
+ * The Events as a list, in the order they were created. The timeline draws
+ * the same Events in story time.
  */
-export function EventsSection({ story, index }: { story: Story; index: RecordIndex }) {
+export function EventsSection({
+  story,
+  index,
+  onSelect,
+}: {
+  story: Story
+  index: RecordIndex
+  onSelect: SelectRecord
+}) {
   if (story.events.length === 0) {
     return <Empty>This story has no Events.</Empty>
   }
@@ -25,7 +33,11 @@ export function EventsSection({ story, index }: { story: Story; index: RecordInd
         {story.events.map((event) => (
           <Table.Tr key={event.id} style={{ verticalAlign: 'top' }}>
             <Table.Td>
-              <Text fw={600}>{event.title}</Text>
+              <div>
+                <RecordLink id={event.id} onSelect={onSelect} fw={600}>
+                  {event.title}
+                </RecordLink>
+              </div>
               <RecordId id={event.id} />
               {event.description && <Prose>{event.description}</Prose>}
             </Table.Td>
@@ -33,7 +45,7 @@ export function EventsSection({ story, index }: { story: Story; index: RecordInd
               <When spans={event.when} index={index} empty="Time unspecified" />
             </Table.Td>
             <Table.Td>
-              <RecordRefs ids={event.entity_ids} index={index} />
+              <RecordRefs ids={event.entity_ids} index={index} onSelect={onSelect} />
             </Table.Td>
           </Table.Tr>
         ))}

@@ -1,14 +1,22 @@
 import { Group, List, Paper, Stack, Text, Title } from '@mantine/core'
 
 import type { Story } from '../api/client'
-import { Empty, Prose, RecordId } from './parts'
-import { labelOf, type RecordIndex } from './records'
+import { Empty, Prose, RecordId, RecordLink, type SelectRecord } from './parts'
+import type { RecordIndex } from './records'
 
 /**
  * Each Arc with its Events in the Arc's own order, which may differ from story
  * time. Laying the Arcs over the Events is the second picture, in a later step.
  */
-export function ArcsSection({ story, index }: { story: Story; index: RecordIndex }) {
+export function ArcsSection({
+  story,
+  index,
+  onSelect,
+}: {
+  story: Story
+  index: RecordIndex
+  onSelect: SelectRecord
+}) {
   if (story.arcs.length === 0) {
     return <Empty>This story has no Arcs.</Empty>
   }
@@ -17,7 +25,11 @@ export function ArcsSection({ story, index }: { story: Story; index: RecordIndex
       {story.arcs.map((arc) => (
         <Paper key={arc.id} withBorder p="md">
           <Group gap="sm" align="baseline">
-            <Title order={4}>{arc.title}</Title>
+            <Title order={4}>
+              <RecordLink id={arc.id} onSelect={onSelect}>
+                {arc.title}
+              </RecordLink>
+            </Title>
             <RecordId id={arc.id} />
           </Group>
           {arc.description && <Prose>{arc.description}</Prose>}
@@ -31,7 +43,9 @@ export function ArcsSection({ story, index }: { story: Story; index: RecordIndex
             <List type="ordered" size="sm">
               {arc.event_ids.map((eventId) => (
                 <List.Item key={eventId} title={eventId}>
-                  {labelOf(index, eventId)}
+                  <RecordLink id={eventId} onSelect={onSelect}>
+                    {index.get(eventId)?.label ?? eventId}
+                  </RecordLink>
                 </List.Item>
               ))}
             </List>

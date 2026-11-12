@@ -1,8 +1,10 @@
 import { Anchor, AppShell, Container, Group, Text } from '@mantine/core'
 import { Link, Route, Routes } from 'react-router'
 
+import { RecordsView } from './pages/RecordsView'
 import { StoryListPage } from './pages/StoryListPage'
-import { StoryPage } from './pages/StoryPage'
+import { OpenRecords, StoryLayout } from './pages/StoryLayout'
+import { TimelineView } from './timeline/TimelineView'
 
 export default function App() {
   return (
@@ -18,7 +20,11 @@ export default function App() {
         <Container size="lg">
           <Routes>
             <Route path="/" element={<StoryListPage />} />
-            <Route path="/stories/:storyId" element={<StoryPage />} />
+            <Route path="/stories/:storyId" element={<StoryLayout />}>
+              <Route index element={<OpenRecords />} />
+              <Route path="records" element={<RecordsView />} />
+              <Route path="timeline" element={<TimelineView />} />
+            </Route>
             {/* The service answers any path outside /api with this app. */}
             <Route path="*" element={<NoSuchPage />} />
           </Routes>

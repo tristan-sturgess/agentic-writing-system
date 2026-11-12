@@ -1,6 +1,6 @@
 # Creative Writing System
 
-This repository is the version 3 build of a creative writing system for fiction. Slice 1 of [build-sequence.md](build-sequence.md) is built. Of slice 2, the records view, the edge on a time point, and Event times from the service are built; the rest is not. The documents below are the design the build follows.
+This repository is the version 3 build of a creative writing system for fiction. Slice 1 of [build-sequence.md](build-sequence.md) is built. Of slice 2, the records view, a route per built view, the read-only detail panel, the edge on a time point, Event times from the service, and the timeline without Entities and Arcs drawn on it are built; the rest is not. The documents below are the design the build follows.
 
 The Story Bible is the shared object. The user can inspect and edit it directly. Agents do most of the work, with revision loops. Measuring whether a prompt or workflow change actually helped is a requirement, not a follow-up.
 

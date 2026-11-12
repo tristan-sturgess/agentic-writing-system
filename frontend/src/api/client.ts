@@ -79,3 +79,12 @@ export function listStories(): Promise<StorySummary[]> {
 export function getStory(storyId: string): Promise<Story> {
   return get(`/stories/${encodeURIComponent(storyId)}`)
 }
+
+export type EventTimes = Schemas['EventTimes']
+export type EventTime = Schemas['EventTime']
+export type EventTimePoint = Schemas['EventTimePoint']
+
+/** What the service resolved for each Event's spans. The timeline draws this. */
+export function getEventTimes(storyId: string): Promise<EventTimes> {
+  return get(`/stories/${encodeURIComponent(storyId)}/event-times`)
+}

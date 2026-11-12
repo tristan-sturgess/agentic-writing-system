@@ -1,29 +1,39 @@
 import { Box, Group, Stack, Text } from '@mantine/core'
 
 import type { NarrativeUnit, Story } from '../api/client'
-import { Empty, Prose, RecordId, RecordRefs } from './parts'
+import { Empty, Prose, RecordId, RecordLink, RecordRefs, type SelectRecord } from './parts'
 import type { RecordIndex } from './records'
 
 /**
  * The Narrative Units as the tree they are stored as: the story's `unit_ids`
  * at the top, each unit's `child_ids` beneath it, both in reading order.
  */
-export function UnitsSection({ story, index }: { story: Story; index: RecordIndex }) {
+export function UnitsSection({
+  story,
+  index,
+  onSelect,
+}: {
+  story: Story
+  index: RecordIndex
+  onSelect: SelectRecord
+}) {
   if (story.unit_ids.length === 0) {
     return <Empty>This story has no Narrative Units.</Empty>
   }
   const units = new Map(story.units.map((unit) => [unit.id, unit]))
-  return <UnitList ids={story.unit_ids} units={units} index={index} />
+  return <UnitList ids={story.unit_ids} units={units} index={index} onSelect={onSelect} />
 }
 
 function UnitList({
   ids,
   units,
   index,
+  onSelect,
 }: {
   ids: string[]
   units: ReadonlyMap<string, NarrativeUnit>
   index: RecordIndex
+  onSelect: SelectRecord
 }) {
   return (
     <Stack gap="md">
@@ -36,7 +46,9 @@ function UnitList({
         return (
           <div key={id}>
             <Group gap="sm" align="baseline">
-              <Text fw={600}>{unit.title}</Text>
+              <RecordLink id={unit.id} onSelect={onSelect} fw={600}>
+                {unit.title}
+              </RecordLink>
               <RecordId id={unit.id} />
             </Group>
             {unit.summary && <Prose>{unit.summary}</Prose>}
@@ -50,7 +62,7 @@ function UnitList({
                 <Text size="sm" c="dimmed">
                   Depicts
                 </Text>
-                <RecordRefs ids={unit.subject_ids} index={index} />
+                <RecordRefs ids={unit.subject_ids} index={index} onSelect={onSelect} />
               </Group>
             )}
             {unit.child_ids.length > 0 && (
@@ -59,7 +71,7 @@ function UnitList({
                 pl="md"
                 style={{ borderLeft: '2px solid var(--mantine-color-gray-3)' }}
               >
-                <UnitList ids={unit.child_ids} units={units} index={index} />
+                <UnitList ids={unit.child_ids} units={units} index={index} onSelect={onSelect} />
               </Box>
             )}
           </div>

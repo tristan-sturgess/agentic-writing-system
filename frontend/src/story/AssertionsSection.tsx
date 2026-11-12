@@ -1,10 +1,18 @@
-import { Table, Text } from '@mantine/core'
+import { Table } from '@mantine/core'
 
 import type { Story } from '../api/client'
-import { Empty, RecordId, RecordRefs, StatementLinks, When } from './parts'
+import { Empty, RecordId, RecordLink, RecordRefs, StatementLinks, When, type SelectRecord } from './parts'
 import type { RecordIndex } from './records'
 
-export function AssertionsSection({ story, index }: { story: Story; index: RecordIndex }) {
+export function AssertionsSection({
+  story,
+  index,
+  onSelect,
+}: {
+  story: Story
+  index: RecordIndex
+  onSelect: SelectRecord
+}) {
   if (story.assertions.length === 0) {
     return <Empty>This story has no Assertions.</Empty>
   }
@@ -21,18 +29,24 @@ export function AssertionsSection({ story, index }: { story: Story; index: Recor
         {story.assertions.map((assertion) => (
           <Table.Tr key={assertion.id} style={{ verticalAlign: 'top' }}>
             <Table.Td>
-              <Text>{assertion.statement}</Text>
+              <div>
+                <RecordLink id={assertion.id} onSelect={onSelect}>
+                  {assertion.statement}
+                </RecordLink>
+              </div>
               <RecordId id={assertion.id} />
               <StatementLinks
                 causedBy={assertion.caused_by}
                 supersedes={assertion.supersedes}
                 index={index}
+                onSelect={onSelect}
               />
             </Table.Td>
             <Table.Td>
               <RecordRefs
                 ids={[...assertion.entity_ids, ...assertion.event_ids, ...assertion.arc_ids]}
                 index={index}
+                onSelect={onSelect}
               />
             </Table.Td>
             <Table.Td>
