@@ -52,7 +52,7 @@ Use these. Changing one is an architecture change: update the docs first.
 - **SQLAlchemy 2.1** (async) for the stores, with **Alembic** for migrations. **SQLite** locally through `aiosqlite`, **Postgres** when hosted through `psycopg`. LangGraph's SQLite and Postgres checkpointers hold conversation threads.
 - **pytest** for tests, **Ruff** for linting and formatting, **mypy** for type checking.
 - **Railway** as the eventual hosted target. The local app comes first.
-- The UI is a **separate frontend** that talks only to the Python API. It lives in `frontend/`: **React** and **TypeScript**, built by **Vite**, with **Mantine** for components, managed with **npm** on Node 22.12 or later. **Vitest** for its tests, **ESLint** for linting. Its API types are generated from the service's OpenAPI document. `docs/architecture/application.md` says how it is built and served.
+- The UI is a **separate frontend** that talks only to the Python API. It lives in `frontend/`: **React** and **TypeScript**, built by **Vite**, with **Mantine** for components, managed with **npm** on Node 22.12 or later. **Vitest** for its tests, **ESLint** for linting. Its API types are generated from the service's OpenAPI document. `docs/architecture/application.md` says how it is built and served. Before changing `frontend/`, read `.cursor/rules/frontend-mantine.mdc` and use the Mantine MCP server in `.cursor/mcp.json`. Forms, comboboxes, and custom components have skills under `frontend/.agents/skills/`.
 
 Not yet decided: the LangChain integration used to reach OpenRouter (decided in slice 3). Update this section when it is.
 
