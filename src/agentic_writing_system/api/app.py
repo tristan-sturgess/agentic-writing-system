@@ -10,6 +10,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from agentic_writing_system.api.errors import register_error_handlers
+from agentic_writing_system.api.frontend import frontend_route
 from agentic_writing_system.api.stories import router as stories_router
 from agentic_writing_system.api.users import LocalUserResolver
 from agentic_writing_system.settings import Settings
@@ -82,4 +83,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     register_error_handlers(app)
     app.include_router(stories_router, prefix="/api")
+    app.router.routes.append(frontend_route(settings.frontend_dir))
     return app

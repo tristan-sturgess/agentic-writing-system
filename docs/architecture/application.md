@@ -4,7 +4,7 @@ This is what the Python API does and what the frontend gets from it. The API is 
 
 This doc owns the contract and the service. It does not own the subsystems it calls. The Story Bible doc owns the rules a commit checks; the persistence doc owns the commit and the stores; the agents doc owns the tools and what a cancelled turn leaves in the thread; the model-configuration doc owns configs and the agent builder; the logging doc owns the call record; the evaluations doc owns the run. Where this doc names one of their rules, it is saying where the API calls it, not restating it.
 
-Settled items 34 and 39–41 in [open-questions.md](../open-questions.md) fix the shape: a Python API with a separate frontend, a turn as a job with a durable row and a row-based stop, a stream of typed events over SSE, and the background routines in the service process. This doc states them. Question 33, how a hosted request authenticates, is placed here and not closed.
+Settled items 34 and 39–41 in [open-questions.md](../open-questions.md) fix the shape: a Python API with a separate frontend, a turn as a job with a durable row and a row-based stop, a stream of typed events over SSE, and the background routines in the service process. This doc states them. Settled item 21 fixes what the frontend is built with, and [The frontend](#the-frontend) states it. Question 33, how a hosted request authenticates, is placed here and not closed.
 
 ## The service
 
@@ -233,6 +233,16 @@ A task dies with its process. The row says so: the turn or run stays `running` i
 
 A separate worker, with a queue such as Celery and the stream served from the database, was considered in item 41 and set aside. Nothing the early slices run is heavy, and the robustness a worker buys is not what they need. The condition for revisiting it is question 29: when a workflow must resume after a restart, a durable task owner is worth having, and the buffer moves out of process with it. The turn row is the row that resume would be built on.
 
+## The frontend
+
+The frontend is React and TypeScript, built by Vite, with Mantine for its components. Settled item 21 in [open-questions.md](../open-questions.md) holds the reasons. Its source is in `frontend/` at the repository root, with its own `package.json`, managed with npm. Building it and running its dev server need Node 22.12 or later. The Python service does not need Node to run.
+
+The build writes static files to `frontend/dist`, which is not checked in. The service serves that directory from the same port as the API. A request whose path is not under `/api` gets the file at that path, and a path that is not a file gets `index.html`, so a frontend route such as one story's page survives a reload. A path under `/api` that matches no endpoint is still the API's `404`. When `frontend/dist` does not exist, the service still starts and serves the API, and a path outside `/api` returns `404` with one sentence that names the build command.
+
+In development the frontend runs from the Vite dev server on its own port, and that server proxies `/api` to the service. The browser sees one origin in both setups, so the service sends no CORS headers and the frontend calls the API by path. Development is two processes. The local app is one.
+
+The frontend's request and response types are generated from the service's OpenAPI document. The generated file is checked in, and it is regenerated when an endpoint or a schema changes. The frontend does not restate the contract by hand.
+
 ## What the frontend may never do
 
 - Open a store, a database file, or the data directory. Every read and write is a request to the API.
@@ -242,8 +252,8 @@ A separate worker, with a queue such as Celery and the stream served from the da
 - Render a message it did not receive as a typed event. The stream's types are the whole vocabulary of the transcript.
 - Write `cancelled`, or any turn status. It requests a stop and reads the row.
 
-The frontend does own rendering: the two pictures, the structured editors, the history view with its diff and revert, the turn status, the call list, and the comparison. Which framework draws them is question 21, and this doc does not choose it. Whatever is chosen is built separately and speaks only the contract above.
+The frontend does own rendering: the two pictures, the structured editors, the history view with its diff and revert, the turn status, the call list, and the comparison. It is built separately, as [The frontend](#the-frontend) says, and speaks only the contract above.
 
 ## What stays open
 
-Question 21, the frontend framework, is closed in slice 2. Question 33, the hosted authentication mechanism, is an adapter behind the edge described above and is closed when hosting is built. Question 24, how many conversations the workspace lists, is a frontend choice over `GET /stories/{story_id}/conversations`. Question 29, a workflow that survives a restart, is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting.
+Question 22, which views are the minimum and which widget draws the two pictures, is closed in slice 2. Question 33, the hosted authentication mechanism, is an adapter behind the edge described above and is closed when hosting is built. Question 24, how many conversations the workspace lists, is a frontend choice over `GET /stories/{story_id}/conversations`. Question 29, a workflow that survives a restart, is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting.

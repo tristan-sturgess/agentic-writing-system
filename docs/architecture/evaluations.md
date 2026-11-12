@@ -229,7 +229,7 @@ The runner writes this record itself. A library may replace that runner only if 
 
 ## The first surface
 
-The user launches a fixture against a workflow version and a model config, then reads the comparison. That launch runs the workflow, the checks, and the judge. That user is the owner of the run. There is no separate admin role. The launch and the comparison are endpoints of the API in [application.md](application.md), and the screen is in the frontend framework that is still open. This doc says what the surface does, and not which framework draws it.
+The user launches a fixture against a workflow version and a model config, then reads the comparison. That launch runs the workflow, the checks, and the judge. That user is the owner of the run. There is no separate admin role. The launch and the comparison are endpoints of the API in [application.md](application.md), and the screen is in the frontend that doc describes. This doc says what the surface does, and not how the screen is laid out.
 
 Evaluations do not run in CI.
 

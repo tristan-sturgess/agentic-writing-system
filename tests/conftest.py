@@ -18,7 +18,12 @@ from agentic_writing_system.stores.users import LOCAL_USER_ID, SqlUserStore
 
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
-    return Settings(data_dir=tmp_path / "data", install="local")
+    # No frontend is built there. A test that needs a build makes its own.
+    return Settings(
+        data_dir=tmp_path / "data",
+        frontend_dir=tmp_path / "frontend" / "dist",
+        install="local",
+    )
 
 
 @pytest.fixture

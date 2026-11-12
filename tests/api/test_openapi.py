@@ -31,6 +31,31 @@ def test_openapi_lists_the_statuses_each_path_returns(client: TestClient) -> Non
     assert "HTTPValidationError" not in document["components"]["schemas"]
 
 
+def test_a_story_response_requires_every_field_the_service_sends(
+    client: TestClient,
+) -> None:
+    """A field with a default is still in every response.
+
+    The frontend's types are generated from this document. A field it lists as
+    optional is one the frontend has to guard for on every read.
+    """
+    schemas = client.get("/api/openapi.json").json()["components"]["schemas"]
+    for name in (
+        "StoryView",
+        "EntityView",
+        "PropertyView",
+        "AssertionView",
+        "EventView",
+        "NarrativeUnitView",
+        "ArcView",
+    ):
+        schema = schemas[name]
+        assert sorted(schema["required"]) == sorted(schema["properties"]), name
+
+    story = client.post("/api/stories").json()
+    assert set(story) == set(schemas["StoryView"]["properties"])
+
+
 def test_error_bodies_match_the_models_the_document_names(client: TestClient) -> None:
     schemas = client.get("/api/openapi.json").json()["components"]["schemas"]
 

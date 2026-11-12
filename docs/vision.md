@@ -43,7 +43,7 @@ The build follows the order a writer would notice. [build-sequence.md](build-seq
 
 Prose stays out until the earlier slices exist.
 
-The interface is a separate frontend on a Python API, so the application can later be hosted without being rebuilt. Which framework draws that frontend is still an open choice, recorded in [open-questions.md](open-questions.md). Being able to see and edit the story matters more than matching any earlier screen.
+The interface is a separate frontend on a Python API, so the application can later be hosted without being rebuilt. The frontend is built with React, and [architecture/application.md](architecture/application.md) says how. Being able to see and edit the story matters more than matching any earlier screen.
 
 ## What waits
 

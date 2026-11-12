@@ -166,7 +166,7 @@ Locally the document is a row in `app.sqlite`. On Railway it is a row in Postgre
 
 The user provides their own OpenRouter API key. The secrets store is `set`, `get`, and `delete` for the acting user's key. The model binding in [model-configuration.md](model-configuration.md) reads the key through `get` when it builds a chat model. Nothing else reads it.
 
-The key is not a field on the config document. It is not written into a story export, a config export, or a call record. Locally it is a row in `data/secrets.sqlite`, in plain text; the local install is the user's own machine, and the separate file keeps the key out of a copied `app.sqlite`. On Railway it is a row in its own table, encrypted by the application with a key from the environment before it is written, so a database dump does not contain usable keys. Platform encryption at rest protects the disk, not a dump. No export query reads that table. The key reaches this store through the API's `set` endpoint; the screen that collects it waits with the frontend framework in [open-questions.md](../open-questions.md).
+The key is not a field on the config document. It is not written into a story export, a config export, or a call record. Locally it is a row in `data/secrets.sqlite`, in plain text; the local install is the user's own machine, and the separate file keeps the key out of a copied `app.sqlite`. On Railway it is a row in its own table, encrypted by the application with a key from the environment before it is written, so a database dump does not contain usable keys. Platform encryption at rest protects the disk, not a dump. No export query reads that table. The key reaches this store through the API's `set` endpoint; the screen that collects it is built in slice 3, as [build-sequence.md](../build-sequence.md) places it.
 
 ## Conversations
 
@@ -224,4 +224,4 @@ Import checks the schema version and fails with a clear error when it does not m
 
 Workflows that must survive a process restart stay open in [open-questions.md](../open-questions.md). Until that is decided, a run lives in the process. The story does not hold a half-applied draft.
 
-These stores are called from the Python API in [application.md](application.md), and from nothing else; the frontend never opens one. Which framework draws the frontend, and how a hosted request authenticates, are still open there. Neither changes the ownership model.
+These stores are called from the Python API in [application.md](application.md), and from nothing else; the frontend never opens one. How a hosted request authenticates is still open there. It does not change the ownership model.

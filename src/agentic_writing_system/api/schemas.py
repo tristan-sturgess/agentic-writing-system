@@ -33,6 +33,14 @@ from agentic_writing_system.story_bible.writes import Write
 
 _FORBID = ConfigDict(extra="forbid")
 
+# A story response carries every field, the ones with a default included. This
+# makes the OpenAPI document say so. Without it the document lists a defaulted
+# field as optional, as it is in a request, and the frontend's generated types
+# would have to guard for a field that is always there.
+_SENT_WHOLE = ConfigDict(
+    extra="forbid", json_schema_serialization_defaults_required=True
+)
+
 
 class StorySummary(BaseModel):
     model_config = _FORBID
@@ -44,26 +52,38 @@ class StorySummary(BaseModel):
 
 
 class EntityView(Entity):
+    model_config = _SENT_WHOLE
+
     revision: int
 
 
 class PropertyView(Property):
+    model_config = _SENT_WHOLE
+
     revision: int
 
 
 class AssertionView(Assertion):
+    model_config = _SENT_WHOLE
+
     revision: int
 
 
 class EventView(Event):
+    model_config = _SENT_WHOLE
+
     revision: int
 
 
 class NarrativeUnitView(NarrativeUnit):
+    model_config = _SENT_WHOLE
+
     revision: int
 
 
 class ArcView(Arc):
+    model_config = _SENT_WHOLE
+
     revision: int
 
 
@@ -89,7 +109,7 @@ def record_view(row: RecordRow) -> RecordView:
 
 
 class StoryView(BaseModel):
-    model_config = _FORBID
+    model_config = _SENT_WHOLE
 
     id: str
     schema_version: int

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, cast
 
 import pytest
@@ -139,7 +140,7 @@ def test_store_busy_503(settings: Settings) -> None:
 
 def test_create_app_refuses_non_local(settings: Settings) -> None:
     with pytest.raises(RuntimeError, match="local install"):
-        create_app(Settings(data_dir=settings.data_dir, install=None))
+        create_app(replace(settings, install=None))
 
 
 def test_validation_returns_400() -> None:

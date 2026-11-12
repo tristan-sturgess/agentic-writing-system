@@ -19,14 +19,14 @@ A slice is a milestone. The numbered steps inside it are the units of work. Each
 | Slice | Bound by | Starts when |
 | --- | --- | --- |
 | 1. Story Bible and a minimal API | [story-bible.md](story-bible.md). [architecture/persistence.md](architecture/persistence.md), for the story store, the commit, ownership, the commit record, and import. [architecture/application.md](architecture/application.md), for the story endpoints. | The tech stack is chosen and the repository is scaffolded. |
-| 2. Editing and visualization | The early pictures in the Story Bible doc. The application doc, for the endpoints the views call. Questions 21 and 22 in [open-questions.md](open-questions.md), which this slice closes. The same commit as slice 1. | A story can be created, edited, and reloaded through the API. |
+| 2. Editing and visualization | The early pictures in the Story Bible doc. The application doc, for the endpoints the views call. Settled item 21 in [open-questions.md](open-questions.md), for what the frontend is built with. Question 22, which this slice closes. The same commit as slice 1. | A story can be created, edited, and reloaded through the API. |
 | 3. Arc-planning agent | [architecture/agents.md](architecture/agents.md), [architecture/model-configuration.md](architecture/model-configuration.md), [architecture/prompt-assembly.md](architecture/prompt-assembly.md), [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md). The persistence doc, for the config, secrets, conversation, and call-log stores, and for the commit's guards and conflict handling. The application doc, for the turn, the stream, and the stop. | A person can build a bible by hand, see it, and revert an edit, and the tweak step has ended. |
 | 4. Evaluations | [architecture/evaluations.md](architecture/evaluations.md). The logging doc, by citation. This slice does not capture a prompt a second way. | The arc chat's calls are in the log. |
 | 5. Prose | The note in this file. Narrative Units in the Story Bible doc. The scene-score place already reserved in the evaluations doc. | Slices 1–4 are in place. |
 
 ## Before slice 1
 
-The tech stack is chosen and recorded in `AGENTS.md`. Question 21, the frontend framework, stays open until before slice 2 builds a view. The repository is scaffolded with one passing test and the commands to set up, run, and test it.
+The tech stack is chosen and recorded in `AGENTS.md`. The frontend framework stayed open until slice 2, which settled it as item 21 before building a view. The repository is scaffolded with one passing test and the commands to set up, run, and test it.
 
 ## Slice 1 — Story Bible and a minimal API
 
@@ -51,7 +51,7 @@ Slice 1 is done when a story can be created, edited, and loaded through the API,
 
 ## Slice 2 — Editing and visualization
 
-The views on the model from slice 1. The application layer is a Python API with a separate frontend, settled item 34 in [open-questions.md](open-questions.md), so this slice builds the frontend and the remaining story endpoints it calls. The frontend framework is chosen before any view is built, which closes question 21. React is a candidate. NiceGUI and the other in-process Python frameworks are out with item 34. Accounts and a hosted login are not part of the choice. Locally there is still one implicit user, and the API resolves every request to it.
+The views on the model from slice 1. The application layer is a Python API with a separate frontend, settled item 34 in [open-questions.md](open-questions.md), so this slice builds the frontend and the remaining story endpoints it calls. The frontend is React and TypeScript, built by Vite, with Mantine components, settled item 21, and [architecture/application.md](architecture/application.md) says how it is built and served. Accounts and a hosted login are not part of this slice. Locally there is still one implicit user, and the API resolves every request to it.
 
 The Story Bible doc already requires these pictures, whatever widget draws them:
 
