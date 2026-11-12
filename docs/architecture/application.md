@@ -49,7 +49,7 @@ The `400` body is `{ "detail": [...] }`, one entry per rejected value: where it 
 
 ### Slices 1 and 2
 
-The first endpoints. Slice 1 builds the story endpoints, the commit, and import; slice 2 adds history, revert, and export, and the frontend that calls them. [build-sequence.md](../build-sequence.md) places each one. In these slices every commit is a hand edit, an import, or a revert.
+The first endpoints. Slice 1 builds the story endpoints, the commit, and import; slice 2 adds the Event times, history, revert, and export, and the frontend that calls them. [build-sequence.md](../build-sequence.md) places each one. In these slices every commit is a hand edit, an import, or a revert.
 
 | Method and path | What it does |
 | --- | --- |
@@ -57,6 +57,7 @@ The first endpoints. Slice 1 builds the story endpoints, the commit, and import;
 | `POST /stories` | A new empty story. The store's `create`. Returns the story as `GET /stories/{story_id}` would. |
 | `GET /stories/{story_id}` | The whole story document, every record with its revision, from one `load`. This is what the frontend draws from. The revisions are what its next commit carries. |
 | `DELETE /stories/{story_id}` | Removes the story, its records, its history, and its conversations. The store's `delete`. |
+| `GET /stories/{story_id}/event-times` | The story's Events in story time: for each span of each Event, the timestamp each point and bound resolves to, or the reason it does not. [The Event times](#the-event-times) below. |
 | `POST /stories/{story_id}/commits` | One commit, source `user`. The body is an ordered list of writes: create, update, or delete of one record, or a change to the framing fields or `unit_ids`, each update and delete carrying the revision the frontend loaded. A later write may name what an earlier one created. The three outcomes above. |
 | `GET /stories/{story_id}/history` | The commit records, newest first, with the persistence doc's filters: source, `thread_id`, `run_id`, a time range. Each record carries its changes with the before and after. Grouping by turn is grouping by `thread_id` and `run_id`. |
 | `POST /stories/{story_id}/revert` | A revert commit. The body names commit ids, or a `thread_id` and `run_id` for a whole turn. One commit; it lands whole or not at all, with the three outcomes above. |
@@ -79,6 +80,35 @@ The story read, the import, the export, and an evaluation's bible copies use one
 A Property is in `properties` and carries its `entity_id`. It is not nested under its Entity. The lists match the store's row per record, and a record read from the document has the same fields as one sent in a write. Within a list, records are in the order they were created.
 
 `GET /stories/{story_id}` returns that document plus the story's `id`, its `revision`, its created and updated times, and a `revision` on each record. The import and export document has none of those: no story id, no revisions, no times.
+
+#### The Event times
+
+Settled item 43 puts the resolving of story time in the service. The Story Bible layer computes it from one `load`, by the rules in [story-bible.md](../story-bible.md), and `GET /stories/{story_id}/event-times` returns it. The timeline in [ui/timeline.md](../ui/timeline.md) draws from it, and the slice 3 read tool that tells an agent when Events happen returns the same result. The frontend does not resolve a time point itself.
+
+The body is `{ "events": [...] }`, one entry for each Event, in the order the story document lists them. An entry has the Event's `id` and its `spans`, one for each span in the Event's `when` list, in the stored order. An Event with an empty `when` has an empty `spans`.
+
+A span has its `kind` and one entry for each point it stores: `at` on an `at` span, and `start` and `end` on a `range`. A bound the span does not store is absent here too. Each point has:
+
+| Field | Contents |
+| --- | --- |
+| `point` | The time point as stored: `{ timestamp }`, `{ event_id }`, or `{ event_id, edge }`. |
+| `edge` | For a point that names an Event, the end of that Event the point was read as: `start` or `end`. It is the stored `edge`, or the one its place in the span gives when none is stored. Absent for a timestamp. |
+| `timestamp` | The value the point resolves to, as `YYYY-MM-DDTHH:MM:SS`, so two values compare as text. Null when it does not resolve. A point stored as a timestamp always resolves, to that value. |
+| `unresolved` | Null when the point resolves. Otherwise a reason code, and the ids of the Events followed to reach the one that stopped the chain. |
+
+A `range` whose two bounds resolve with the start after the end carries `ends_before_start` as true. A save does not refuse that range when a bound is an Event, which the Story Bible doc lists as a known issue, and this is where it is reported.
+
+The reason codes follow the Story Bible doc's rule for a time point that names an Event, settled item 42:
+
+| Code | The chain stopped at an Event that |
+| --- | --- |
+| `no_time` | Has an empty `when`. |
+| `several_spans` | Has more than one span, so it has no single start or end. |
+| `bound_absent` | Is a period whose `start` or `end`, whichever the point means, is not recorded. |
+
+The result is computed on each request and is not stored. It has no revision. The frontend loads it with the story and loads both again after a commit. An unknown story is `404`.
+
+The in-force view for the entities view is served the same way when that view is built, and its endpoint is added to the table then.
 
 #### The commit body
 
@@ -252,8 +282,8 @@ The frontend's request and response types are generated from the service's OpenA
 - Render a message it did not receive as a typed event. The stream's types are the whole vocabulary of the transcript.
 - Write `cancelled`, or any turn status. It requests a stop and reads the row.
 
-The frontend does own rendering: the two pictures, the structured editors, the history view with its diff and revert, the turn status, the call list, and the comparison. It is built separately, as [The frontend](#the-frontend) says, and speaks only the contract above.
+The frontend does own rendering: the views in [ui.md](../ui.md), the structured editors, the history view with its diff and revert, the turn status, the call list, and the comparison. It is built separately, as [The frontend](#the-frontend) says, and speaks only the contract above.
 
 ## What stays open
 
-Question 22, which views are the minimum and which widget draws the two pictures, is closed in slice 2. Question 33, the hosted authentication mechanism, is an adapter behind the edge described above and is closed when hosting is built. Question 24, how many conversations the workspace lists, is a frontend choice over `GET /stories/{story_id}/conversations`. Question 29, a workflow that survives a restart, is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting.
+Question 22, how each screen in [ui.md](../ui.md) is drawn, is closed in slice 2. Question 33, the hosted authentication mechanism, is an adapter behind the edge described above and is closed when hosting is built. Question 24, how many conversations the workspace lists, is a frontend choice over `GET /stories/{story_id}/conversations`. Question 29, a workflow that survives a restart, is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting.

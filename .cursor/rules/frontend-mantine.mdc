@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Frontend: Mantine
 
-`frontend/` is React, TypeScript, and Vite, with Mantine v9 (`@mantine/core`, `@mantine/hooks`). What a screen must do is in `docs/architecture/application.md` and `docs/build-sequence.md`. How a Mantine component, hook, or style is written comes from Mantine's docs.
+`frontend/` is React, TypeScript, and Vite, with Mantine v9 (`@mantine/core`, `@mantine/hooks`). What a screen must do is in `docs/ui.md`, the view's doc under `docs/ui/`, `docs/architecture/application.md`, and `docs/build-sequence.md`. How a Mantine component, hook, or style is written comes from Mantine's docs.
 
 Before using a Mantine API you are not certain of, look it up with the `mantine` MCP server from `.cursor/mcp.json`. Read the tool schema, then:
 

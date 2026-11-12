@@ -19,7 +19,7 @@ A slice is a milestone. The numbered steps inside it are the units of work. Each
 | Slice | Bound by | Starts when |
 | --- | --- | --- |
 | 1. Story Bible and a minimal API | [story-bible.md](story-bible.md). [architecture/persistence.md](architecture/persistence.md), for the story store, the commit, ownership, the commit record, and import. [architecture/application.md](architecture/application.md), for the story endpoints. | The tech stack is chosen and the repository is scaffolded. |
-| 2. Editing and visualization | The early pictures in the Story Bible doc. The application doc, for the endpoints the views call. Settled item 21 in [open-questions.md](open-questions.md), for what the frontend is built with. Question 22, which this slice closes. The same commit as slice 1. | A story can be created, edited, and reloaded through the API. |
+| 2. Editing and visualization | The early pictures in the Story Bible doc. [ui.md](ui.md) and the view docs under `ui/`, for the views and what each must answer. The application doc, for the endpoints the views call. Settled item 21 in [open-questions.md](open-questions.md), for what the frontend is built with. Question 22, which this slice closes. The same commit as slice 1. | A story can be created, edited, and reloaded through the API. |
 | 3. Arc-planning agent | [architecture/agents.md](architecture/agents.md), [architecture/model-configuration.md](architecture/model-configuration.md), [architecture/prompt-assembly.md](architecture/prompt-assembly.md), [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md). The persistence doc, for the config, secrets, conversation, and call-log stores, and for the commit's guards and conflict handling. The application doc, for the turn, the stream, and the stop. | A person can build a bible by hand, see it, and revert an edit, and the tweak step has ended. |
 | 4. Evaluations | [architecture/evaluations.md](architecture/evaluations.md). The logging doc, by citation. This slice does not capture a prompt a second way. | The arc chat's calls are in the log. |
 | 5. Prose | The note in this file. Narrative Units in the Story Bible doc. The scene-score place already reserved in the evaluations doc. | Slices 1–4 are in place. |
@@ -51,24 +51,42 @@ Slice 1 is done when a story can be created, edited, and loaded through the API,
 
 ## Slice 2 — Editing and visualization
 
-The views on the model from slice 1. The application layer is a Python API with a separate frontend, settled item 34 in [open-questions.md](open-questions.md), so this slice builds the frontend and the remaining story endpoints it calls. The frontend is React and TypeScript, built by Vite, with Mantine components, settled item 21, and [architecture/application.md](architecture/application.md) says how it is built and served. Accounts and a hosted login are not part of this slice. Locally there is still one implicit user, and the API resolves every request to it.
+The views on the model from slice 1. The application layer is a Python API with a separate frontend, settled item 34 in [open-questions.md](open-questions.md), so this slice builds the frontend and the remaining story endpoints it calls, including the ones that read story time for a view. The frontend is React and TypeScript, built by Vite, with Mantine components, settled item 21, and [architecture/application.md](architecture/application.md) says how it is built and served. Accounts and a hosted login are not part of this slice. Locally there is still one implicit user, and the API resolves every request to it.
+
+The views come before the editing. What a view has to show is easier to judge on a story that already exists, so the slice first builds each view read-only and checks it against sample stories, and then adds editing to the screens that are there. [ui.md](ui.md) lists the views and the questions each one must answer. Each view has its own doc under `ui/`, and writing that doc is the first act of the view's step.
 
 The Story Bible doc already requires these pictures, whatever widget draws them:
 
 - Events arranged in story time from their spans. Selecting an Event opens it for editing. A relationship between Events is an Assertion, edited with the other Assertions.
 - Arcs laid over those Events.
 
+The slice draws two views that doc does not require: one Entity with its Properties over story time, and a graph of every record and the references between them.
+
+Selecting a record in any view opens the same detail panel. In the view steps the panel is read-only. In the editing steps it becomes the editor, so a view does not get an editor of its own. The records view from step 1 stays, as the screen where every field of every record can be reached.
+
 A hand edit is a commit. A failed save leaves the screen and the stored story in agreement, and the edit stays on the screen so the writer can retry or reload.
 
-1. **The frontend and a read-only story.** The frontend is scaffolded and served as the application doc says. It lists the stories and shows one story's records. Visible as the sample story on screen.
-2. **Entities and Properties.** Create, edit, and delete as structured fields. A refusal or a conflict is shown with the edit kept.
-3. **Events in story time.** The first picture, with select-to-edit.
-4. **Arcs over the Events.** The second picture, and the Arc editor.
-5. **The other records.** Assertions, Narrative Units, and the story framing. A Narrative Unit is edited as structure: its place in the reading order, its children, and its subjects. Its prose stays empty, and this slice does not grow a prose editor. The in-force view is read-only.
-6. **History, revert, and export.** The history and revert endpoints, and the story's commit history newest first, with what each commit changed and a revert of one commit. The export endpoint, and an export action. In this slice every commit is a hand edit, an import, or a revert. Slice 3 adds the agent's commits to the same list, grouped by turn, and the turn-level revert.
-7. **Tweak.** No new features. The writer uses the screens by hand and fixes what gets in the way. A change to the model or a rule found here goes into the docs first, before any agent depends on it. This step closes question 22.
+The views, read-only:
 
-"A little" is the bar. The views make the model inspectable and hand-editable. They do not cover later workflows, and they do not add graph types beyond the two pictures until question 22 is closed. The widget that draws those pictures is part of that question. It is not specified here.
+1. **The frontend and a read-only story.** The frontend is scaffolded and served as the application doc says. It lists the stories and shows one story's records. Visible as the sample story on screen. This screen is the records view.
+2. **Which end of an Event a time point means.** The `edge` on a time point that names an Event, from the Story Bible doc and settled item 42: the field on the record schema, the refusal of an `at` span that names an Event without one, and the sample story and the records view carrying and showing it. This is a revision to the model slice 1 built, made here because the timeline is the first thing that reads it. Visible as tests, and as a command that commits a span with an `edge` and reads it back.
+3. **Event times from the service.** The Story Bible layer resolves each Event's spans to timestamps by the Story Bible doc's rules, and the event-times endpoint in the application doc returns the result, as settled item 43 says. This step adds a sample story whose Events use every shape of span. Visible as a command that prints that sample's resolved times, and the reason for each time that does not resolve.
+4. **The timeline.** The first picture, as [ui/timeline.md](ui/timeline.md) specifies it: the axis, the lanes, the Events with no place, and selecting an Event, a moment, or a stretch. This step also gives each view its own address under the story and builds the detail panel. Visible as the sample on the timeline.
+5. **Entities and Arcs on the timeline.** The highlight in [ui/timeline.md](ui/timeline.md): the Events one Entity takes part in, or the Events of one Arc. This is the second picture, Arcs laid over the Events, built read-only.
+6. **Entities and their Properties.** One Entity with its Properties over story time, their `supersedes` and `caused_by` links, and the Assertions that name it. The in-force view from the Story Bible doc is shown here, computed by the service as item 43 says. It adds a sample story with several Entities whose Properties change and bear on each other. Visible as that sample in the view.
+7. **The graph.** Every record as a node and every reference as an edge, with a filter by kind of record. A larger sample story is added if the first three are too small to show whether the graph stays readable. Visible as a sample's records and their connections.
+8. **Search and focus on the graph.** Finding a record by its text, and narrowing the graph to one Arc or to the records around one record.
+
+The editing:
+
+9. **Entities and Properties.** Create, edit, and delete as structured fields, in the detail panel. A refusal or a conflict is shown with the edit kept.
+10. **Events.** Create, edit, and delete. Selecting an Event on the timeline opens it for editing.
+11. **Arcs.** The Arc editor: create, edit, and delete, and the order of an Arc's Events. The second picture from step 5 is where the result is seen.
+12. **The other records.** Assertions, Narrative Units, and the story framing. A Narrative Unit is edited as structure: its place in the reading order, its children, and its subjects. Its prose stays empty, and this slice does not grow a prose editor.
+13. **History, revert, and export.** The history and revert endpoints, and the story's commit history newest first, with what each commit changed and a revert of one commit. The export endpoint, and an export action. In this slice every commit is a hand edit, an import, or a revert. Slice 3 adds the agent's commits to the same list, grouped by turn, and the turn-level revert.
+14. **Tweak.** No new features. The writer uses the screens by hand and fixes what gets in the way. A change to the model or a rule found here goes into the docs first, before any agent depends on it. This step closes question 22.
+
+"A little" is the bar. The views make the model inspectable and hand-editable. They do not cover later workflows. The questions in a view's doc are its scope: a feature that answers none of them waits. A view beyond the ones in [ui.md](ui.md) is added to that doc first. The widget that draws a view is chosen in its view doc when its step starts. It is not specified here.
 
 Slice 2 is done when a person can build a small bible by hand, see the events, the arcs, and the entities without reading storage, and revert an edit from the history.
 

@@ -141,7 +141,7 @@ A Property, an Assertion, and an Event each store story time in one field, `when
 A **time point** is an object with one of these shapes:
 
 - `{ timestamp }`, a story-time timestamp: an ISO 8601 date (`YYYY-MM-DD`) or date-time (`YYYY-MM-DDTHH:MM` or `YYYY-MM-DDTHH:MM:SS`)
-- `{ event_id }`, an Event id
+- `{ event_id }` or `{ event_id, edge }`, an Event id, and optionally which end of that Event is meant. `edge` is `start` or `end`. [A time point that names an Event](#a-time-point-that-names-an-event) says what each form means.
 
 The object wraps the value so that a new kind of time point can be added later without changing the records that hold one.
 
@@ -164,6 +164,32 @@ Known issue: a `range` with an Event as either bound is not checked. Whether it 
 
 A span on an Event cannot use that same Event as a time point. Following Event ids through spans cannot come back to an Event already on the chain. A save that would make such a cycle is refused.
 
+### A time point that names an Event
+
+An Event can last a period, so a time point that names one means either the moment that Event starts or the moment it ends. `edge` says which: `start` or `end`.
+
+When `edge` is left out, the place the time point sits decides:
+
+| Where the time point is | With no `edge` it means |
+| --- | --- |
+| The `start` of a `range` | The Event's end. The period begins once that Event is over. |
+| The `end` of a `range` | The Event's start. The period lasts until that Event begins. |
+| The `at` of an `at` span | Nothing. An `at` span that names an Event must give an `edge`. |
+
+So a `range` from one Event to another, with no `edge` on either bound, runs from the end of the first to the start of the second. A range that should begin when an Event begins, or last until an Event is over, says so with `edge`.
+
+A save with an `at` span that names an Event and gives no `edge` is refused. The refusal names the record and the span, and says that `edge` must be `start` or `end`. The rule holds whatever that Event's own time is, because the Event can be changed from a moment to a period after the span is saved.
+
+The start and the end of an Event come from its own `when`:
+
+- One `at` span: the start and the end are both that point.
+- One `range` span: the start is its `start` and the end is its `end`. A bound that is absent gives no moment.
+- An empty list, or more than one span: the Event has no start and no end that a time point can use.
+
+A time point resolves to a timestamp when these rules reach one. That can pass through several Events, because the point or bound it lands on may itself name an Event, and the same rules apply there. It does not resolve when it reaches an Event with no time, an Event with several spans, or a bound that is absent. A time point that does not resolve is not an error. The record is saved as written, and a view that reads story time says that the point is unresolved and why.
+
+This is one rule for every reader of story time: the in-force view below, the timeline, and the agent's read tools. The service computes it, as settled item 43 in [open-questions.md](open-questions.md) says.
+
 ### What is in force
 
 This reading is for Properties and Assertions. It is the reading the first in-force view uses. Slice 1 stores the spans and builds no view; the view is built in slice 2, with the read-only in-force view on screen, and the slice 3 read tool uses the same code. A stricter overlap rule can replace the view later. It must not add a new record type or a new field beside `when`. That replacement is still open. See [open-questions.md](open-questions.md).
@@ -172,13 +198,13 @@ This reading is for Properties and Assertions. It is the reading the first in-fo
 - A statement is in force at a query point when any `range` covers that point: the point is at or after `start` (or `start` is absent) and before `end` (or `end` is absent). An absent `end` on a statement means the claim still applies after it starts. Ranges do not fill the gaps between them.
 - An `at` span records an observation at that point. It does not put the statement in force at that point or at any other point.
 - Spans on the same statement are stored as written. Slice 1 does not merge them, and an `at` that falls outside a `range` is allowed.
-- A time point that is a timestamp compares as that value. A time point that is an Event resolves to a timestamp only along a chain of Events that each have a single span yielding one timestamp: an `at` whose point is a timestamp, or the bound in use when that bound is a timestamp. Several spans, a cycle, or a bound that does not resolve leave the comparison unresolved. The view still includes the statement and marks the comparison unresolved.
+- A time point that is a timestamp compares as that value. A time point that names an Event compares as the timestamp it resolves to, by the rules in [A time point that names an Event](#a-time-point-that-names-an-event). When it does not resolve, the comparison is unresolved. The view still includes the statement and marks the comparison unresolved.
 - An Assertion that names Events is a claim about them. It is not a substitute for their spans.
 - Two statements may contradict. Slice 1 saves both. Nothing in the model detects a contradiction between two sentences, and nothing blocks the writer or the agent over one.
 
 A Property or Assertion means what its `statement` says. The sentence does not change meaning as story time moves. An in-world change is a new record. The older record keeps its sentence. Its spans can be adjusted, and the new record can `supersede` it. `caused_by` is optional. No Event is required for every new statement.
 
-`supersedes` is meant to imply an end: the superseded statement stops holding when the new one starts. Slice 1 does not derive that end or check for it. The in-force view reads the spans as written, so an agent that supersedes a statement also closes the old one's open `range` at the point the new one starts, as the agents doc requires. A writer who leaves the old range open sees both statements in force, which is allowed. A later view may read the end from `supersedes` when the old record's spans do not give one. That is a change to the view, not to the records.
+`supersedes` is meant to imply an end: the superseded statement stops holding when the new one starts. Slice 1 does not derive that end or check for it. The in-force view reads the spans as written, so an agent that supersedes a statement also closes the old one's open `range` at the point the new one starts, as the agents doc requires. When the new statement starts at an Event with no `edge`, it starts at that Event's end, so the old statement's `end` names the same Event with `edge: end`. With no `edge` the old statement would end when the Event begins, and neither would be in force while the Event lasts. A writer who leaves the old range open sees both statements in force, which is allowed. A later view may read the end from `supersedes` when the old record's spans do not give one. That is a change to the view, not to the records.
 
 Histories are views over these records. They are not a second object. The persistence doc keeps a separate history of edits, which commit changed which record. That is bookkeeping about the records, not story time, and it is not a second copy of the current state.
 
@@ -210,7 +236,7 @@ entities:
         when:
           - kind: range
             start: { event_id: event_arrival }
-            end: { event_id: event_the_letter }
+            end: { event_id: event_the_letter, edge: end }
       - id: prop_mara_cautious
         statement: Mara is cautiously willing to trust strangers.
         when:
@@ -231,7 +257,7 @@ assertions:
     statement: Mara distrusts John.
     when:
       - kind: at
-        at: { event_id: event_the_market }
+        at: { event_id: event_the_market, edge: start }
       - kind: at
         at: { timestamp: t4 }
   - id: assertion_letter_follows_arrival
@@ -243,7 +269,7 @@ assertions:
     statement: Mara's leaving is her journey from distrust toward trust.
 ```
 
-The ids in the example follow the identity rules below. `t1` and the other timestamp labels stand for ISO 8601 story-time values in order, such as `1847-03-02`. The time points are the objects defined above. The example is the shape of the data, not a storage format. It nests each Property under its Entity so the ownership is easy to read. The story document the API returns, imports, and exports is flat: one list per kind of record, with each Property in its own list carrying its `entity_id`. [architecture/application.md](architecture/application.md) defines that document.
+The ids in the example follow the identity rules below. `t1` and the other timestamp labels stand for ISO 8601 story-time values in order, such as `1847-03-02`. The time points are the objects defined above. `prop_mara_cautious` starts at the letter with no `edge`, which means once the letter is over. `prop_mara_distrustful` ends at the letter with `edge: end`, so it holds until that same moment; with no `edge` it would end when the letter begins. The `at` span on `assertion_mara_john` names an Event, so it gives an `edge`. The example is the shape of the data, not a storage format. It nests each Property under its Entity so the ownership is easy to read. The story document the API returns, imports, and exports is flat: one list per kind of record, with each Property in its own list carrying its `entity_id`. [architecture/application.md](architecture/application.md) defines that document.
 
 ## The writer and the agent
 
@@ -300,6 +326,8 @@ Two pictures are part of the model, whatever widget draws them:
 
 Version 2 drew a graph of typed edges between Events and offered connect actions for those edges. This model arranges Events from their spans and shows Arcs over them. The widget stays open. See [open-questions.md](open-questions.md).
 
+[ui.md](ui.md) lists the views that are built and what each must answer. The service resolves the spans to timestamps and computes the in-force view, and a view draws the result, so the slice 3 read tools and the screens read story time by one implementation of the rules above. That is settled item 43 in [open-questions.md](open-questions.md). Slice 2 builds them read-only before it adds editing, and it also draws a graph of every record and the references between them. That graph shows the id fields in [How the records connect](#how-the-records-connect). It is not version 2's graph of typed edges, and it adds no edge record to the model.
+
 ## Locations
 
 A place is an Entity. An Event can name it. Routes, travel times, character whereabouts, and a scrubber for moving through a place belong to the Story Space & Timeline project. They are not records in this model. Which fields that project would own, if it is brought in later, stays open.
@@ -321,3 +349,4 @@ These stay open on purpose. [open-questions.md](open-questions.md) is the list.
 - Whether an Assertion's references need roles.
 - Whether Properties should ever link to other Properties, or whether a change should propagate on its own. Slice 1 does neither.
 - Whether a story-specific calendar is ever added as a new kind of time point. Slice 1 uses the ISO 8601 timestamp above.
+- Whether an Event's time can be recorded more loosely: once at an unknown moment inside a window, or only as before or after another Event. Each would be a new kind of span. Question 44.

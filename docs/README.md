@@ -24,6 +24,8 @@ Paths are relative to `docs/`.
 | [architecture/agents.md](architecture/agents.md) | How agents read and write the Story Bible, and what the arc-planning workflow is responsible for. |
 | [architecture/evaluations.md](architecture/evaluations.md) | What is scored, what an evaluation run stores, and how cost and latency sit on that same run. |
 | [architecture/application.md](architecture/application.md) | What the Python API does: how a request becomes a user, how a turn is started, streamed, and stopped, which endpoints each slice adds, and where the background routines run. The frontend is a client of it. |
+| [ui.md](ui.md) | Which screens exist, how they are reached, what they share, and the questions each view must answer. |
+| [ui/timeline.md](ui/timeline.md) | How the timeline draws Events in story time, and the questions it must answer. |
 | [build-sequence.md](build-sequence.md) | The order to implement the system, and which docs each slice depends on. |
 | [open-questions.md](open-questions.md) | Decisions still deferred, each one naming the doc that will close it, and the decisions already settled. |
 
