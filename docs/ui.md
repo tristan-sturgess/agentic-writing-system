@@ -64,7 +64,7 @@ No screen saves anything until step 9 of slice 2. The application doc already fi
 | View | What it must answer | Built in | Doc |
 | --- | --- | --- | --- |
 | Records | What does each record store, field by field, exactly as stored? | Slice 2, step 1. Built. | [Below](#the-records-view). |
-| Timeline | When does each Event happen, in what order, what is happening and who is involved at a given time, which Arc is each Event in, and where could a new Event go? | Slice 2, steps 3 to 5. Steps 3 and 4 are built: the service returns Event times, and the screen draws the axis, the lanes, the Events with no place, and selecting an Event, a moment, or a stretch. Step 5, the Entities and Arcs, is not. | [ui/timeline.md](ui/timeline.md) |
+| Timeline | When does each Event happen, in what order, what is happening and who is involved at a given time, which Arc is each Event in, and where could a new Event go? | Slice 2, steps 3 to 5. Built. | [ui/timeline.md](ui/timeline.md) |
 | Entities | What is true of an Entity and when, how its Properties replace each other and why, and how it is tied to other Entities? | Slice 2, step 6. | Written when step 6 starts. |
 | Graph | How are the records connected, what connects to nothing, and what surrounds one record or one Arc? | Slice 2, steps 7 and 8. | Written when step 7 starts. |
 

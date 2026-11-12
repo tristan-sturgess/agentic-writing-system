@@ -1,7 +1,7 @@
 // Arranges a story's resolved Event times on the timeline: the moments, the
-// stretches and how long each one is, the lanes, the marks, and the Events
-// that have no place. The service has already resolved the times. Nothing
-// here decides what a time point means.
+// stretches and how long each one is, the lanes, the marks, the Events that
+// have no place, and which Events belong to a highlight. The service has
+// already resolved the times. Nothing here decides what a time point means.
 //
 // A timestamp is story-local and has no time zone. Years below 100 are real
 // years, so the lengths are counted on the proleptic Gregorian calendar
@@ -263,6 +263,37 @@ export function inProgress(layout: TimelineLayout, selection: TimeSelection): In
     if (ended) endedNoStart.push(event.eventId)
   }
   return { happening, begunNoEnd, endedNoStart }
+}
+
+/**
+ * The Events drawn in full for one Entity or one Arc.
+ *
+ * An Entity's Events are the ones that name it in `entity_ids`. An Arc's
+ * Events are its `event_ids`. An Event with no place is included, so an Arc
+ * is not treated as shorter than its list. Any other id is not a highlight:
+ * selecting an Event leaves every Event drawn in full.
+ */
+export type Highlight =
+  | { kind: 'entity'; id: string; eventIds: ReadonlySet<string> }
+  | { kind: 'arc'; id: string; eventIds: ReadonlySet<string> }
+
+/** Which Events belong to `?highlight=`. Null when the id is not an Entity or an Arc. */
+export function highlightOf(story: Story, recordId: string | null): Highlight | null {
+  if (recordId === null || recordId === '') return null
+  if (story.entities.some((entity) => entity.id === recordId)) {
+    return {
+      kind: 'entity',
+      id: recordId,
+      eventIds: new Set(
+        story.events
+          .filter((event) => event.entity_ids.includes(recordId))
+          .map((event) => event.id),
+      ),
+    }
+  }
+  const arc = story.arcs.find((item) => item.id === recordId)
+  if (!arc) return null
+  return { kind: 'arc', id: arc.id, eventIds: new Set(arc.event_ids) }
 }
 
 /**

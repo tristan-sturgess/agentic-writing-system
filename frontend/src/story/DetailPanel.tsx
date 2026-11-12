@@ -1,8 +1,15 @@
-import { Badge, CloseButton, Group, Stack, Text } from '@mantine/core'
+import { Badge, CloseButton, Group, List, Stack, Text } from '@mantine/core'
 
 import type { Story } from '../api/client'
 import { labelOf, type RecordIndex } from './records'
-import { references, type Reference } from './references'
+import {
+  byKind,
+  groupReferences,
+  kindOfReferrer,
+  REFERRER_LABEL,
+  type ReferenceGroup,
+} from './referenceGroups'
+import { references } from './references'
 import { Empty, Prose, RecordId, RecordLink, When, type SelectRecord } from './parts'
 
 const FIELD_LABEL: Record<string, string> = {
@@ -90,24 +97,30 @@ function RecordBody({
   const refs = references(story)
   const outgoing = refs.filter((ref) => ref.from === recordId)
   const incoming = refs.filter((ref) => ref.to === recordId)
+  const arc = story.arcs.some((item) => item.id === recordId)
   return (
     <>
       <StoredFields story={story} index={index} recordId={recordId} onSelect={onSelect} />
       <ReferenceGroups
         title="Names"
-        refs={outgoing}
+        groups={groupReferences(outgoing, (ref) => ref.to, (ref) => ref.field)}
+        labelOfGroup={(key) => FIELD_LABEL[key] ?? key}
+        ordered={(key) => arc && key === 'event_ids'}
         story={story}
         index={index}
         onSelect={onSelect}
-        other={(ref) => ref.to}
       />
       <ReferenceGroups
         title="Named by"
-        refs={incoming}
+        groups={byKind(
+          groupReferences(incoming, (ref) => ref.from, (_ref, id) =>
+            kindOfReferrer(index, story.id, id),
+          ),
+        )}
+        labelOfGroup={(key) => REFERRER_LABEL[key] ?? key}
         story={story}
         index={index}
         onSelect={onSelect}
-        other={(ref) => ref.from}
       />
     </>
   )
@@ -193,26 +206,22 @@ function StoredFields({
 
 function ReferenceGroups({
   title,
-  refs,
+  groups,
+  labelOfGroup,
+  ordered,
   story,
   index,
   onSelect,
-  other,
 }: {
   title: string
-  refs: Reference[]
+  groups: ReferenceGroup[]
+  labelOfGroup: (key: string) => string
+  /** An Arc's Events are numbered, because that list order is the Arc's own order. */
+  ordered?: (key: string) => boolean
   story: Story
   index: RecordIndex
   onSelect: SelectRecord
-  other: (ref: Reference) => string
 }) {
-  const groups: { field: string; ids: string[] }[] = []
-  for (const ref of refs) {
-    const id = other(ref)
-    const group = groups.find((item) => item.field === ref.field)
-    if (group) group.ids.push(id)
-    else groups.push({ field: ref.field, ids: [id] })
-  }
   return (
     <div>
       <Text fw={600} size="sm" mb={4}>
@@ -223,23 +232,29 @@ function ReferenceGroups({
       ) : (
         <Stack gap="xs">
           {groups.map((group) => (
-            <div key={group.field}>
+            <div key={group.key}>
               <Text size="xs" c="dimmed">
-                {FIELD_LABEL[group.field] ?? group.field}
+                {labelOfGroup(group.key)}
               </Text>
-              <Group gap={6}>
-                {group.ids.map((id) =>
-                  id === story.id ? (
-                    <Badge key={id} variant="light" color="gray" tt="none">
-                      {story.title || 'This story'}
-                    </Badge>
-                  ) : (
-                    <RecordLink key={id} id={id} onSelect={onSelect}>
-                      {labelOf(index, id)}
-                    </RecordLink>
-                  ),
-                )}
-              </Group>
+              <List
+                size="sm"
+                spacing={4}
+                type={ordered?.(group.key) ? 'ordered' : 'unordered'}
+              >
+                {group.ids.map((id) => (
+                  <List.Item key={id}>
+                    {id === story.id ? (
+                      <Badge variant="light" color="gray" tt="none">
+                        {story.title || 'This story'}
+                      </Badge>
+                    ) : (
+                      <RecordLink id={id} onSelect={onSelect}>
+                        {labelOf(index, id)}
+                      </RecordLink>
+                    )}
+                  </List.Item>
+                ))}
+              </List>
             </div>
           ))}
         </Stack>

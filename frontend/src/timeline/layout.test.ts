@@ -1,10 +1,12 @@
 import { expect, test } from 'vitest'
 
-import type { EventTimePoint, EventTimes, Span, Story, StoryEvent } from '../api/client'
+import type { Arc, Entity, EventTimePoint, EventTimes, Span, Story, StoryEvent } from '../api/client'
 import {
   eventsLinkedByTime,
+  highlightOf,
   inProgress,
   layOutTimeline,
+  type Highlight,
   type Mark,
   type TimelineLayout,
 } from './layout'
@@ -33,8 +35,20 @@ function story(events: StoryEvent[], extra: Partial<Story> = {}): Story {
   }
 }
 
-function event(id: string, when: Span[] = []): StoryEvent {
-  return { id, title: id, description: '', entity_ids: [], when, revision: 1 }
+function event(id: string, when: Span[] = [], entityIds: string[] = []): StoryEvent {
+  return { id, title: id, description: '', entity_ids: entityIds, when, revision: 1 }
+}
+
+function entity(id: string): Entity {
+  return { id, name: id, notes: '', revision: 1 }
+}
+
+function arc(id: string, eventIds: string[]): Arc {
+  return { id, title: id, description: '', event_ids: eventIds, revision: 1 }
+}
+
+function highlightIds(highlight: Highlight | null): string[] {
+  return [...(highlight?.eventIds ?? [])].sort()
 }
 
 /** The service's normalised form. A date alone is the start of that day. */
@@ -519,4 +533,85 @@ test('a time link leaves out siblings and the other end of a different span', ()
     'event_oath',
     'event_toast',
   ])
+})
+
+test('an Entity highlight is the Events that name it', () => {
+  const told = story(
+    [
+      event('event_ride', [], ['entity_calder', 'entity_hall']),
+      event('event_dance', [], ['entity_calder', 'entity_hall']),
+      event('event_toast', [], ['entity_maret', 'entity_hall']),
+      event('event_bell', [], ['entity_hall']),
+      event('event_forgotten'),
+    ],
+    {
+      entities: [
+        entity('entity_calder'),
+        entity('entity_maret'),
+        entity('entity_hall'),
+        entity('entity_absent'),
+      ],
+    },
+  )
+  // Two Events at once, and a place several Events name.
+  expect(highlightIds(highlightOf(told, 'entity_calder'))).toEqual(['event_dance', 'event_ride'])
+  expect(highlightIds(highlightOf(told, 'entity_hall'))).toEqual([
+    'event_bell',
+    'event_dance',
+    'event_ride',
+    'event_toast',
+  ])
+  expect(highlightIds(highlightOf(told, 'entity_maret'))).toEqual(['event_toast'])
+  // An Event that names nobody is in no Entity's highlight.
+  expect(highlightIds(highlightOf(told, 'entity_calder'))).not.toContain('event_forgotten')
+  // An Entity the story names and no Event does still highlights: nothing belongs to it.
+  expect(highlightOf(told, 'entity_absent')).toMatchObject({ kind: 'entity', id: 'entity_absent' })
+  expect(highlightIds(highlightOf(told, 'entity_absent'))).toEqual([])
+})
+
+test("an Arc highlight follows the Arc's list, including an Event with no place", () => {
+  const told = story(
+    [
+      event('event_feast'),
+      event('event_dance'),
+      event('event_argument'),
+      event('event_forgotten'),
+      event('event_loose'),
+    ],
+    {
+      arcs: [
+        arc('arc_backwards', ['event_argument', 'event_dance', 'event_feast']),
+        arc('arc_night', ['event_feast', 'event_dance', 'event_argument']),
+        arc('arc_with_gap', ['event_feast', 'event_forgotten']),
+      ],
+    },
+  )
+  const backwards = highlightOf(told, 'arc_backwards')
+  expect(backwards?.kind).toBe('arc')
+  if (backwards?.kind !== 'arc') return
+  // The Arc lists the Events in its own order, which here is the reverse of
+  // the order they were recorded.
+  expect(highlightIds(backwards)).toEqual(['event_argument', 'event_dance', 'event_feast'])
+  expect(backwards.eventIds.has('event_loose')).toBe(false)
+
+  // The same Event belongs to two Arcs.
+  expect(highlightOf(told, 'arc_night')?.eventIds.has('event_feast')).toBe(true)
+  expect(backwards.eventIds.has('event_feast')).toBe(true)
+
+  // An Event with no time is still part of the Arc.
+  expect(highlightIds(highlightOf(told, 'arc_with_gap'))).toEqual([
+    'event_feast',
+    'event_forgotten',
+  ])
+})
+
+test('selecting an Event does not highlight it', () => {
+  const told = story([event('event_feast', [], ['entity_maret'])], {
+    entities: [entity('entity_maret')],
+    arcs: [arc('arc_night', ['event_feast'])],
+  })
+  expect(highlightOf(told, 'event_feast')).toBeNull()
+  expect(highlightOf(told, 'no_such')).toBeNull()
+  expect(highlightOf(told, null)).toBeNull()
+  expect(highlightOf(told, '')).toBeNull()
 })

@@ -1,10 +1,25 @@
-import { Alert, Anchor, Box, CloseButton, Group, Loader, Stack, Text, Title, UnstyledButton } from '@mantine/core'
+import {
+  Alert,
+  Anchor,
+  Box,
+  CloseButton,
+  Group,
+  Loader,
+  NativeSelect,
+  Stack,
+  Text,
+  Title,
+  UnstyledButton,
+  type NativeSelectProps,
+} from '@mantine/core'
 import { useCallback, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router'
 
 import {
   describeFailure,
   getEventTimes,
   type EventTimes,
+  type Story,
 } from '../api/client'
 import { labelOf, indexRecords } from '../story/records'
 import { Empty } from '../story/parts'
@@ -12,8 +27,10 @@ import { useLoad } from '../useLoad'
 import { useStory } from '../pages/storyContext'
 import {
   eventsLinkedByTime,
+  highlightOf,
   inProgress,
   layOutTimeline,
+  type Highlight,
   type InProgress,
   type Mark,
   type MarkEndpoint,
@@ -26,15 +43,26 @@ import {
 
 const LINE = 11
 
+/** What the timeline knows about Entities and Arcs, apart from the time layout. */
+type TimelineLinks = {
+  highlight: Highlight | null
+  participantsOf: (eventId: string) => readonly string[]
+  /** Sets `?highlight=`. Null clears it. Selecting an Event does not. */
+  onHighlight: (id: string | null) => void
+}
+
 /**
  * Events in story time. The service resolved the times; this draws them.
  * Selecting a moment or a stretch is view state. Selecting an Event is
- * `?record=`, the detail panel every view shares.
+ * `?record=`, the detail panel every view shares. One Entity or one Arc is
+ * `?highlight=`, kept beside that selection.
  */
 export function TimelineView() {
   const outlet = useStory()
   const story = outlet?.story
   const storyId = story?.id ?? ''
+  const [params, setParams] = useSearchParams()
+  const highlightParam = params.get('highlight')
   const load = useCallback((): Promise<EventTimes> => {
     // The layout renders this view before the story has loaded, and passes no
     // context. There is nothing to ask the service for until a story id exists.
@@ -44,6 +72,21 @@ export function TimelineView() {
   const times = useLoad(load)
   const [picked, setPicked] = useState<{ storyId: string; time: TimeSelection } | null>(null)
   const index = useMemo(() => (story ? indexRecords(story) : null), [story])
+  const participantsOf = useCallback(
+    (eventId: string) => story?.events.find((event) => event.id === eventId)?.entity_ids ?? [],
+    [story],
+  )
+  const onHighlight = useCallback(
+    (id: string | null) => {
+      setParams((prev) => {
+        const next = new URLSearchParams(prev)
+        if (id) next.set('highlight', id)
+        else next.delete('highlight')
+        return next
+      })
+    },
+    [setParams],
+  )
 
   if (!outlet || !story || !index) return null
   if (times.status === 'loading') return <Loader />
@@ -55,12 +98,14 @@ export function TimelineView() {
     )
   }
 
+  const name = (id: string) => labelOf(index, id)
+  const highlight = highlightOf(story, highlightParam)
   const time = picked?.storyId === story.id ? picked.time : null
   return (
     <Timeline
       storyId={story.id}
       layout={layOutTimeline(story, times.data)}
-      name={(id) => labelOf(index, id)}
+      name={name}
       eventCount={story.events.length}
       linked={
         outlet.selectedId && story.events.some((event) => event.id === outlet.selectedId)
@@ -78,6 +123,10 @@ export function TimelineView() {
         )
       }}
       onClearTime={() => setPicked(null)}
+      options={
+        story.entities.length > 0 || story.arcs.length > 0 ? highlightOptions(story, name) : null
+      }
+      links={{ highlight, participantsOf, onHighlight }}
     />
   )
 }
@@ -93,6 +142,8 @@ function Timeline({
   time,
   onTime,
   onClearTime,
+  options,
+  links,
 }: {
   storyId: string
   layout: TimelineLayout
@@ -104,8 +155,11 @@ function Timeline({
   time: TimeSelection | null
   onTime: (time: TimeSelection) => void
   onClearTime: () => void
+  options: NonNullable<NativeSelectProps['data']> | null
+  links: TimelineLinks
 }) {
   const shown = useMemo(() => visibleIds(layout, time, linked), [layout, time, linked])
+  const highlightIds = links.highlight?.eventIds ?? null
   const momentLabel = useMemo(() => {
     const labels = new Map(layout.moments.map((moment) => [moment.timestamp, moment.label]))
     return (timestamp: string) => labels.get(timestamp) ?? timestamp.replace('T', ' ')
@@ -115,6 +169,15 @@ function Timeline({
 
   return (
     <Stack gap="md">
+      {options && (
+        <NativeSelect
+          label="Highlight"
+          value={links.highlight?.id ?? ''}
+          onChange={(event) => links.onHighlight(event.currentTarget.value || null)}
+          data={options}
+          maw={360}
+        />
+      )}
       <Text size="sm" c="dimmed">
         A filled mark was written as a timestamp. A hollow mark was taken from another Event.
       </Text>
@@ -126,6 +189,7 @@ function Timeline({
           momentLabel={momentLabel}
           onSelect={onSelect}
           onClose={onClearTime}
+          links={links}
         />
       )}
       {layout.moments.length === 0 ? (
@@ -139,12 +203,20 @@ function Timeline({
           selectedId={selectedId}
           linked={linked}
           shown={shown}
+          highlightIds={highlightIds}
           time={time}
           onSelect={onSelect}
           onTime={onTime}
         />
       )}
-      <Unplaced layout={layout} name={name} shown={shown} selectedId={selectedId} onSelect={onSelect} />
+      <Unplaced
+        layout={layout}
+        name={name}
+        shown={shown}
+        highlightIds={highlightIds}
+        selectedId={selectedId}
+        onSelect={onSelect}
+      />
     </Stack>
   )
 }
@@ -156,6 +228,7 @@ function TimeReading({
   momentLabel,
   onSelect,
   onClose,
+  links,
 }: {
   layout: TimelineLayout
   time: TimeSelection
@@ -163,6 +236,7 @@ function TimeReading({
   momentLabel: (timestamp: string) => string
   onSelect: (id: string) => void
   onClose: () => void
+  links: TimelineLinks
 }) {
   if (time.kind === 'moment') {
     const reading = inProgress(layout, time)
@@ -172,7 +246,7 @@ function TimeReading({
           <Text fw={600}>{momentLabel(time.timestamp)}</Text>
           <CloseButton aria-label="Clear the selected time" onClick={onClose} />
         </Group>
-        <ReadingLists reading={reading} name={name} onSelect={onSelect} />
+        <ReadingLists reading={reading} name={name} onSelect={onSelect} links={links} />
       </Box>
     )
   }
@@ -198,13 +272,14 @@ function TimeReading({
       <Text fw={600} size="sm" mt="xs">
         Across this stretch
       </Text>
-      <ReadingLists reading={across} name={name} onSelect={onSelect} />
+      <ReadingLists reading={across} name={name} onSelect={onSelect} links={links} />
       <Boundary
         heading={`At ${momentLabel(time.from)}`}
         reading={before}
         skip={acrossIds}
         name={name}
         onSelect={onSelect}
+        links={links}
       />
       <Boundary
         heading={`At ${momentLabel(time.to)}`}
@@ -212,6 +287,7 @@ function TimeReading({
         skip={acrossIds}
         name={name}
         onSelect={onSelect}
+        links={links}
       />
     </Box>
   )
@@ -223,12 +299,14 @@ function Boundary({
   skip,
   name,
   onSelect,
+  links,
 }: {
   heading: string
   reading: InProgress
   skip: ReadonlySet<string>
   name: (id: string) => string
   onSelect: (id: string) => void
+  links: TimelineLinks
 }) {
   const kept: InProgress = {
     happening: reading.happening.filter((id) => !skip.has(id)),
@@ -245,7 +323,7 @@ function Boundary({
       {empty ? (
         <Empty>Nothing else is recorded at this moment.</Empty>
       ) : (
-        <ReadingLists reading={kept} name={name} onSelect={onSelect} />
+        <ReadingLists reading={kept} name={name} onSelect={onSelect} links={links} />
       )}
     </Box>
   )
@@ -255,10 +333,12 @@ function ReadingLists({
   reading,
   name,
   onSelect,
+  links,
 }: {
   reading: InProgress
   name: (id: string) => string
   onSelect: (id: string) => void
+  links: TimelineLinks
 }) {
   const begun = reading.begunNoEnd.filter((id) => !reading.happening.includes(id))
   const ended = reading.endedNoStart.filter((id) => !reading.happening.includes(id))
@@ -272,6 +352,7 @@ function ReadingLists({
           ids={reading.happening}
           name={name}
           onSelect={onSelect}
+          links={links}
           empty="Nothing is recorded in progress here."
         />
       </div>
@@ -280,7 +361,7 @@ function ReadingLists({
           <Text size="sm" c="dimmed">
             Begun, and not known to have ended
           </Text>
-          <EventList ids={begun} name={name} onSelect={onSelect} empty="" />
+          <EventList ids={begun} name={name} onSelect={onSelect} links={links} empty="" />
         </div>
       )}
       {ended.length > 0 && (
@@ -288,7 +369,7 @@ function ReadingLists({
           <Text size="sm" c="dimmed">
             Not known to have started
           </Text>
-          <EventList ids={ended} name={name} onSelect={onSelect} empty="" />
+          <EventList ids={ended} name={name} onSelect={onSelect} links={links} empty="" />
         </div>
       )}
     </Stack>
@@ -299,20 +380,50 @@ function EventList({
   ids,
   name,
   onSelect,
+  links,
   empty,
 }: {
   ids: string[]
   name: (id: string) => string
   onSelect: (id: string) => void
+  links: TimelineLinks
   empty: string
 }) {
   if (ids.length === 0) return empty ? <Empty>{empty}</Empty> : null
+  const highlightId = links.highlight?.id ?? null
   return (
     <Stack gap={2}>
       {ids.map((id) => (
-        <Anchor key={id} component="button" type="button" ta="left" onClick={() => onSelect(id)}>
-          {name(id)}
-        </Anchor>
+        <Group key={id} gap={6} wrap="wrap" align="baseline">
+          <Anchor
+            component="button"
+            type="button"
+            ta="left"
+            fw={links.highlight?.eventIds.has(id) ? 700 : 500}
+            onClick={() => onSelect(id)}
+          >
+            {name(id)}
+          </Anchor>
+          {links.participantsOf(id).length > 0 && (
+            <Text span size="sm" c="dimmed">
+              with
+            </Text>
+          )}
+          {links.participantsOf(id).map((entityId) => (
+            <Anchor
+              key={entityId}
+              component="button"
+              type="button"
+              size="sm"
+              c={entityId === highlightId ? 'blue' : 'dimmed'}
+              fw={entityId === highlightId ? 700 : 500}
+              aria-pressed={entityId === highlightId}
+              onClick={() => links.onHighlight(entityId === highlightId ? null : entityId)}
+            >
+              {name(entityId)}
+            </Anchor>
+          ))}
+        </Group>
       ))}
     </Stack>
   )
@@ -325,6 +436,7 @@ function Chart({
   selectedId,
   linked,
   shown,
+  highlightIds,
   time,
   onSelect,
   onTime,
@@ -335,6 +447,7 @@ function Chart({
   selectedId: string | null
   linked: ReadonlySet<string> | null
   shown: ReadonlySet<string> | null
+  highlightIds: ReadonlySet<string> | null
   time: TimeSelection | null
   onSelect: (id: string) => void
   onTime: (time: TimeSelection) => void
@@ -382,13 +495,13 @@ function Chart({
             </UnstyledButton>
             <Stack gap={2} style={{ gridColumn: titleColumn, gridRow: row, alignSelf: 'start' }}>
               {titles.map((event) => (
-                <TitleButton
+                <EventHeading
                   key={event.eventId}
-                  event={event}
+                  eventId={event.eventId}
                   name={name}
                   selected={event.eventId === selectedId}
                   related={linked?.has(event.eventId) ?? false}
-                  dimmed={shown !== null && !shown.has(event.eventId)}
+                  dimmed={isDimmed(event.eventId, shown, highlightIds)}
                   onSelect={onSelect}
                 />
               ))}
@@ -429,7 +542,7 @@ function Chart({
               segment={segment}
               label={markLabel(name(event.eventId), mark, momentLabel, name)}
               color={markColor(event.eventId, selectedId, linked)}
-              dimmed={shown !== null && !shown.has(event.eventId)}
+              dimmed={isDimmed(event.eventId, shown, highlightIds)}
               onClick={() => onSelect(event.eventId)}
             />
           )),
@@ -439,33 +552,41 @@ function Chart({
   )
 }
 
-function TitleButton({
-  event,
+function EventHeading({
+  eventId,
   name,
   selected,
   related,
   dimmed,
   onSelect,
+  note,
 }: {
-  event: PlacedEvent
+  eventId: string
   name: (id: string) => string
   selected: boolean
   related: boolean
   dimmed: boolean
   onSelect: (id: string) => void
+  note?: string
 }) {
   return (
-    <Anchor
-      component="button"
-      type="button"
-      ta="left"
-      fw={selected ? 700 : related ? 600 : 500}
-      c={selected ? 'blue' : undefined}
-      style={{ opacity: dimmed ? 0.35 : 1 }}
-      onClick={() => onSelect(event.eventId)}
-    >
-      {name(event.eventId)}
-    </Anchor>
+    <Group gap={6} wrap="wrap" align="baseline" style={{ opacity: dimmed ? 0.35 : 1 }}>
+      <Anchor
+        component="button"
+        type="button"
+        ta="left"
+        fw={selected ? 700 : related ? 600 : 500}
+        c={selected ? 'blue' : undefined}
+        onClick={() => onSelect(eventId)}
+      >
+        {name(eventId)}
+      </Anchor>
+      {note && (
+        <Text span size="sm" c="dimmed">
+          — {note}
+        </Text>
+      )}
+    </Group>
   )
 }
 
@@ -629,12 +750,14 @@ function Unplaced({
   layout,
   name,
   shown,
+  highlightIds,
   selectedId,
   onSelect,
 }: {
   layout: TimelineLayout
   name: (id: string) => string
   shown: ReadonlySet<string> | null
+  highlightIds: ReadonlySet<string> | null
   selectedId: string | null
   onSelect: (id: string) => void
 }) {
@@ -668,21 +791,16 @@ function Unplaced({
             </Text>
             <Stack gap={4} mt={4}>
               {group.entries.map((entry) => (
-                <Anchor
+                <EventHeading
                   key={`${entry.eventId}-${entry.spanIndex}`}
-                  component="button"
-                  type="button"
-                  ta="left"
-                  fw={entry.eventId === selectedId ? 700 : 500}
-                  style={{ opacity: shown !== null && !shown.has(entry.eventId) ? 0.35 : 1 }}
-                  onClick={() => onSelect(entry.eventId)}
-                >
-                  {name(entry.eventId)}
-                  <Text span size="sm" c="dimmed">
-                    {' '}
-                    — {group.text(entry)}
-                  </Text>
-                </Anchor>
+                  eventId={entry.eventId}
+                  name={name}
+                  selected={entry.eventId === selectedId}
+                  related={false}
+                  dimmed={isDimmed(entry.eventId, shown, highlightIds)}
+                  onSelect={onSelect}
+                  note={group.text(entry)}
+                />
               ))}
             </Stack>
           </div>
@@ -753,6 +871,36 @@ function unresolvedText(reason: UnplacedReason, name: (id: string) => string): s
     return `${where} follows ${chain}, and stops because ${why}.`
   }
   return `${where} does not resolve: ${why}.`
+}
+
+function isDimmed(
+  eventId: string,
+  shown: ReadonlySet<string> | null,
+  highlightIds: ReadonlySet<string> | null,
+): boolean {
+  if (highlightIds !== null && !highlightIds.has(eventId)) return true
+  if (shown !== null && !shown.has(eventId)) return true
+  return false
+}
+
+function highlightOptions(story: Story, name: (id: string) => string): NonNullable<NativeSelectProps['data']> {
+  const data: (
+    | { value: string; label: string }
+    | { group: string; items: { value: string; label: string }[] }
+  )[] = [{ value: '', label: 'All events' }]
+  if (story.entities.length > 0) {
+    data.push({
+      group: 'Entities',
+      items: story.entities.map((entity) => ({ value: entity.id, label: name(entity.id) })),
+    })
+  }
+  if (story.arcs.length > 0) {
+    data.push({
+      group: 'Arcs',
+      items: story.arcs.map((arc) => ({ value: arc.id, label: name(arc.id) })),
+    })
+  }
+  return data
 }
 
 function visibleIds(

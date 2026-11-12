@@ -1,6 +1,6 @@
 # Timeline
 
-The timeline arranges a story's Events in story time, and shows which Entities and which Arcs those Events belong to. It draws both of the pictures [story-bible.md](../story-bible.md) requires: Events in story time, and Arcs laid over them. Steps 3 to 5 of slice 2 in [build-sequence.md](../build-sequence.md) build it read-only, and step 10 adds editing. [ui.md](../ui.md) says what it shares with the other views.
+The timeline arranges a story's Events in story time. A highlight draws the Events of one Entity or one Arc. It draws both of the pictures [story-bible.md](../story-bible.md) requires: Events in story time, and Arcs laid over them. Steps 3 to 5 of slice 2 in [build-sequence.md](../build-sequence.md) build it read-only, and step 10 adds editing. [ui.md](../ui.md) says what it shares with the other views.
 
 Story time comes from the spans in each Event's `when`. The Story Bible doc owns what a span means and how a time point that names an Event resolves to a timestamp. The service does the resolving, as settled item 43 in [open-questions.md](../open-questions.md) says, and this view draws what the service returns. This doc says how. It does not restate the rules, and it does not add to them.
 
@@ -10,7 +10,7 @@ Story time comes from the spans in each Event's `when`. The Story Bible doc owns
 2. **In what order do the Events happen?** For every Event whose time is known, what comes before it, what comes after it, and what shares its time.
 3. **What is happening at a given time?** Every Event in progress at a moment or across a stretch the writer picks. In a story with several threads this is more than one Event.
 4. **Who is involved at a given time?** The Entities that take part in the Events in progress at a moment or a stretch. And for one Entity, a character or a place: which Events it takes part in, when, and where it is in two at once or in none.
-5. **Which Arc is each Event in?** For every Event, the Arcs that include it. And for one Arc: which Events make it up, where they fall in story time, and where the Arc's own order differs from story time.
+5. **Which Arc is each Event in?** For one Arc, which Events make it up and where they fall in story time. Which Arcs include a given Event, and that Arc's own order, are in the detail panel.
 6. **How is each time known?** Whether a time was written as a timestamp or taken from another Event, which Event, and which end of it. A time taken from another Event moves when that Event moves, so this is also the answer to what else an edit would move.
 7. **Which Events have no place, and why?** The Events the timeline cannot place, apart from the ones it can, each with the reason.
 8. **Where could a new Event go?** For any stretch of story time: how long it is, what happens just before and just after, what is in progress across it, who is already taken up in it, and enough about those Events to judge whether a new one fits.
@@ -56,9 +56,7 @@ Two Events share a lane only when one is over before the other begins. Events th
 
 A point or a bound taken from another Event is drawn differently from one written as a timestamp. It sits on the moment that Event starts or ends, whichever the point means: the `edge` it stores, or the one its place in the span gives it.
 
-Each Event's title is listed once, beside the lanes, level with the moment its first mark starts at, and joined to that mark. Several Events that start at one moment are listed together at that moment. A moment's row is as tall as its titles need.
-
-Beside each title are the titles of the Arcs that include the Event. An Event in no Arc has none, which is how a loose Event is seen.
+Each Event's title is listed once, beside the lanes, level with the moment its first mark starts at, and joined to that mark. Several Events that start at one moment are listed together at that moment. A moment's row is as tall as its titles need. The title stands alone. An Arc's name beside it, and a number for its place in an Arc, crowded the list, so neither is drawn.
 
 ## Reading it
 
@@ -76,11 +74,11 @@ Selecting a stretch is also how question 8 is answered. The stretch shows its le
 
 ### One Entity or one Arc
 
-The timeline has a highlight: one Entity or one Arc the writer picks, from a control above the axis or by selecting an Arc's title or an Entity's name wherever the timeline shows one. The Events that belong to the highlight are drawn in full, and the rest are dimmed. With no highlight every Event is drawn in full. The highlight is in the address, as `?highlight={record_id}`, beside the selected record. Selecting an Event does not clear it, so the writer can highlight an Arc and open its Events one after another.
+The timeline has a highlight: one Entity or one Arc the writer picks, from a control above the axis or by selecting an Entity's name in a moment or a stretch. The Events that belong to the highlight are drawn in full, and the rest are dimmed. With no highlight every Event is drawn in full. The highlight is in the address, as `?highlight={record_id}`, beside the selected record. Selecting an Event does not clear it, so the writer can highlight an Arc and open its Events one after another.
 
 With an Entity highlighted, the Events that name it in `entity_ids` are the ones drawn in full. This is the second half of question 4. Two of them side by side is the Entity in two Events at once. A stretch with none is a stretch where the story says nothing about that Entity. A place is an Entity, so this is also what happens at a place.
 
-With an Arc highlighted, the Events in its `event_ids` are the ones drawn in full, and each shows its position in the Arc's list. This is the second picture, Arcs laid over the Events, and it answers the second half of question 5. Where the numbers do not run down the page, the Arc's own order differs from story time, which the Story Bible doc allows. An Arc's Events with no place are highlighted in the list below the axis, so an Arc is never shown as shorter than it is.
+With an Arc highlighted, the Events in its `event_ids` are the ones drawn in full. This is the second picture, Arcs laid over the Events, and it answers which Events make up that Arc and where they fall in story time. An Arc's Events with no place are highlighted in the list below the axis, so an Arc is never shown as shorter than it is. The Arc's own order, which may differ from story time, is the numbered list of its Events in the detail panel.
 
 One highlight at a time is the first version. Several Arcs at once, each in its own colour, or the Events two Entities share, are added when a question here needs them.
 
@@ -94,7 +92,7 @@ Below the axis is a list of the Events the timeline could not place, in groups, 
 
 An Event with one span that can be placed and one that cannot is drawn on the axis for the first and listed here for the second.
 
-These Events are selectable like any other, and they carry their Arc titles and take part in the highlight like any other. They have no order among themselves, and the list is in the order the records were created.
+These Events are selectable like any other, and they take part in the highlight like any other. They have no order among themselves, and the list is in the order the records were created.
 
 ## What the timeline does not do
 
@@ -139,7 +137,7 @@ The steps:
 | --- | --- | --- |
 | 3 | The resolved times from the service, and the sample. | None on screen yet. |
 | 4 | The axis, the lanes, the Events with no place, the detail panel, and selecting an Event, a moment, or a stretch. | 1, 2, 3, 6, 7, and 8 without the Entities. |
-| 5 | The Entities in a moment or a stretch, the Arc titles beside each Event, and the highlight. | 4, 5, and the rest of 8. |
+| 5 | The Entities in a moment or a stretch, and the highlight of one Entity or one Arc. | 4, 5, and the rest of 8. |
 
 ## What stays open
 
