@@ -14,9 +14,24 @@ test.each<[string, Span, string]>([
     'at 1921-06-14 03:15:22',
   ],
   [
-    'an Event, by its title',
+    'an Event, by its title, when no edge is stored',
     { kind: 'at', at: { event_id: 'event_arrival' } },
     'at “Arrival”',
+  ],
+  [
+    'an Event whose stored edge is null',
+    { kind: 'at', at: { event_id: 'event_arrival', edge: null } },
+    'at “Arrival”',
+  ],
+  [
+    'the start of an Event',
+    { kind: 'at', at: { event_id: 'event_arrival', edge: 'start' } },
+    'at the start of “Arrival”',
+  ],
+  [
+    'the end of an Event',
+    { kind: 'at', at: { event_id: 'event_arrival', edge: 'end' } },
+    'at the end of “Arrival”',
   ],
   [
     'a range with both bounds',
@@ -26,6 +41,15 @@ test.each<[string, Span, string]>([
       end: { timestamp: '1921-06-15' },
     },
     'from “Arrival” to 1921-06-15',
+  ],
+  [
+    'a range whose bounds store an edge',
+    {
+      kind: 'range',
+      start: { event_id: 'event_arrival', edge: 'end' },
+      end: { event_id: 'event_arrival', edge: 'start' },
+    },
+    'from the end of “Arrival” to the start of “Arrival”',
   ],
   [
     'a range with no end, sent as null',

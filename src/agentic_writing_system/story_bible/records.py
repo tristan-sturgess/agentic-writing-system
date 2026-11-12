@@ -70,6 +70,8 @@ class EventPoint(BaseModel):
     model_config = _FORBID
 
     event_id: str
+    # Left out is stored and returned as null. The rules say what that means.
+    edge: Literal["start", "end"] | None = None
 
 
 def _time_point_shape(value: Any) -> str | None:

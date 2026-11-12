@@ -41,6 +41,7 @@ RuleProblemCode = Literal[
     "unit_contains_itself",
     "duplicate_in_list",
     "range_start_after_end",
+    "at_needs_edge",
     "span_cycle",
 ]
 
@@ -688,6 +689,38 @@ def _find_ranges_that_start_after_they_end(document: StoryDocument) -> list[Prob
     return problems
 
 
+def _find_at_spans_that_need_an_edge(document: StoryDocument) -> list[Problem]:
+    """An `at` that names an Event and gives no `edge` is refused.
+
+    A `range` bound may leave `edge` out: its place in the span says which end
+    is meant. An `at` has no such place, and the named Event may later become
+    a period, so the span has to say which end it means.
+    """
+    problems: list[Problem] = []
+    for record in _all_records(document):
+        if not isinstance(record, (Property, Assertion, Event)):
+            continue
+        for index, span in enumerate(record.when):
+            if not isinstance(span, AtSpan) or not isinstance(span.at, EventPoint):
+                continue
+            if span.at.edge is not None:
+                continue
+            problems.append(
+                Problem(
+                    code="at_needs_edge",
+                    message=(
+                        f"{record.id} has an at span in when at position {index} "
+                        f"that names {span.at.event_id} and gives no edge. "
+                        f"edge must be start or end."
+                    ),
+                    record_id=record.id,
+                    field="when",
+                    ids=[span.at.event_id],
+                )
+            )
+    return problems
+
+
 def _span_cycle_chain(event_id: str, events: dict[str, Event]) -> list[str] | None:
     start = events.get(event_id)
     if start is None:
@@ -836,6 +869,7 @@ def check_document(
     problems.extend(_find_unit_contains_itself(document))
     problems.extend(_find_duplicates_in_lists(document))
     problems.extend(_find_ranges_that_start_after_they_end(document))
+    problems.extend(_find_at_spans_that_need_an_edge(document))
     problems.extend(_find_span_cycles(document))
 
     return problems

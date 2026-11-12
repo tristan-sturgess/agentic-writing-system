@@ -83,7 +83,8 @@
             "event_id": "event_the_long_watch"
           },
           "end": {
-            "event_id": "event_the_impossible_flash"
+            "event_id": "event_the_impossible_flash",
+            "edge": "end"
           }
         }
       ]
@@ -305,7 +306,8 @@
         {
           "kind": "at",
           "at": {
-            "event_id": "event_the_impossible_flash"
+            "event_id": "event_the_impossible_flash",
+            "edge": "start"
           }
         }
       ]

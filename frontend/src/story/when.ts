@@ -12,7 +12,12 @@ export function describePoint(
     // story time as written, so it is not converted to the reader's time zone.
     return point.timestamp.replace('T', ' ')
   }
-  return `“${labelOf(point.event_id)}”`
+  const title = `“${labelOf(point.event_id)}”`
+  // The records view shows the edge that was stored. It does not decide which
+  // end a missing edge means; that reading belongs to the timeline.
+  if (point.edge === 'start') return `the start of ${title}`
+  if (point.edge === 'end') return `the end of ${title}`
+  return title
 }
 
 export function describeSpan(

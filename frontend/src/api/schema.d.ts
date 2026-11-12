@@ -502,6 +502,8 @@ export interface components {
         EventPoint: {
             /** Event Id */
             event_id: string;
+            /** Edge */
+            edge?: ("start" | "end") | null;
         };
         /** EventView */
         EventView: {
@@ -629,7 +631,7 @@ export interface components {
         /** Problem */
         Problem: {
             /** Code */
-            code: ("duplicate_id" | "blank_primary_text" | "unknown_id" | "delete_still_named" | "assertion_needs_two" | "supersedes_self" | "supersedes_other_entity" | "unit_not_placed" | "unit_placed_twice" | "unit_contains_itself" | "duplicate_in_list" | "range_start_after_end" | "span_cycle") | ("unknown_ref" | "duplicate_ref" | "blank_primary_text" | "unknown_id" | "kind_mismatch") | ("schema_version" | "kind_changed");
+            code: ("duplicate_id" | "blank_primary_text" | "unknown_id" | "delete_still_named" | "assertion_needs_two" | "supersedes_self" | "supersedes_other_entity" | "unit_not_placed" | "unit_placed_twice" | "unit_contains_itself" | "duplicate_in_list" | "range_start_after_end" | "at_needs_edge" | "span_cycle") | ("unknown_ref" | "duplicate_ref" | "blank_primary_text" | "unknown_id" | "kind_mismatch") | ("schema_version" | "kind_changed");
             /** Message */
             message: string;
             /** Record Id */

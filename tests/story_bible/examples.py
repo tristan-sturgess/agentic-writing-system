@@ -54,7 +54,10 @@ def example_story_document() -> StoryDocument:
                             {
                                 "kind": "range",
                                 "start": {"event_id": "event_arrival"},
-                                "end": {"event_id": "event_the_letter"},
+                                "end": {
+                                    "event_id": "event_the_letter",
+                                    "edge": "end",
+                                },
                             }
                         ],
                     }
@@ -96,7 +99,13 @@ def example_story_document() -> StoryDocument:
                     "entity_ids": ["entity_mara", "entity_john"],
                     "statement": "Mara distrusts John.",
                     "when": [
-                        {"kind": "at", "at": {"event_id": "event_the_market"}},
+                        {
+                            "kind": "at",
+                            "at": {
+                                "event_id": "event_the_market",
+                                "edge": "start",
+                            },
+                        },
                         {"kind": "at", "at": {"timestamp": T4}},
                     ],
                 },
