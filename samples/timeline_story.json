@@ -1,0 +1,367 @@
+{
+  "schema_version": 1,
+  "title": "The Night Court",
+  "description": "A reign of ten years, then one night in the hall told minute by minute.",
+  "premise": "Queen Maret's oath opens a long reign. Years later, one night at Harthall puts Lord Calder in two quarrels at once.",
+  "tone": "Cold stone, candle smoke, a clock that matters",
+  "themes": "What a court remembers, and what it cannot date",
+  "writing_style": "Close third, plain verbs, time stated exactly",
+  "unit_ids": [],
+  "entities": [
+    {
+      "id": "entity_queen_maret",
+      "name": "Queen Maret",
+      "notes": "Crowned at the new year 1000. She keeps the hall's clock herself."
+    },
+    {
+      "id": "entity_lord_calder",
+      "name": "Lord Calder",
+      "notes": "Holds a grudge he will not date, and attends the night anyway."
+    },
+    {
+      "id": "entity_the_hall",
+      "name": "Harthall",
+      "notes": "The queen's hall. One night here is told in minutes; the reign before it, in years."
+    }
+  ],
+  "properties": [],
+  "assertions": [],
+  "events": [
+    {
+      "id": "event_the_old_grudge",
+      "title": "The old grudge",
+      "description": "A quarrel Calder says ended the summer before the oath, and will not say when it began.",
+      "entity_ids": ["entity_lord_calder"],
+      "when": [
+        {
+          "kind": "range",
+          "end": { "timestamp": "0999-06-01" }
+        }
+      ]
+    },
+    {
+      "id": "event_since_the_grudge",
+      "title": "Since the grudge",
+      "description": "He dates his slight to the start of that quarrel. The start was never written down.",
+      "entity_ids": ["entity_lord_calder"],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "event_id": "event_the_old_grudge", "edge": "start" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_oath",
+      "title": "The oath",
+      "description": "Maret swears the oath at the new year.",
+      "entity_ids": ["entity_queen_maret", "entity_the_hall"],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "timestamp": "1000-01-01" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_coronation",
+      "title": "The coronation",
+      "description": "The crown follows the oath, at the oath's end.",
+      "entity_ids": ["entity_queen_maret"],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "event_id": "event_the_oath", "edge": "end" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_first_decree",
+      "title": "The first decree",
+      "description": "The first decree is read as the coronation begins, and the coronation is the oath's end.",
+      "entity_ids": ["entity_queen_maret"],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "event_id": "event_the_coronation", "edge": "start" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_reign",
+      "title": "The reign",
+      "description": "Ten years from the oath's end to midsummer 1010.",
+      "entity_ids": ["entity_queen_maret", "entity_the_hall"],
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_oath" },
+          "end": { "timestamp": "1010-06-01" }
+        }
+      ]
+    },
+    {
+      "id": "event_a_name_forgotten",
+      "title": "A name forgotten",
+      "description": "A guest the lists leave out.",
+      "entity_ids": [],
+      "when": []
+    },
+    {
+      "id": "event_the_lost_hour",
+      "title": "The lost hour",
+      "description": "A bell the court remembers and cannot date, because the guest it marked has no time.",
+      "entity_ids": [],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "event_id": "event_a_name_forgotten", "edge": "end" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_snow",
+      "title": "The snow",
+      "description": "Snow begins in the afternoon. No one records when it stops.",
+      "entity_ids": ["entity_the_hall"],
+      "when": [
+        {
+          "kind": "range",
+          "start": { "timestamp": "1012-11-03T17:00" }
+        }
+      ]
+    },
+    {
+      "id": "event_before_the_feast",
+      "title": "Before the feast",
+      "description": "The hall is quiet from noon until the feast begins.",
+      "entity_ids": ["entity_the_hall"],
+      "when": [
+        {
+          "kind": "range",
+          "start": { "timestamp": "1012-11-03T12:00" },
+          "end": { "event_id": "event_the_feast" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_feast",
+      "title": "The feast",
+      "description": "The feast fills the hall from six until eleven.",
+      "entity_ids": ["entity_queen_maret", "entity_the_hall"],
+      "when": [
+        {
+          "kind": "range",
+          "start": { "timestamp": "1012-11-03T18:00" },
+          "end": { "timestamp": "1012-11-03T23:00" }
+        }
+      ]
+    },
+    {
+      "id": "event_seated",
+      "title": "Seated",
+      "description": "The queen sits as the feast starts.",
+      "entity_ids": ["entity_queen_maret", "entity_the_hall"],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "event_id": "event_the_feast", "edge": "start" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_announcement",
+      "title": "The announcement",
+      "description": "Her announcement is the moment she sits, which is the moment the feast starts.",
+      "entity_ids": ["entity_queen_maret"],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "event_id": "event_seated", "edge": "start" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_ride",
+      "title": "The ride",
+      "description": "Calder rides in at half past six and is in the hall until the toast begins.",
+      "entity_ids": ["entity_lord_calder", "entity_the_hall"],
+      "when": [
+        {
+          "kind": "range",
+          "start": { "timestamp": "1012-11-03T18:30" },
+          "end": { "event_id": "event_the_toast" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_dance",
+      "title": "The dance",
+      "description": "The dance runs inside the feast, from seven until half past nine.",
+      "entity_ids": ["entity_lord_calder", "entity_the_hall"],
+      "when": [
+        {
+          "kind": "range",
+          "start": { "timestamp": "1012-11-03T19:00" },
+          "end": { "timestamp": "1012-11-03T21:30" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_argument",
+      "title": "The argument",
+      "description": "From eight until ten Calder argues with the queen, overlapping the dance and still inside the feast.",
+      "entity_ids": ["entity_lord_calder", "entity_queen_maret", "entity_the_hall"],
+      "when": [
+        {
+          "kind": "range",
+          "start": { "timestamp": "1012-11-03T20:00" },
+          "end": { "timestamp": "1012-11-03T22:00" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_toast",
+      "title": "The toast",
+      "description": "The toast is raised at nine.",
+      "entity_ids": ["entity_queen_maret", "entity_the_hall"],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "timestamp": "1012-11-03T21:00" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_bell",
+      "title": "The bell",
+      "description": "The hall bell strikes nine, the same moment as the toast.",
+      "entity_ids": ["entity_the_hall"],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "timestamp": "1012-11-03T21:00" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_three_knocks",
+      "title": "The three knocks",
+      "description": "Three knocks, minutes apart. Nothing is continuous between them.",
+      "entity_ids": ["entity_the_hall"],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "timestamp": "1012-11-03T22:10" }
+        },
+        {
+          "kind": "at",
+          "at": { "timestamp": "1012-11-03T22:12" }
+        },
+        {
+          "kind": "at",
+          "at": { "timestamp": "1012-11-03T22:15" }
+        }
+      ]
+    },
+    {
+      "id": "event_between_the_knocks",
+      "title": "Between the knocks",
+      "description": "A telling that treats the knocks as one moment. They are three, so it does not resolve.",
+      "entity_ids": [],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "event_id": "event_the_three_knocks", "edge": "start" }
+        }
+      ]
+    },
+    {
+      "id": "event_last_cup",
+      "title": "The last cup",
+      "description": "The last cup is the feast's end.",
+      "entity_ids": ["entity_queen_maret", "entity_the_hall"],
+      "when": [
+        {
+          "kind": "at",
+          "at": { "event_id": "event_the_feast", "edge": "end" }
+        }
+      ]
+    },
+    {
+      "id": "event_after_the_feast",
+      "title": "After the feast",
+      "description": "The hall stays lit from the feast's end until one.",
+      "entity_ids": ["entity_the_hall"],
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_feast" },
+          "end": { "timestamp": "1012-11-04T01:00" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_rumor",
+      "title": "The rumor",
+      "description": "Something happened in the hall. No one agrees when, or that it had a start or an end.",
+      "entity_ids": [],
+      "when": [
+        {
+          "kind": "range"
+        }
+      ]
+    },
+    {
+      "id": "event_the_contradiction",
+      "title": "The contradiction",
+      "description": "A garbled telling that puts the toast before the oath.",
+      "entity_ids": ["entity_queen_maret"],
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_toast", "edge": "start" },
+          "end": { "event_id": "event_the_oath", "edge": "end" }
+        }
+      ]
+    }
+  ],
+  "units": [],
+  "arcs": [
+    {
+      "id": "arc_the_old_claim",
+      "title": "The old claim",
+      "description": "From the oath to the toast, and a guest with no time.",
+      "event_ids": [
+        "event_the_oath",
+        "event_the_coronation",
+        "event_the_first_decree",
+        "event_the_reign",
+        "event_the_toast",
+        "event_a_name_forgotten"
+      ]
+    },
+    {
+      "id": "arc_the_night",
+      "title": "The night",
+      "description": "The feast, the ride, the dance, the argument, and the toast, in the order they start.",
+      "event_ids": [
+        "event_the_feast",
+        "event_the_ride",
+        "event_the_dance",
+        "event_the_argument",
+        "event_the_toast"
+      ]
+    },
+    {
+      "id": "arc_told_backwards",
+      "title": "Told backwards",
+      "description": "The argument, then the dance, then the feast: the night told against the order it happened.",
+      "event_ids": [
+        "event_the_argument",
+        "event_the_dance",
+        "event_the_feast"
+      ]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-"""Story list, create, read, and delete endpoints."""
+"""Story list, create, read, delete, and event-times endpoints."""
 
 from __future__ import annotations
 
@@ -20,8 +20,10 @@ from agentic_writing_system.api.schemas import (
 from agentic_writing_system.api.users import current_user_id
 from agentic_writing_system.stores.story_store import CommitSource, Conflict, StoryStore
 from agentic_writing_system.story_bible.commit import Committed, commit, import_story
+from agentic_writing_system.story_bible.document import document_from_stored
 from agentic_writing_system.story_bible.records import StoryDocument
 from agentic_writing_system.story_bible.rules import Refusal
+from agentic_writing_system.story_bible.story_time import EventTimes, event_times
 
 router = APIRouter(prefix="/stories", tags=["stories"], responses=STORE_BUSY)
 
@@ -57,6 +59,20 @@ async def get_story(
 ) -> StoryView:
     stored = await store.load(user_id, story_id)
     return story_view(stored)
+
+
+@router.get(
+    "/{story_id}/event-times",
+    response_model=EventTimes,
+    responses=NOT_FOUND,
+)
+async def get_event_times(
+    story_id: str,
+    user_id: Annotated[str, Depends(current_user_id)],
+    store: Annotated[StoryStore, Depends(get_story_store)],
+) -> EventTimes:
+    stored = await store.load(user_id, story_id)
+    return event_times(document_from_stored(stored))
 
 
 @router.delete(

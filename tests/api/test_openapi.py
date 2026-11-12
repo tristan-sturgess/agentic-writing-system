@@ -16,6 +16,7 @@ def test_openapi_lists_the_statuses_each_path_returns(client: TestClient) -> Non
         ("GET", "/api/stories"): ["200", "503"],
         ("POST", "/api/stories"): ["201", "503"],
         ("GET", "/api/stories/{story_id}"): ["200", "404", "503"],
+        ("GET", "/api/stories/{story_id}/event-times"): ["200", "404", "503"],
         ("DELETE", "/api/stories/{story_id}"): ["204", "404", "503"],
         ("POST", "/api/stories/{story_id}/commits"): [
             "200",
@@ -48,6 +49,12 @@ def test_a_story_response_requires_every_field_the_service_sends(
         "EventView",
         "NarrativeUnitView",
         "ArcView",
+        "EventTimes",
+        "EventTime",
+        "EventTimeAt",
+        "EventTimeRange",
+        "EventTimePoint",
+        "UnresolvedTime",
     ):
         schema = schemas[name]
         assert sorted(schema["required"]) == sorted(schema["properties"]), name

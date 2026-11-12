@@ -69,6 +69,12 @@ def main(argv: list[str] | None = None) -> int:
     get_p = sub.add_parser("get", help="Get one story")
     get_p.add_argument("story_id")
 
+    times_p = sub.add_parser(
+        "event-times",
+        help="Print a story's Events resolved to story time",
+    )
+    times_p.add_argument("story_id")
+
     delete_p = sub.add_parser("delete", help="Delete a story")
     delete_p.add_argument("story_id")
 
@@ -91,6 +97,10 @@ def main(argv: list[str] | None = None) -> int:
         status, raw = _http("POST", base, f"{API_PREFIX}/stories")
     elif args.command == "get":
         status, raw = _http("GET", base, f"{API_PREFIX}/stories/{args.story_id}")
+    elif args.command == "event-times":
+        status, raw = _http(
+            "GET", base, f"{API_PREFIX}/stories/{args.story_id}/event-times"
+        )
     elif args.command == "delete":
         status, raw = _http("DELETE", base, f"{API_PREFIX}/stories/{args.story_id}")
     elif args.command == "commit":

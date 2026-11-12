@@ -8,7 +8,7 @@ A workspace for writing long-form fiction. The writer describes the story they w
 
 Measuring whether a prompt, model, or workflow change actually helped is part of the product, not a follow-up.
 
-Slice 1 of `docs/build-sequence.md` is built: the Story Bible records and rules, the story store on SQLite, the commit, the story endpoints, and import. Slice 2 has its first step: the frontend, which lists the stories and shows one story's records. Nothing can be edited on screen yet, and there is no agent. The design lives in `docs/`.
+Slice 1 of `docs/build-sequence.md` is built: the Story Bible records and rules, the story store on SQLite, the commit, the story endpoints, and import. Slice 2 has the records view, the edge on a time point that names an Event, and Event times from the service. Nothing can be edited on screen yet, and there is no agent. The design lives in `docs/`.
 
 ## What the project is for
 

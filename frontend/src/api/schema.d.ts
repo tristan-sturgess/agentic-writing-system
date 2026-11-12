@@ -40,6 +40,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stories/{story_id}/event-times": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Event Times */
+        get: operations["get_event_times_api_stories__story_id__event_times_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stories/{story_id}/commits": {
         parameters: {
             query?: never;
@@ -467,6 +484,8 @@ export interface components {
             /** Id */
             id: string;
         };
+        /** @enum {string} */
+        EventEdge: "start" | "end";
         /** EventFields */
         EventFields: {
             /** Title */
@@ -504,6 +523,66 @@ export interface components {
             event_id: string;
             /** Edge */
             edge?: ("start" | "end") | null;
+        };
+        /**
+         * EventTime
+         * @description One Event's spans, in the order its when list stores them.
+         */
+        EventTime: {
+            /** Id */
+            id: string;
+            /** Spans */
+            spans: (components["schemas"]["EventTimeAt"] | components["schemas"]["EventTimeRange"])[];
+        };
+        /**
+         * EventTimeAt
+         * @description An at span with its point resolved.
+         */
+        EventTimeAt: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "at";
+            at: components["schemas"]["EventTimePoint"];
+        };
+        /**
+         * EventTimePoint
+         * @description One stored time point, read by the story-time rules.
+         */
+        EventTimePoint: {
+            /** Point */
+            point: components["schemas"]["TimestampPoint"] | components["schemas"]["EventPoint"];
+            edge: components["schemas"]["EventEdge"] | null;
+            /** Timestamp */
+            timestamp: string | null;
+            unresolved: components["schemas"]["UnresolvedTime"] | null;
+        };
+        /**
+         * EventTimeRange
+         * @description A range span. A bound the span does not store is null here too.
+         */
+        EventTimeRange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "range";
+            start: components["schemas"]["EventTimePoint"] | null;
+            end: components["schemas"]["EventTimePoint"] | null;
+            /**
+             * Ends Before Start
+             * @default false
+             */
+            ends_before_start: boolean;
+        };
+        /**
+         * EventTimes
+         * @description The event-times body: every Event, in the story document's order.
+         */
+        EventTimes: {
+            /** Events */
+            events: components["schemas"]["EventTime"][];
         };
         /** EventView */
         EventView: {
@@ -944,6 +1023,17 @@ export interface components {
             /** Timestamp */
             timestamp: string;
         };
+        /** @enum {string} */
+        UnresolvedCode: "no_time" | "several_spans" | "bound_absent";
+        /**
+         * UnresolvedTime
+         * @description Why a time point did not resolve, and the Events followed to get there.
+         */
+        UnresolvedTime: {
+            code: components["schemas"]["UnresolvedCode"];
+            /** Event Ids */
+            event_ids: string[];
+        };
         /** UpdateArc */
         UpdateArc: {
             /**
@@ -1184,6 +1274,46 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description No such story for the acting user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description The store is busy; retry */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+        };
+    };
+    get_event_times_api_stories__story_id__event_times_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventTimes"];
+                };
             };
             /** @description No such story for the acting user */
             404: {
