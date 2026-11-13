@@ -57,6 +57,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stories/{story_id}/statement-times": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Statement Times */
+        get: operations["get_statement_times_api_stories__story_id__statement_times_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/in-force": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get In Force */
+        get: operations["get_in_force_api_stories__story_id__in_force_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stories/{story_id}/commits": {
         parameters: {
             query?: never;
@@ -602,6 +636,26 @@ export interface components {
             /** Revision */
             revision: number;
         };
+        /**
+         * InForce
+         * @description The in-force body: the query as read, and the statements it includes.
+         */
+        InForce: {
+            query: components["schemas"]["EventTimePoint"];
+            /** Statements */
+            statements: components["schemas"]["InForceStatement"][];
+        };
+        /**
+         * InForceStatement
+         * @description A Property or Assertion the reading includes at the query point.
+         */
+        InForceStatement: {
+            /** Id */
+            id: string;
+            kind: components["schemas"]["StatementKind"];
+            /** Unresolved */
+            unresolved: components["schemas"]["UnresolvedComparison"][];
+        };
         /** NarrativeUnit */
         NarrativeUnit: {
             /** Title */
@@ -851,6 +905,28 @@ export interface components {
             revision?: number | null;
             fields: components["schemas"]["StoryPatch"];
         };
+        /** @enum {string} */
+        StatementKind: "property" | "assertion";
+        /**
+         * StatementTime
+         * @description One Property or Assertion, its spans in the order ``when`` stores them.
+         */
+        StatementTime: {
+            /** Id */
+            id: string;
+            /** Spans */
+            spans: (components["schemas"]["EventTimeAt"] | components["schemas"]["EventTimeRange"])[];
+        };
+        /**
+         * StatementTimes
+         * @description The statement-times body: every Property, then every Assertion.
+         */
+        StatementTimes: {
+            /** Properties */
+            properties: components["schemas"]["StatementTime"][];
+            /** Assertions */
+            assertions: components["schemas"]["StatementTime"][];
+        };
         /** StoryDocument */
         StoryDocument: {
             /**
@@ -1026,6 +1102,16 @@ export interface components {
         /** @enum {string} */
         UnresolvedCode: "no_time" | "several_spans" | "bound_absent";
         /**
+         * UnresolvedComparison
+         * @description One bound of one span whose comparison did not resolve.
+         */
+        UnresolvedComparison: {
+            /** Span */
+            span: number;
+            bound: components["schemas"]["_BoundName"];
+            unresolved: components["schemas"]["UnresolvedTime"];
+        };
+        /**
          * UnresolvedTime
          * @description Why a time point did not resolve, and the Events followed to get there.
          */
@@ -1150,6 +1236,8 @@ export interface components {
         };
         UpdateWrite: components["schemas"]["UpdateEntity"] | components["schemas"]["UpdateProperty"] | components["schemas"]["UpdateAssertion"] | components["schemas"]["UpdateEvent"] | components["schemas"]["UpdateUnit"] | components["schemas"]["UpdateArc"];
         Write: components["schemas"]["CreateWrite"] | components["schemas"]["UpdateWrite"] | components["schemas"]["DeleteWrite"] | components["schemas"]["SetStoryWrite"];
+        /** @enum {string} */
+        _BoundName: "start" | "end";
     };
     responses: never;
     parameters: never;
@@ -1313,6 +1401,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventTimes"];
+                };
+            };
+            /** @description No such story for the acting user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description The store is busy; retry */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+        };
+    };
+    get_statement_times_api_stories__story_id__statement_times_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementTimes"];
+                };
+            };
+            /** @description No such story for the acting user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description The store is busy; retry */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+        };
+    };
+    get_in_force_api_stories__story_id__in_force_get: {
+        parameters: {
+            query?: {
+                timestamp?: string | null;
+                event_id?: string | null;
+                edge?: ("start" | "end") | null;
+            };
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InForce"];
+                };
+            };
+            /** @description The query is not one time point */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaErrors"];
                 };
             };
             /** @description No such story for the acting user */

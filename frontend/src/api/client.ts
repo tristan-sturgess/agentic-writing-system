@@ -18,6 +18,16 @@ export type Arc = Schemas['ArcView']
 export type Span = Schemas['AtSpan'] | Schemas['RangeSpan']
 export type TimePoint = Schemas['TimestampPoint'] | Schemas['EventPoint']
 
+/** The first sentence of a schema error, without the validator's prefix. */
+function schemaMessage(detail: unknown): string | null {
+  if (!Array.isArray(detail) || detail.length === 0) return null
+  const first: unknown = detail[0]
+  if (typeof first !== 'object' || first === null || !('msg' in first)) return null
+  if (typeof first.msg !== 'string' || first.msg === '') return null
+  const prefix = 'Value error, '
+  return first.msg.startsWith(prefix) ? first.msg.slice(prefix.length) : first.msg
+}
+
 /** The API answered, with a status that is not a success. */
 export class ApiError extends Error {
   readonly status: number
@@ -50,17 +60,17 @@ async function get<T>(path: string): Promise<T> {
   return (await response.json()) as T
 }
 
-/** The API's `404` and `503` bodies are `{ "detail": "one sentence" }`. */
+/**
+ * The API's `404` and `503` bodies are `{ "detail": "one sentence" }`.
+ * A `400` is `{ "detail": [{ "msg": "..." }] }`, and the first message is the reason.
+ */
 async function errorMessage(response: Response): Promise<string> {
   try {
     const body: unknown = await response.json()
-    if (
-      typeof body === 'object' &&
-      body !== null &&
-      'detail' in body &&
-      typeof body.detail === 'string'
-    ) {
-      return body.detail
+    if (typeof body === 'object' && body !== null && 'detail' in body) {
+      if (typeof body.detail === 'string') return body.detail
+      const message = schemaMessage(body.detail)
+      if (message) return message
     }
   } catch {
     // Not JSON, so not the API's own body.
@@ -87,4 +97,32 @@ export type EventTimePoint = Schemas['EventTimePoint']
 /** What the service resolved for each Event's spans. The timeline draws this. */
 export function getEventTimes(storyId: string): Promise<EventTimes> {
   return get(`/stories/${encodeURIComponent(storyId)}/event-times`)
+}
+
+export type StatementTimes = Schemas['StatementTimes']
+export type StatementTime = Schemas['StatementTime']
+export type InForce = Schemas['InForce']
+export type InForceStatement = Schemas['InForceStatement']
+export type UnresolvedComparison = Schemas['UnresolvedComparison']
+
+/** What the service resolved for each Property and Assertion span. */
+export function getStatementTimes(storyId: string): Promise<StatementTimes> {
+  return get(`/stories/${encodeURIComponent(storyId)}/statement-times`)
+}
+
+/** A query point for the in-force read: a timestamp, or one end of an Event. */
+export type InForceRequest =
+  | { timestamp: string }
+  | { eventId: string; edge: 'start' | 'end' }
+
+/** The statements in force at one story time. The entities view draws this. */
+export function getInForce(storyId: string, query: InForceRequest): Promise<InForce> {
+  const params = new URLSearchParams()
+  if ('timestamp' in query) {
+    params.set('timestamp', query.timestamp)
+  } else {
+    params.set('event_id', query.eventId)
+    params.set('edge', query.edge)
+  }
+  return get(`/stories/${encodeURIComponent(storyId)}/in-force?${params.toString()}`)
 }

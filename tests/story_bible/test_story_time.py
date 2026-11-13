@@ -22,6 +22,7 @@ from agentic_writing_system.story_bible.story_time import (
     UnresolvedTime,
     event_times,
     resolve_point,
+    statement_times,
 )
 
 TIMELINE_SAMPLE = (
@@ -458,3 +459,69 @@ def test_the_timeline_sample_covers_every_span_shape() -> None:
     ]
     in_an_arc = {event_id for event_ids in arcs.values() for event_id in event_ids}
     assert "event_the_bell" not in in_an_arc
+
+
+def test_statement_times_resolve_property_and_assertion_spans() -> None:
+    """The same point reading as the Event times, in document order."""
+    document = StoryDocument.model_validate(
+        {
+            "events": [
+                {
+                    "id": "event_untimed",
+                    "title": "Untimed",
+                    "when": [],
+                }
+            ],
+            "properties": [
+                {
+                    "id": "prop_open",
+                    "entity_id": "entity_mara",
+                    "statement": "Open",
+                    "when": [],
+                },
+                {
+                    "id": "prop_backwards",
+                    "entity_id": "entity_mara",
+                    "statement": "Backwards",
+                    "when": [
+                        {
+                            "kind": "range",
+                            "start": {"timestamp": "1847-06-01"},
+                            "end": {"event_id": "event_untimed", "edge": "end"},
+                        },
+                        {
+                            "kind": "range",
+                            "start": {"timestamp": "1847-06-01"},
+                            "end": {"timestamp": "1847-03-02"},
+                        },
+                    ],
+                },
+            ],
+            "assertions": [
+                {
+                    "id": "assertion_seen",
+                    "entity_ids": ["entity_mara", "entity_john"],
+                    "statement": "Seen",
+                    "when": [{"kind": "at", "at": {"timestamp": "1847-03-02T09:00"}}],
+                }
+            ],
+        }
+    )
+    result = statement_times(document)
+    assert [item.id for item in result.properties] == ["prop_open", "prop_backwards"]
+    assert result.properties[0].spans == []
+    backwards = result.properties[1].spans[0]
+    assert isinstance(backwards, EventTimeRange)
+    assert backwards.ends_before_start is False
+    assert backwards.end is not None
+    assert backwards.end.unresolved == UnresolvedTime(
+        code="no_time", event_ids=["event_untimed"]
+    )
+    assert backwards.start is not None
+    assert backwards.start.timestamp == "1847-06-01T00:00:00"
+    reversed_span = result.properties[1].spans[1]
+    assert isinstance(reversed_span, EventTimeRange)
+    assert reversed_span.ends_before_start is True
+    seen = result.assertions[0].spans[0]
+    assert isinstance(seen, EventTimeAt)
+    assert seen.at.timestamp == "1847-03-02T09:00:00"

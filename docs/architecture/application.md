@@ -49,7 +49,7 @@ The `400` body is `{ "detail": [...] }`, one entry per rejected value: where it 
 
 ### Slices 1 and 2
 
-The first endpoints. Slice 1 builds the story endpoints, the commit, and import; slice 2 adds the Event times, history, revert, and export, and the frontend that calls them. [build-sequence.md](../build-sequence.md) places each one. In these slices every commit is a hand edit, an import, or a revert.
+The first endpoints. Slice 1 builds the story endpoints, the commit, and import; slice 2 adds the Event times, the statement times, the in-force view, history, revert, and export, and the frontend that calls them. [build-sequence.md](../build-sequence.md) places each one. In these slices every commit is a hand edit, an import, or a revert.
 
 | Method and path | What it does |
 | --- | --- |
@@ -58,6 +58,8 @@ The first endpoints. Slice 1 builds the story endpoints, the commit, and import;
 | `GET /stories/{story_id}` | The whole story document, every record with its revision, from one `load`. This is what the frontend draws from. The revisions are what its next commit carries. |
 | `DELETE /stories/{story_id}` | Removes the story, its records, its history, and its conversations. The store's `delete`. |
 | `GET /stories/{story_id}/event-times` | The story's Events in story time: for each span of each Event, the timestamp each point and bound resolves to, or the reason it does not. [The Event times](#the-event-times) below. |
+| `GET /stories/{story_id}/statement-times` | Each Property and each Assertion in story time, in the same point shape as the Event times. [Statement times](#statement-times) below. |
+| `GET /stories/{story_id}/in-force` | The Properties and Assertions in force at one query point, with each comparison that did not resolve marked. [The in-force view](#the-in-force-view) below. |
 | `POST /stories/{story_id}/commits` | One commit, source `user`. The body is an ordered list of writes: create, update, or delete of one record, or a change to the framing fields or `unit_ids`, each update and delete carrying the revision the frontend loaded. A later write may name what an earlier one created. The three outcomes above. |
 | `GET /stories/{story_id}/history` | The commit records, newest first, with the persistence doc's filters: source, `thread_id`, `run_id`, a time range. Each record carries its changes with the before and after. Grouping by turn is grouping by `thread_id` and `run_id`. |
 | `POST /stories/{story_id}/revert` | A revert commit. The body names commit ids, or a `thread_id` and `run_id` for a whole turn. One commit; it lands whole or not at all, with the three outcomes above. |
@@ -108,7 +110,40 @@ The reason codes follow the Story Bible doc's rule for a time point that names a
 
 The result is computed on each request and is not stored. It has no revision. The frontend loads it with the story and loads both again after a commit. An unknown story is `404`.
 
-The in-force view for the entities view is served the same way when that view is built, and its endpoint is added to the table then.
+#### Statement times
+
+The same resolving covers a Property or an Assertion. `GET /stories/{story_id}/statement-times` returns it, from one `load`. The entities view in [ui/entities.md](../ui/entities.md) draws each span from it. A slice 3 read that needs a statement's time returns the same result. The frontend does not resolve a time point itself.
+
+The body is `{ "properties": [...], "assertions": [...] }`. Each list is in the story document's order. An entry has the record's `id` and its `spans`, one for each span in its `when`, in the stored order. An empty `when` has an empty `spans`.
+
+A span has the same shape as a span in [The Event times](#the-event-times): its `kind`, one entry for each point it stores, and `ends_before_start` on a `range` whose two bounds resolve with the start after the end. The point fields, the normalised timestamp, and the reason codes are the ones that section states. A bound the span does not store is absent here too.
+
+The result is computed on each request and is not stored. An unknown story is `404`.
+
+#### The in-force view
+
+[story-bible.md](../story-bible.md) owns which Properties and Assertions are in force at a query point. The service computes that reading from one `load`, by those rules and by the resolving above, and `GET /stories/{story_id}/in-force` returns it. The entities view lists the part that belongs to the Entity on screen. The slice 3 read tool that asks what holds at a time returns the same result. The frontend does not decide what is in force.
+
+The query point is one of these, and not both:
+
+| Query | Meaning |
+| --- | --- |
+| `timestamp` | A story-time timestamp, in the same forms as a stored timestamp. A date alone is the start of that day. |
+| `event_id` and `edge` | An Event, and which end of it. `edge` is `start` or `end`. A query sits in no span, so no edge is implied by where it stands. |
+
+Giving neither, or both a timestamp and an event id, or an event id with no edge, or a timestamp or an edge the schema rejects, is `400` in the schema-error shape. An `event_id` that is not an Event in the story is the same `400`. An unknown story is `404`.
+
+The body has `query` and `statements`. `query` is the point as given, read like a point in the Event times: the point itself, the edge it was read as (null for a timestamp), the normalised timestamp, and the unresolved reason when it does not resolve.
+
+`statements` lists the Properties and Assertions the reading includes, the Properties in document order and then the Assertions in document order. An entry has the record's `id`, its `kind` (`property` or `assertion`), and `unresolved`: the comparisons on that statement that did not resolve. Each of those names the span by its position in `when`, the bound (`start` or `end`), and the reason a point carries, a code and the Event ids followed. `unresolved` is empty when every comparison that the reading used had resolved.
+
+A statement the reading includes only because a comparison did not resolve is in the list, with that comparison in `unresolved`. A range that also covers the point does not remove those marks: the statement is in force, and the comparison that did not resolve is still reported. A range whose resolved bound places the point outside it contributes nothing. The statement is not included on that range's account, and the range's other bound is not marked when it fails to resolve. That is the Story Bible doc's rule for an unresolved comparison.
+
+When the query point itself does not resolve, there is no timestamp to compare against. `statements` then lists only the statements that hold with no comparison to make: an empty `when`, and a `range` with neither bound. The reason is on `query`.
+
+The reading does not consult `supersedes`. A statement whose range was left open is in force beside the statement that supersedes it, and both are returned when their spans say so.
+
+The result is computed on each request and is not stored. It has no revision.
 
 #### The commit body
 

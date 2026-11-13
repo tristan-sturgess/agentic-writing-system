@@ -1,0 +1,307 @@
+{
+  "schema_version": 1,
+  "title": "The Grey Market",
+  "description": "Mara arrives in a city that already knows her name, and a letter decides what she and John become to each other.",
+  "premise": "A distrustful newcomer and a wool seller share a market until a letter, and then a parting, change what each owes the other.",
+  "tone": "Cool, close, unhurried",
+  "themes": "Trust, debt, a place that tells stories before you arrive",
+  "writing_style": "Close third person, plain sentences",
+  "unit_ids": [],
+  "entities": [
+    {
+      "id": "entity_mara",
+      "name": "Mara",
+      "notes": "New to the city. She answers a letter she did not ask for."
+    },
+    {
+      "id": "entity_john_hale",
+      "name": "John Hale",
+      "notes": "Sells wool at the Grey Market, and leaves when the season turns."
+    },
+    {
+      "id": "entity_grey_market",
+      "name": "Grey Market",
+      "notes": "The square where the city's small trade is done at dawn."
+    }
+  ],
+  "properties": [
+    {
+      "id": "prop_mara_is_generally_distrustful_of_strangers",
+      "entity_id": "entity_mara",
+      "statement": "Mara is generally distrustful of strangers.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_arrival" },
+          "end": { "event_id": "event_the_letter", "edge": "end" }
+        }
+      ]
+    },
+    {
+      "id": "prop_mara_is_cautiously_willing_to_trust_strangers",
+      "entity_id": "entity_mara",
+      "statement": "Mara is cautiously willing to trust strangers.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_letter" }
+        }
+      ],
+      "caused_by": "event_the_letter",
+      "supersedes": "prop_mara_is_generally_distrustful_of_strangers"
+    },
+    {
+      "id": "prop_mara_keeps_the_letter_folded_in_her_coat",
+      "entity_id": "entity_mara",
+      "statement": "Mara keeps the letter folded in her coat.",
+      "when": [
+        {
+          "kind": "at",
+          "at": { "event_id": "event_the_letter", "edge": "start" }
+        }
+      ]
+    },
+    {
+      "id": "prop_mara_answers_to_no_one_in_the_city",
+      "entity_id": "entity_mara",
+      "statement": "Mara answers to no one in the city.",
+      "when": []
+    },
+    {
+      "id": "prop_mara_works_a_stall_at_the_grey_market",
+      "entity_id": "entity_mara",
+      "statement": "Mara works a stall at the Grey Market.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "timestamp": "1846-01-01" },
+          "end": { "timestamp": "1847-01-01" }
+        },
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_market", "edge": "start" }
+        }
+      ]
+    },
+    {
+      "id": "prop_mara_heard_johns_name_before_she_met_him",
+      "entity_id": "entity_mara",
+      "statement": "Mara heard John's name before she met him.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_rumour" }
+        }
+      ]
+    },
+    {
+      "id": "prop_john_sells_wool_at_the_grey_market",
+      "entity_id": "entity_john_hale",
+      "statement": "John sells wool at the Grey Market.",
+      "when": [
+        {
+          "kind": "range",
+          "end": { "event_id": "event_the_parting", "edge": "start" }
+        }
+      ]
+    },
+    {
+      "id": "prop_john_has_left_the_city",
+      "entity_id": "entity_john_hale",
+      "statement": "John has left the city.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_parting", "edge": "start" }
+        }
+      ],
+      "caused_by": "event_the_parting",
+      "supersedes": "prop_john_sells_wool_at_the_grey_market"
+    },
+    {
+      "id": "prop_john_trusts_mara",
+      "entity_id": "entity_john_hale",
+      "statement": "John trusts Mara.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_market", "edge": "start" }
+        }
+      ]
+    },
+    {
+      "id": "prop_john_doubts_mara",
+      "entity_id": "entity_john_hale",
+      "statement": "John doubts Mara.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_letter", "edge": "end" }
+        }
+      ],
+      "caused_by": "event_the_letter",
+      "supersedes": "prop_john_trusts_mara"
+    },
+    {
+      "id": "prop_the_grey_market_opens_at_dawn",
+      "entity_id": "entity_grey_market",
+      "statement": "The Grey Market opens at dawn.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "timestamp": "1847-03-04" }
+        }
+      ]
+    },
+    {
+      "id": "prop_the_stalls_were_counted_at_opening",
+      "entity_id": "entity_grey_market",
+      "statement": "The stalls were counted at opening.",
+      "when": [
+        {
+          "kind": "at",
+          "at": { "timestamp": "1847-03-04T09:00" }
+        }
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "id": "assertion_mara_distrusts_john",
+      "entity_ids": ["entity_mara", "entity_john_hale"],
+      "statement": "Mara distrusts John.",
+      "when": [
+        {
+          "kind": "at",
+          "at": { "event_id": "event_the_market", "edge": "start" }
+        },
+        {
+          "kind": "at",
+          "at": { "timestamp": "1847-03-05" }
+        }
+      ]
+    },
+    {
+      "id": "assertion_mara_and_john_share_the_market",
+      "entity_ids": ["entity_mara", "entity_john_hale", "entity_grey_market"],
+      "event_ids": ["event_the_market"],
+      "statement": "Mara and John are bound by what was said at the market.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_market", "edge": "start" },
+          "end": { "event_id": "event_the_parting", "edge": "start" }
+        }
+      ]
+    },
+    {
+      "id": "assertion_the_letter_changes_maras_mind",
+      "entity_ids": ["entity_mara"],
+      "event_ids": ["event_arrival", "event_the_letter"],
+      "statement": "The letter follows the arrival, and it is what changes Mara's mind.",
+      "when": []
+    },
+    {
+      "id": "assertion_john_owes_mara_for_the_stall",
+      "entity_ids": ["entity_john_hale", "entity_mara"],
+      "statement": "John owes Mara for the stall.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_letter", "edge": "end" },
+          "end": { "event_id": "event_the_parting", "edge": "start" }
+        }
+      ],
+      "caused_by": "event_the_letter"
+    },
+    {
+      "id": "assertion_john_owes_mara_nothing",
+      "entity_ids": ["entity_john_hale", "entity_mara"],
+      "statement": "John owes Mara nothing.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_parting", "edge": "start" }
+        }
+      ],
+      "caused_by": "event_the_parting",
+      "supersedes": "assertion_john_owes_mara_for_the_stall"
+    },
+    {
+      "id": "assertion_the_rumour_names_mara",
+      "entity_ids": ["entity_mara", "entity_john_hale"],
+      "event_ids": ["event_the_rumour"],
+      "statement": "The rumour names Mara to John.",
+      "when": [
+        {
+          "kind": "range",
+          "start": { "event_id": "event_the_rumour", "edge": "start" }
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "id": "event_arrival",
+      "title": "Arrival",
+      "description": "Mara reaches the city.",
+      "entity_ids": ["entity_mara", "entity_grey_market"],
+      "when": [
+        { "kind": "at", "at": { "timestamp": "1847-03-02" } }
+      ]
+    },
+    {
+      "id": "event_the_market",
+      "title": "The market",
+      "description": "Mara and John are both in the square.",
+      "entity_ids": ["entity_mara", "entity_john_hale", "entity_grey_market"],
+      "when": [
+        { "kind": "at", "at": { "timestamp": "1847-03-04T09:00" } }
+      ]
+    },
+    {
+      "id": "event_the_letter",
+      "title": "The letter",
+      "description": "A letter arrives for Mara and takes two days to read.",
+      "entity_ids": ["entity_mara"],
+      "when": [
+        {
+          "kind": "range",
+          "start": { "timestamp": "1847-03-10" },
+          "end": { "timestamp": "1847-03-12" }
+        }
+      ]
+    },
+    {
+      "id": "event_the_parting",
+      "title": "The parting",
+      "description": "John leaves the city.",
+      "entity_ids": ["entity_mara", "entity_john_hale"],
+      "when": [
+        { "kind": "at", "at": { "timestamp": "1847-06-01" } }
+      ]
+    },
+    {
+      "id": "event_the_rumour",
+      "title": "The rumour",
+      "description": "Someone says Mara's name before she has met anyone.",
+      "entity_ids": ["entity_john_hale", "entity_grey_market"],
+      "when": []
+    }
+  ],
+  "units": [],
+  "arcs": [
+    {
+      "id": "arc_mara_and_john",
+      "title": "Mara and John",
+      "description": "From Mara's arrival to John's leaving, and the letter between them.",
+      "event_ids": [
+        "event_arrival",
+        "event_the_market",
+        "event_the_letter",
+        "event_the_parting",
+        "event_the_rumour"
+      ]
+    }
+  ]
+}

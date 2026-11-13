@@ -1,13 +1,20 @@
-"""Story list, create, read, delete, and event-times endpoints."""
+"""Story list, create, read, delete, and the story-time reads."""
 
 from __future__ import annotations
 
-from typing import Annotated, cast
+from typing import Annotated, Literal, NoReturn, cast
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
-from agentic_writing_system.api.errors import BAD_REQUEST, NOT_FOUND, STORE_BUSY
+from agentic_writing_system.api.errors import (
+    BAD_REQUEST,
+    NOT_FOUND,
+    STORE_BUSY,
+    SchemaErrors,
+)
 from agentic_writing_system.api.schemas import (
     CommitRequest,
     ConflictResponse,
@@ -21,9 +28,20 @@ from agentic_writing_system.api.users import current_user_id
 from agentic_writing_system.stores.story_store import CommitSource, Conflict, StoryStore
 from agentic_writing_system.story_bible.commit import Committed, commit, import_story
 from agentic_writing_system.story_bible.document import document_from_stored
-from agentic_writing_system.story_bible.records import StoryDocument
+from agentic_writing_system.story_bible.in_force import InForce, in_force
+from agentic_writing_system.story_bible.records import (
+    EventPoint,
+    StoryDocument,
+    TimePoint,
+    TimestampPoint,
+)
 from agentic_writing_system.story_bible.rules import Refusal
-from agentic_writing_system.story_bible.story_time import EventTimes, event_times
+from agentic_writing_system.story_bible.story_time import (
+    EventTimes,
+    StatementTimes,
+    event_times,
+    statement_times,
+)
 
 router = APIRouter(prefix="/stories", tags=["stories"], responses=STORE_BUSY)
 
@@ -73,6 +91,88 @@ async def get_event_times(
 ) -> EventTimes:
     stored = await store.load(user_id, story_id)
     return event_times(document_from_stored(stored))
+
+
+@router.get(
+    "/{story_id}/statement-times",
+    response_model=StatementTimes,
+    responses=NOT_FOUND,
+)
+async def get_statement_times(
+    story_id: str,
+    user_id: Annotated[str, Depends(current_user_id)],
+    store: Annotated[StoryStore, Depends(get_story_store)],
+) -> StatementTimes:
+    stored = await store.load(user_id, story_id)
+    return statement_times(document_from_stored(stored))
+
+
+@router.get(
+    "/{story_id}/in-force",
+    response_model=InForce,
+    responses={
+        400: {
+            "model": SchemaErrors,
+            "description": "The query is not one time point",
+        },
+        **NOT_FOUND,
+    },
+)
+async def get_in_force(
+    story_id: str,
+    user_id: Annotated[str, Depends(current_user_id)],
+    store: Annotated[StoryStore, Depends(get_story_store)],
+    timestamp: Annotated[str | None, Query()] = None,
+    event_id: Annotated[str | None, Query()] = None,
+    edge: Annotated[Literal["start", "end"] | None, Query()] = None,
+) -> InForce:
+    point = _query_point(timestamp, event_id, edge)
+    stored = await store.load(user_id, story_id)
+    document = document_from_stored(stored)
+    if isinstance(point, EventPoint) and not any(
+        event.id == point.event_id for event in document.events
+    ):
+        _reject(
+            "event_id",
+            f"No Event with id {point.event_id}.",
+            point.event_id,
+        )
+    return in_force(document, point)
+
+
+def _query_point(
+    timestamp: str | None,
+    event_id: str | None,
+    edge: Literal["start", "end"] | None,
+) -> TimePoint:
+    """One query point, or a schema error. A query has no default edge."""
+    if timestamp is not None and event_id is not None:
+        _reject("query", "Give a timestamp or an event_id, not both.", None)
+    if timestamp is None and event_id is None:
+        _reject("query", "Give a timestamp, or an event_id and an edge.", None)
+    if timestamp is not None:
+        if edge is not None:
+            _reject("edge", "A timestamp query has no edge.", edge)
+        try:
+            return TimestampPoint(timestamp=timestamp)
+        except ValidationError as exc:
+            raise RequestValidationError(exc.errors()) from exc
+    if edge is None or event_id is None:
+        _reject("edge", "An event_id query needs an edge of start or end.", event_id)
+    return EventPoint(event_id=event_id, edge=edge)
+
+
+def _reject(loc: str, message: str, value: object) -> NoReturn:
+    raise RequestValidationError(
+        [
+            {
+                "type": "value_error",
+                "loc": ("query", loc),
+                "msg": message,
+                "input": value,
+            }
+        ]
+    )
 
 
 @router.delete(

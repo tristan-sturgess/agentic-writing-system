@@ -1,10 +1,11 @@
 """Resolve story time from the spans on a document.
 
 Pure functions over a ``StoryDocument``. Nothing here is stored. The rules are
-the ones in ``docs/story-bible.md`` ("A time point that names an Event"), and
-``event_times`` builds the body ``docs/architecture/application.md`` specifies
-for ``GET /stories/{story_id}/event-times``. The in-force view and the slice 3
-read tools call ``resolve_point`` rather than reading a span themselves.
+the ones in ``docs/story-bible.md`` ("A time point that names an Event").
+``event_times`` and ``statement_times`` build the bodies
+``docs/architecture/application.md`` specifies for the event-times and
+statement-times reads. The in-force view and the slice 3 read tools call
+``resolve_point`` rather than reading a span themselves.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from agentic_writing_system.story_bible.records import (
     AtSpan,
     Event,
     EventPoint,
+    Span,
     StoryDocument,
     TimePoint,
     TimestampPoint,
@@ -104,6 +106,24 @@ class EventTimes(BaseModel):
     events: list[EventTime]
 
 
+class StatementTime(BaseModel):
+    """One Property or Assertion, its spans in the order ``when`` stores them."""
+
+    model_config = _SENT_WHOLE
+
+    id: str
+    spans: list[EventTimeSpan]
+
+
+class StatementTimes(BaseModel):
+    """The statement-times body: every Property, then every Assertion."""
+
+    model_config = _SENT_WHOLE
+
+    properties: list[StatementTime]
+    assertions: list[StatementTime]
+
+
 @dataclass(frozen=True)
 class PointReading:
     """How one time point reads. ``edge`` is null when the point is a timestamp."""
@@ -148,34 +168,54 @@ def resolve_point(
 def event_times(document: StoryDocument) -> EventTimes:
     """Each Event's spans, with every stored point resolved."""
     events = _events_by_id(document)
-    entries: list[EventTime] = []
-    for event in document.events:
-        spans: list[EventTimeSpan] = []
-        for span in event.when:
-            if isinstance(span, AtSpan):
-                spans.append(EventTimeAt(at=_timed_point(events, span.at, "at")))
-                continue
-            start = (
-                _timed_point(events, span.start, "start")
-                if span.start is not None
-                else None
-            )
-            end = (
-                _timed_point(events, span.end, "end") if span.end is not None else None
-            )
-            spans.append(
-                EventTimeRange(
-                    start=start,
-                    end=end,
-                    ends_before_start=_ends_before_start(start, end),
-                )
-            )
-        entries.append(EventTime(id=event.id, spans=spans))
-    return EventTimes(events=entries)
+    return EventTimes(
+        events=[
+            EventTime(id=event.id, spans=_read_spans(events, event.when))
+            for event in document.events
+        ]
+    )
+
+
+def statement_times(document: StoryDocument) -> StatementTimes:
+    """Each Property and Assertion span, with every stored point resolved."""
+    events = _events_by_id(document)
+    return StatementTimes(
+        properties=[
+            StatementTime(id=prop.id, spans=_read_spans(events, prop.when))
+            for prop in document.properties
+        ],
+        assertions=[
+            StatementTime(id=assertion.id, spans=_read_spans(events, assertion.when))
+            for assertion in document.assertions
+        ],
+    )
 
 
 def _events_by_id(document: StoryDocument) -> dict[str, Event]:
     return {event.id: event for event in document.events}
+
+
+def _read_spans(events: dict[str, Event], when: list[Span]) -> list[EventTimeSpan]:
+    """One entry per stored span, points resolved, absent bounds left absent."""
+    spans: list[EventTimeSpan] = []
+    for span in when:
+        if isinstance(span, AtSpan):
+            spans.append(EventTimeAt(at=_timed_point(events, span.at, "at")))
+            continue
+        start = (
+            _timed_point(events, span.start, "start")
+            if span.start is not None
+            else None
+        )
+        end = _timed_point(events, span.end, "end") if span.end is not None else None
+        spans.append(
+            EventTimeRange(
+                start=start,
+                end=end,
+                ends_before_start=_ends_before_start(start, end),
+            )
+        )
+    return spans
 
 
 def _edge_for(point: EventPoint, place: PointPlace) -> EventEdge:

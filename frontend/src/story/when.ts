@@ -1,5 +1,5 @@
 // A `when` list as text. This says what each span stores. It does not decide
-// what is in force at a point; that is the in-force view, built in a later step.
+// what is in force at a point; that reading is the entities view, from the service.
 
 import type { Span, TimePoint } from '../api/client'
 
