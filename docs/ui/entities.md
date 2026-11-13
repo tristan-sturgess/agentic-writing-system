@@ -16,7 +16,9 @@ Question 2 is asked by an agent as well as by the writer. An agent does not use 
 
 ## One Entity
 
-The Entity on screen is named by `?entity=` in the address. A control lists every Entity. Choosing one sets `?entity=` and `?record=` to that Entity, so the detail panel opens on it.
+The Entity on screen is named by `?entity=` in the address. A control lists every Entity. Choosing one sets `?entity=` and leaves `?record=` as it is, so the detail panel does not open on the Entity.
+
+Beneath the control the view shows that Entity's name as a heading, then its id and its notes. Those are the fields the detail panel shows for an Entity, so the name is not a link.
 
 When `?entity=` is absent, or is not an Entity in the story, the view chooses one and writes it into the address:
 

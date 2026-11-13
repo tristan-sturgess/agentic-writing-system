@@ -24,7 +24,7 @@ import {
   type Story,
 } from '../api/client'
 import { useStory } from '../pages/storyContext'
-import { Empty, RecordLink, RecordRefs, StatementLinks, type SelectRecord } from '../story/parts'
+import { Empty, Prose, RecordId, RecordLink, RecordRefs, StatementLinks, type SelectRecord } from '../story/parts'
 import { indexRecords, labelOf, type RecordIndex } from '../story/records'
 import { useLoad } from '../useLoad'
 import { layOutTimeline } from '../timeline/layout'
@@ -106,7 +106,6 @@ export function EntitiesView() {
       setParams((prev) => {
         const next = new URLSearchParams(prev)
         next.set('entity', id)
-        next.set('record', id)
         return next
       })
     },
@@ -135,6 +134,7 @@ export function EntitiesView() {
       story={story}
       entityId={entity.id}
       entityName={entity.name}
+      entityNotes={entity.notes}
       index={index}
       name={name}
       statements={times.data.statements}
@@ -152,6 +152,7 @@ function EntityScreen({
   story,
   entityId,
   entityName,
+  entityNotes,
   index,
   name,
   statements,
@@ -165,6 +166,7 @@ function EntityScreen({
   story: Story
   entityId: string
   entityName: string
+  entityNotes: string
   index: RecordIndex
   name: (id: string) => string
   statements: StatementTimes
@@ -200,11 +202,11 @@ function EntityScreen({
         data={story.entities.map((entity) => ({ value: entity.id, label: entity.name }))}
         maw={360}
       />
-      <Title order={3}>
-        <RecordLink id={entityId} onSelect={onSelect}>
-          {entityName}
-        </RecordLink>
-      </Title>
+      <Stack gap={4}>
+        <Title order={3}>{entityName}</Title>
+        <RecordId id={entityId} />
+        {entityNotes ? <Prose>{entityNotes}</Prose> : null}
+      </Stack>
 
       <section>
         <Title order={4} mb="xs">
