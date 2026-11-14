@@ -47,8 +47,7 @@
           "start": { "event_id": "event_the_letter" }
         }
       ],
-      "caused_by": "event_the_letter",
-      "supersedes": "prop_mara_is_generally_distrustful_of_strangers"
+      "caused_by": "event_the_letter"
     },
     {
       "id": "prop_mara_keeps_the_letter_folded_in_her_coat",
@@ -115,8 +114,7 @@
           "start": { "event_id": "event_the_parting", "edge": "start" }
         }
       ],
-      "caused_by": "event_the_parting",
-      "supersedes": "prop_john_sells_wool_at_the_grey_market"
+      "caused_by": "event_the_parting"
     },
     {
       "id": "prop_john_trusts_mara",
@@ -139,8 +137,7 @@
           "start": { "event_id": "event_the_letter", "edge": "end" }
         }
       ],
-      "caused_by": "event_the_letter",
-      "supersedes": "prop_john_trusts_mara"
+      "caused_by": "event_the_letter"
     },
     {
       "id": "prop_the_grey_market_opens_at_dawn",
@@ -224,8 +221,7 @@
           "start": { "event_id": "event_the_parting", "edge": "start" }
         }
       ],
-      "caused_by": "event_the_parting",
-      "supersedes": "assertion_john_owes_mara_for_the_stall"
+      "caused_by": "event_the_parting"
     },
     {
       "id": "assertion_the_rumour_names_mara",

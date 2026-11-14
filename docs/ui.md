@@ -35,7 +35,7 @@ A view that turns out not to suit editing is kept as a view. Editing is then rea
 
 A story's views draw from one `GET /stories/{story_id}` response, loaded when the story's page opens. Moving between views does not load it again.
 
-A view that shows story time also loads what the service computed about it, because the service resolves story time and the frontend does not, as settled item 43 in [open-questions.md](open-questions.md) says. The timeline loads the Event times. The entities view loads the statement times and, when a time is chosen, the in-force view. A screen never resolves a time point itself, and it never decides what is in force.
+A view that shows story time also loads what the service computed about it, because the service resolves story time and the frontend does not, as settled item 43 in [open-questions.md](open-questions.md) says. The timeline loads the Event times. The entities view loads the statement times and the in-force stretches for the Entity on screen. A screen never resolves a time point itself, and it never decides what is in force.
 
 ### Selecting a record
 
@@ -65,7 +65,7 @@ No screen saves anything until step 9 of slice 2. The application doc already fi
 | --- | --- | --- | --- |
 | Records | What does each record store, field by field, exactly as stored? | Slice 2, step 1. Built. | [Below](#the-records-view). |
 | Timeline | When does each Event happen, in what order, what is happening and who is involved at a given time, which Arc is each Event in, and where could a new Event go? | Slice 2, steps 3 to 5. Built. | [ui/timeline.md](ui/timeline.md) |
-| Entities | What is true of an Entity and when, what holds at a chosen time, how its Properties replace each other and why, and which Assertions tie it to other Entities? | Slice 2, step 6. Built. | [ui/entities.md](ui/entities.md) |
+| Entities | What is true of an Entity and when, what holds at a chosen time, why a claim changed, and which Assertions tie it to other Entities? | Slice 2, step 6. Built. | [ui/entities.md](ui/entities.md) |
 | Graph | How are the records connected, what connects to nothing, and what surrounds one record or one Arc? | Slice 2, steps 7 and 8. | Written when step 7 starts. |
 
 The questions for the graph are a placeholder until its doc is written. The timeline's questions and the entities view's questions are in their docs.
@@ -99,7 +99,7 @@ A view answers its own questions. These are the tasks that take more than one vi
 | --- | --- |
 | Read a story an import or an agent produced, and understand its shape. | The graph for what exists and how it connects, the timeline for what happens when, the records view for exact fields. |
 | Decide where a new Event belongs. | The timeline, with the Entities the Event would involve highlighted, and the detail panel for the Events around the place being considered. |
-| Find out why something is true of a character at a point in the story. | The entities view for the Property and what it replaced, then the Event that caused it on the timeline. |
+| Find out why something is true of a character at a point in the story. | The entities view for the Property, then the Event that caused it on the timeline. |
 | Find what is thin or disconnected. | The graph. |
 
 Building a bible by hand and reviewing what an agent's turn changed are added to this table with the editing steps and the history view.
@@ -112,7 +112,7 @@ A view is judged on stories, so each view step adds a sample that stresses that 
 | --- | --- | --- |
 | `samples/sample_story.json` | A small story with every kind of record. The baseline for every screen. | Slice 1 |
 | A story shaped by time | Events with every shape of span. [ui/timeline.md](ui/timeline.md) lists what it contains. | Slice 2, step 3 |
-| `samples/ensemble_story.json` | Several Entities whose Properties change, replace each other, and bear on each other through Assertions and shared Events. [ui/entities.md](ui/entities.md) lists what it contains. | Slice 2, step 6 |
+| `samples/ensemble_story.json` | Several Entities whose Properties change over time and bear on each other through Assertions and shared Events. [ui/entities.md](ui/entities.md) lists what it contains. | Slice 2, step 6 |
 | A larger story | Enough records to show whether the graph stays readable. Added only if the others are too small. | Slice 2, step 7 |
 
 ## How a screen is checked

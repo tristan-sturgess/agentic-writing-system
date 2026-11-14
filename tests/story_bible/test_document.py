@@ -99,6 +99,25 @@ def test_record_fields_drop_id() -> None:
     assert record_fields(entity)["name"] == "X"
 
 
+def test_a_stored_supersedes_field_is_dropped_on_read() -> None:
+    prop = record_from_row(
+        RecordRow(
+            record_id="prop_old",
+            kind="property",
+            fields={
+                "entity_id": "entity_a",
+                "statement": "A held.",
+                "when": [],
+                "caused_by": None,
+                "supersedes": "prop_older",
+            },
+            names=[],
+            revision=1,
+        )
+    )
+    assert "supersedes" not in record_fields(prop)
+
+
 def test_story_fields_json_mode() -> None:
     doc = StoryDocument(title="T", premise="P")
     fields = story_fields(doc)

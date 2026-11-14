@@ -28,7 +28,12 @@ from agentic_writing_system.api.users import current_user_id
 from agentic_writing_system.stores.story_store import CommitSource, Conflict, StoryStore
 from agentic_writing_system.story_bible.commit import Committed, commit, import_story
 from agentic_writing_system.story_bible.document import document_from_stored
-from agentic_writing_system.story_bible.in_force import InForce, in_force
+from agentic_writing_system.story_bible.in_force import (
+    InForce,
+    InForceStretches,
+    in_force,
+    in_force_stretches,
+)
 from agentic_writing_system.story_bible.records import (
     EventPoint,
     StoryDocument,
@@ -138,6 +143,33 @@ async def get_in_force(
             point.event_id,
         )
     return in_force(document, point)
+
+
+@router.get(
+    "/{story_id}/in-force-stretches",
+    response_model=InForceStretches,
+    responses={
+        400: {
+            "model": SchemaErrors,
+            "description": "The entity_id is missing or not an Entity",
+        },
+        **NOT_FOUND,
+    },
+)
+async def get_in_force_stretches(
+    story_id: str,
+    user_id: Annotated[str, Depends(current_user_id)],
+    store: Annotated[StoryStore, Depends(get_story_store)],
+    entity_id: Annotated[str | None, Query()] = None,
+) -> InForceStretches:
+    if entity_id is None:
+        _reject("entity_id", "Give an entity_id.", None)
+    stored = await store.load(user_id, story_id)
+    document = document_from_stored(stored)
+    try:
+        return in_force_stretches(document, entity_id)
+    except ValueError as exc:
+        _reject("entity_id", str(exc), entity_id)
 
 
 def _query_point(

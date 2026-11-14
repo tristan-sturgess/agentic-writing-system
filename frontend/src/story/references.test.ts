@@ -24,7 +24,6 @@ const story: Story = {
       statement: 'A holds.',
       when: [{ kind: 'at', at: { event_id: 'event_1', edge: 'start' } }],
       caused_by: 'event_1',
-      supersedes: 'prop_2',
       revision: 1,
     },
     {
@@ -33,7 +32,6 @@ const story: Story = {
       statement: 'A held.',
       when: [],
       caused_by: null,
-      supersedes: null,
       revision: 1,
     },
   ],
@@ -52,7 +50,6 @@ const story: Story = {
         },
       ],
       caused_by: 'event_2',
-      supersedes: null,
       revision: 1,
     },
   ],
@@ -131,11 +128,4 @@ test('a reference is the id fields in "How the records connect"', () => {
     { from: 'arc_1', to: 'event_1', field: 'event_ids' },
     { from: 'arc_1', to: 'event_2', field: 'event_ids' },
   ])
-})
-
-test('supersedes is a field on the statement, not a reference', () => {
-  expect(references(story).some((ref) => ref.field === 'supersedes')).toBe(false)
-  expect(references(story).some((ref) => ref.to === 'prop_2' && ref.from === 'prop_1')).toBe(
-    false,
-  )
 })

@@ -1,7 +1,6 @@
 // The references between records, from "How the records connect" in the Story
 // Bible doc. The detail panel lists them, and the graph will draw the same
-// list as its edges. `supersedes` is a field on a statement, not one of those
-// connections, so it is not a reference here.
+// list as its edges.
 
 import type { Span, Story } from '../api/client'
 

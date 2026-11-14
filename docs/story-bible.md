@@ -55,7 +55,6 @@ The statement is natural language. It does not use a fixed vocabulary or a subje
 | `statement` | yes | The claim. |
 | `when` | no | When the claim is known to hold. A list of spans. Empty means no time was recorded. |
 | `caused_by` | no | The Event that brought the claim about, if there is one. |
-| `supersedes` | no | The earlier Property this one replaces. Same Entity. |
 
 ### Assertion
 
@@ -72,7 +71,6 @@ The sentence carries the meaning. It does not need a predicate slug, and it does
 | `statement` | yes | The claim. One independently meaningful relationship. |
 | `when` | no | When the claim is known to hold. The same span list as on a Property. |
 | `caused_by` | no | Same as on a Property. |
-| `supersedes` | no | The earlier Assertion this one replaces. |
 
 `entity_ids`, `event_ids`, and `arc_ids` together name at least two records. A causal claim between two Events is an Assertion with those Events in `event_ids`. Version 2 stored that kind of claim as a typed edge (`follows`, `directly_follows`, `depends_on`, `during`). There is no edge record here. An Assertion that names an Arc is how the story says what that Arc is about.
 
@@ -136,7 +134,7 @@ The description can say who the thread follows and what changes. That prose is n
 
 ## When
 
-A Property, an Assertion, and an Event each store story time in one field, `when`. The value is a list of spans. The list can be empty. Later kinds of span can be added to this list without adding a field to the records. `caused_by` and `supersedes` stay on the statement. They say why a claim changed, not when it holds.
+A Property, an Assertion, and an Event each store story time in one field, `when`. The value is a list of spans. The list can be empty. Later kinds of span can be added to this list without adding a field to the records. `caused_by` stays on the statement. It says why a claim changed, not when it holds.
 
 A **time point** is an object with one of these shapes:
 
@@ -202,9 +200,9 @@ This reading is for Properties and Assertions. It is the reading the first in-fo
 - An Assertion that names Events is a claim about them. It is not a substitute for their spans.
 - Two statements may contradict. Slice 1 saves both. Nothing in the model detects a contradiction between two sentences, and nothing blocks the writer or the agent over one.
 
-A Property or Assertion means what its `statement` says. The sentence does not change meaning as story time moves. An in-world change is a new record. The older record keeps its sentence. Its spans can be adjusted, and the new record can `supersede` it. `caused_by` is optional. No Event is required for every new statement.
+A Property or Assertion means what its `statement` says. The sentence does not change meaning as story time moves. An in-world change is a new record. The older record keeps its sentence, and its spans can be adjusted. `caused_by` is optional. No Event is required for every new statement. Nothing on the new record points at the old one. How one statement replaces another is open; see [open-questions.md](open-questions.md).
 
-`supersedes` is meant to imply an end: the superseded statement stops holding when the new one starts. Slice 1 does not derive that end or check for it. The in-force view reads the spans as written, so an agent that supersedes a statement also closes the old one's open `range` at the point the new one starts, as the agents doc requires. When the new statement starts at an Event with no `edge`, it starts at that Event's end, so the old statement's `end` names the same Event with `edge: end`. With no `edge` the old statement would end when the Event begins, and neither would be in force while the Event lasts. A writer who leaves the old range open sees both statements in force, which is allowed. A later view may read the end from `supersedes` when the old record's spans do not give one. That is a change to the view, not to the records.
+When a new statement starts at an Event with no `edge`, it starts at that Event's end. An older statement that should hold until that same moment ends on the same Event with `edge: end`. With no `edge` the older statement would end when the Event begins, and neither would be in force while the Event lasts. A range left open stays in force, and two statements that overlap are both in force. That is allowed.
 
 Histories are views over these records. They are not a second object. The persistence doc keeps a separate history of edits, which commit changed which record. That is bookkeeping about the records, not story time, and it is not a second copy of the current state.
 
@@ -243,7 +241,6 @@ entities:
           - kind: range
             start: { event_id: event_the_letter }
         caused_by: event_the_letter
-        supersedes: prop_mara_distrustful
 
 arcs:
   - id: arc_mara_leaves
@@ -277,7 +274,7 @@ Both write the same records.
 
 The writer can create, view, reword, and delete, including wording that is unconventional or poorly formed. A save may refuse a broken reference, an empty required field, or a length cap the implementation has set. It may not refuse a save because the sentence is redundant, broad, or badly written.
 
-An agent-written Property or Assertion should be concise, narrow, and clear. When the world changes, the agent leaves the old sentence in place, adjusts its spans, and creates a new record. The agent does not rewrite the old sentence so that it means something else. A writer's rewrite is a correction of the record. It does not need an Event or a `supersedes` link.
+An agent-written Property or Assertion should be concise, narrow, and clear. When the world changes, the agent leaves the old sentence in place, adjusts its spans, and creates a new record. The agent does not rewrite the old sentence so that it means something else. A writer's rewrite is a correction of the record. It does not need an Event.
 
 ## Identity
 
@@ -298,7 +295,7 @@ The id is a prefix plus a slug of that text:
 
 The slug is lowercase words from the primary text, separated by underscores, capped at the first eight words. An Event titled "The Letter" mints `event_the_letter`. A Property whose statement is "Mara is generally distrustful of strangers, especially men from the capital" mints `prop_mara_is_generally_distrustful_of_strangers_especially_men`. A collision appends `_2`, `_3`, and so on.
 
-A slug minted from a statement can read differently from the sentence after a rewrite. That is acceptable. An agent does not reword a stored statement; it creates a new one and supersedes the old. Only the writer edits a sentence in place, so a Property or Assertion slug goes stale only when the writer chose to change the sentence, and the id's job is to stay stable through that, not to describe it.
+A slug minted from a statement can read differently from the sentence after a rewrite. That is acceptable. An agent does not reword a stored statement; it creates a new one and leaves the old. Only the writer edits a sentence in place, so a Property or Assertion slug goes stale only when the writer chose to change the sentence, and the id's job is to stay stable through that, not to describe it.
 
 Version 2 froze slugs the same way, then minted `char` and `char_2` when the screen created a character before anyone typed a name. Those generic ids are the case this rule avoids.
 
@@ -310,7 +307,6 @@ Every id field names a record in the same story.
 - An Assertion names at least two records, and each of them is an Entity, an Event, or an Arc.
 - A Narrative Unit appears in exactly one of the story's `unit_ids` or some unit's `child_ids`. Neither list contains a duplicate. No unit contains itself through `child_ids`.
 - A list of ids does not name the same record twice. Besides the unit lists above, this covers an Event's `entity_ids`, an Assertion's `entity_ids`, `event_ids`, and `arc_ids`, an Arc's `event_ids`, and a Narrative Unit's `subject_ids`. A save that repeats an id in one of them is refused. The refusal names the record, the field, and the repeated ids.
-- A record cannot `supersede` itself.
 - Deleting an Entity deletes the Properties it owns.
 - Deleting any record that something else still names is refused. The refusal lists the referring records. The writer or the agent edits or deletes those first. List fields count: an Assertion's `entity_ids`, `event_ids`, and `arc_ids`, an Arc's `event_ids`, an Event's `entity_ids`, a Narrative Unit's `child_ids` and `subject_ids`, the story's `unit_ids`, and any Event id used as a time point.
 - Version 2 warned about dangling effect targets and saved anyway. Replay then skipped them. This model has no effect list to skip. A dangling id is refused for the writer and for the agent.
@@ -347,6 +343,6 @@ These stay open on purpose. [open-questions.md](open-questions.md) is the list.
 - Whether a stricter overlap rule replaces the in-force view above.
 - Whether statements gain a marker for objective fact, belief, or plan. Slice 1 has no such marker. Adding one later must not block a writer's edit.
 - Whether an Assertion's references need roles.
-- Whether Properties should ever link to other Properties, or whether a change should propagate on its own. Slice 1 does neither.
+- Whether Properties should ever link to other Properties, or whether a change should propagate on its own. They do not. `supersedes`, which named the statement a new one replaced, was removed. Question 28.
 - Whether a story-specific calendar is ever added as a new kind of time point. Slice 1 uses the ISO 8601 timestamp above.
 - Whether an Event's time can be recorded more loosely: once at an unknown moment inside a window, or only as before or after another Event. Each would be a new kind of span. Question 44.

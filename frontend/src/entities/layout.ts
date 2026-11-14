@@ -13,21 +13,11 @@ import type {
 
 export type StatementSpan = StatementTime['spans'][number]
 
-/** The time in the address: a timestamp, or one end of an Event. */
-export type InForceChoice =
-  | { kind: 'timestamp'; timestamp: string }
-  | { kind: 'event'; eventId: string; edge: 'start' | 'end' }
-
 export type StatementRow = {
   id: string
   spans: StatementSpan[]
   causedBy: string | null
-  supersedes: string | null
-  /** Statements that name this one in `supersedes`, in document order. */
-  supersededBy: string[]
 }
-
-const TIMESTAMP = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/
 
 /**
  * The Entity on screen.
@@ -48,12 +38,28 @@ export function viewedEntityId(
   return story.entities[0]?.id ?? null
 }
 
-/** `?at=` and `?edge=` as a query, or null when the address has no time. */
-export function inForceChoice(at: string | null, edge: string | null): InForceChoice | null {
+/** The address value of one stretch. The stretch before every bound is `before`. */
+export function stretchKey(stretch: { start: string | null }): string {
+  return stretch.start ?? 'before'
+}
+
+/** The stretch named by `?at=`, or null when the address names none of them. */
+export function selectedStretch<T extends { start: string | null }>(
+  stretches: readonly T[],
+  at: string | null,
+): T | null {
   if (!at) return null
-  if (TIMESTAMP.test(at)) return { kind: 'timestamp', timestamp: at }
-  if (edge === 'start' || edge === 'end') return { kind: 'event', eventId: at, edge }
-  return null
+  return stretches.find((stretch) => stretchKey(stretch) === at) ?? null
+}
+
+/** The stretch as a line: before a time, from one time until another, or onward. */
+export function describeStretch(stretch: { start: string | null; end: string | null }): string {
+  const start = stretch.start?.replace('T', ' ')
+  const end = stretch.end?.replace('T', ' ')
+  if (start && end) return `From ${start} until ${end}`
+  if (start) return `From ${start}`
+  if (end) return `Before ${end}`
+  return 'At every time'
 }
 
 /**
@@ -76,10 +82,8 @@ export function propertyRows(
         id: property.id,
         spans: spansOf.get(property.id) ?? [],
         causedBy: property.caused_by,
-        supersedes: property.supersedes,
         index,
       })),
-    story.properties,
   )
 }
 
@@ -95,8 +99,6 @@ export function assertionRows(
     id: assertion.id,
     spans: spansOf.get(assertion.id) ?? [],
     causedBy: assertion.caused_by,
-    supersedes: assertion.supersedes,
-    supersededBy: replacedBy(story.assertions, assertion.id),
   }))
 }
 
@@ -171,10 +173,7 @@ export function describeComparison(
   return `The ${bound} of span ${mark.span + 1} does not resolve: ${unresolvedWhy(mark.unresolved, labelOf)}.`
 }
 
-function rowsFor(
-  owned: (Omit<StatementRow, 'supersededBy'> & { index: number })[],
-  all: readonly { id: string; supersedes: string | null }[],
-): StatementRow[] {
+function rowsFor(owned: (StatementRow & { index: number })[]): StatementRow[] {
   const sorted = [...owned].sort((a, b) => {
     const aKey = earliest(a.spans)
     const bKey = earliest(b.spans)
@@ -188,16 +187,7 @@ function rowsFor(
     id: row.id,
     spans: row.spans,
     causedBy: row.causedBy,
-    supersedes: row.supersedes,
-    supersededBy: replacedBy(all, row.id),
   }))
-}
-
-function replacedBy(
-  statements: readonly { id: string; supersedes: string | null }[],
-  id: string,
-): string[] {
-  return statements.filter((statement) => statement.supersedes === id).map((statement) => statement.id)
 }
 
 function earliest(spans: readonly StatementSpan[]): string | null {

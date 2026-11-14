@@ -1,25 +1,13 @@
-import {
-  Alert,
-  Button,
-  Group,
-  Loader,
-  NativeSelect,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-  type NativeSelectProps,
-} from '@mantine/core'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Alert, Group, Loader, NativeSelect, Stack, Text, Title } from '@mantine/core'
+import { useCallback, useEffect } from 'react'
 import { useSearchParams } from 'react-router'
 
 import {
   describeFailure,
-  getEventTimes,
-  getInForce,
+  getInForceStretches,
   getStatementTimes,
-  type EventTimes,
-  type InForce,
+  type InForceStatement,
+  type InForceStretches,
   type StatementTimes,
   type Story,
 } from '../api/client'
@@ -27,25 +15,23 @@ import { useStory } from '../pages/storyContext'
 import { Empty, Prose, RecordId, RecordLink, RecordRefs, StatementLinks, type SelectRecord } from '../story/parts'
 import { indexRecords, labelOf, type RecordIndex } from '../story/records'
 import { useLoad } from '../useLoad'
-import { layOutTimeline } from '../timeline/layout'
 import {
   assertionRows,
   describeComparison,
-  describeQuery,
   describeResolvedSpan,
-  inForceChoice,
-  inForceForEntity,
+  describeStretch,
   propertyRows,
+  selectedStretch,
+  stretchKey,
   viewedEntityId,
-  type InForceChoice,
   type StatementRow,
 } from './layout'
 
 /**
  * One Entity, its Properties over story time, the Assertions that name it,
- * and what is in force at a chosen time. The service resolved the spans and
- * decided what is in force. `?entity=` is the Entity. `?at=` and `?edge=` are
- * the time. Selecting a record is `?record=`, the detail panel every view shares.
+ * and what is in force during a stretch of story time. The service resolved
+ * the spans and decided the stretches. `?entity=` is the Entity. `?at=` is
+ * the stretch. Selecting a record is `?record=`, the detail panel every view shares.
  */
 export function EntitiesView() {
   const outlet = useStory()
@@ -54,7 +40,6 @@ export function EntitiesView() {
   const [params, setParams] = useSearchParams()
   const entityParam = params.get('entity')
   const at = params.get('at')
-  const edge = params.get('edge')
   const viewed = story ? viewedEntityId(story, entityParam, outlet?.selectedId ?? null) : null
 
   useEffect(() => {
@@ -69,33 +54,25 @@ export function EntitiesView() {
     )
   }, [viewed, entityParam, setParams])
 
-  const loadTimes = useCallback((): Promise<{ statements: StatementTimes; events: EventTimes }> => {
-    if (storyId === '') return Promise.resolve({ statements: { properties: [], assertions: [] }, events: { events: [] } })
-    return Promise.all([getStatementTimes(storyId), getEventTimes(storyId)]).then(
-      ([statements, events]) => ({ statements, events }),
-    )
+  const loadTimes = useCallback((): Promise<StatementTimes> => {
+    if (storyId === '') return Promise.resolve({ properties: [], assertions: [] })
+    return getStatementTimes(storyId)
   }, [storyId])
   const times = useLoad(loadTimes)
 
-  const choice = useMemo(() => inForceChoice(at, edge), [at, edge])
-  const loadHeld = useCallback((): Promise<InForce | null> => {
-    if (storyId === '' || choice === null) return Promise.resolve(null)
-    const query =
-      choice.kind === 'timestamp'
-        ? { timestamp: choice.timestamp }
-        : { eventId: choice.eventId, edge: choice.edge }
-    return getInForce(storyId, query)
-  }, [storyId, choice])
-  const held = useLoad(loadHeld)
+  const loadStretches = useCallback((): Promise<InForceStretches | null> => {
+    if (storyId === '' || !viewed) return Promise.resolve(null)
+    return getInForceStretches(storyId, viewed)
+  }, [storyId, viewed])
+  const stretches = useLoad(loadStretches)
 
-  const setTime = useCallback(
-    (nextAt: string | null, nextEdge: string | null) => {
+  const chooseStretch = useCallback(
+    (key: string | null) => {
       setParams((prev) => {
         const next = new URLSearchParams(prev)
-        if (nextAt) next.set('at', nextAt)
+        if (key) next.set('at', key)
         else next.delete('at')
-        if (nextEdge) next.set('edge', nextEdge)
-        else next.delete('edge')
+        next.delete('edge')
         return next
       })
     },
@@ -137,13 +114,12 @@ export function EntitiesView() {
       entityNotes={entity.notes}
       index={index}
       name={name}
-      statements={times.data.statements}
-      events={times.data.events}
-      choice={choice}
-      held={held}
+      statements={times.data}
+      stretches={stretches}
+      at={at}
       onSelect={outlet.selectRecord}
       onEntity={chooseEntity}
-      onTime={setTime}
+      onStretch={chooseStretch}
     />
   )
 }
@@ -156,12 +132,11 @@ function EntityScreen({
   index,
   name,
   statements,
-  events,
-  choice,
-  held,
+  stretches,
+  at,
   onSelect,
   onEntity,
-  onTime,
+  onStretch,
 }: {
   story: Story
   entityId: string
@@ -170,28 +145,18 @@ function EntityScreen({
   index: RecordIndex
   name: (id: string) => string
   statements: StatementTimes
-  events: EventTimes
-  choice: InForceChoice | null
-  held: ReturnType<typeof useLoad<InForce | null>>
+  stretches: ReturnType<typeof useLoad<InForceStretches | null>>
+  at: string | null
   onSelect: SelectRecord
   onEntity: (id: string) => void
-  onTime: (at: string | null, edge: string | null) => void
+  onStretch: (key: string | null) => void
 }) {
   const properties = propertyRows(story, statements, entityId)
   const assertions = assertionRows(story, statements, entityId)
-  const moments = useMemo(() => layOutTimeline(story, events).moments, [story, events])
-  const [draft, setDraft] = useState('')
-  const [draftError, setDraftError] = useState<string | null>(null)
-
-  const commitDraft = () => {
-    const value = draft.trim()
-    if (inForceChoice(value, null)?.kind !== 'timestamp') {
-      setDraftError('A timestamp is a date, YYYY-MM-DD, or a date and time.')
-      return
-    }
-    setDraftError(null)
-    onTime(value, null)
-  }
+  const chosen =
+    stretches.status === 'loaded' && stretches.data
+      ? selectedStretch(stretches.data.stretches, at)
+      : null
 
   return (
     <Stack gap="lg">
@@ -268,50 +233,40 @@ function EntityScreen({
           In force
         </Title>
         <Stack gap="sm">
-          <NativeSelect
-            label="Time"
-            value={selectedTime(choice)}
-            onChange={(event) => onTimeValue(event.currentTarget.value, onTime)}
-            data={timeOptions(story, moments, choice, name)}
-            maw={360}
-          />
-          <Group align="flex-end" gap="sm">
-            <TextInput
-              label="Or a timestamp"
-              placeholder="1847-03-12"
-              value={draft}
-              onChange={(event) => {
-                setDraft(event.currentTarget.value)
-                setDraftError(null)
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') commitDraft()
-              }}
-              error={draftError}
-              maw={240}
-            />
-            <Button variant="default" onClick={commitDraft}>
-              Use this timestamp
-            </Button>
-          </Group>
-          <Text size="sm" c="dimmed">
-            A statement listed here holds at this time. A line that says a span does not resolve is
-            a comparison the service could not make.
-          </Text>
-          {choice === null ? (
-            <Empty>Pick a time to see what is in force.</Empty>
-          ) : held.status === 'loading' ? (
+          {stretches.status === 'loading' ? (
             <Loader size="sm" />
-          ) : held.status === 'failed' ? (
-            <Alert color="red" title="What is in force could not be loaded">
-              {describeFailure(held.error)}
+          ) : stretches.status === 'failed' ? (
+            <Alert color="red" title="The stretches could not be loaded">
+              {describeFailure(stretches.error)}
             </Alert>
           ) : (
-            held.data && (
+            stretches.data && (
+              <NativeSelect
+                label="Stretch"
+                value={chosen ? stretchKey(chosen) : ''}
+                onChange={(event) => onStretch(event.currentTarget.value || null)}
+                data={[
+                  { value: '', label: 'Pick a stretch' },
+                  ...stretches.data.stretches.map((stretch) => ({
+                    value: stretchKey(stretch),
+                    label: describeStretch(stretch),
+                  })),
+                ]}
+                maw={420}
+              />
+            )
+          )}
+          <Text size="sm" c="dimmed">
+            Each stretch is a span of story time in which the same statements hold. A line that says
+            a span does not resolve is a comparison the service could not make.
+          </Text>
+          {stretches.status === 'loaded' && chosen === null ? (
+            <Empty>Pick a stretch to see what is in force.</Empty>
+          ) : (
+            chosen && (
               <InForceList
-                story={story}
-                entityId={entityId}
-                reading={held.data}
+                label={describeStretch(chosen)}
+                statements={chosen.statements}
                 name={name}
                 onSelect={onSelect}
               />
@@ -360,48 +315,37 @@ function StatementBlock({
           </Text>
         ))
       )}
-      <StatementLinks
-        causedBy={row.causedBy}
-        supersedes={row.supersedes}
-        index={index}
-        onSelect={onSelect}
-      />
-      {row.supersededBy.length > 0 && (
-        <Text size="sm" c="dimmed">
-          Replaced by:{' '}
-          {row.supersededBy.map((id, position) => (
-            <span key={id}>
-              {position > 0 && ', '}
-              <RecordLink id={id} onSelect={onSelect}>
-                {name(id)}
-              </RecordLink>
-            </span>
-          ))}
-        </Text>
-      )}
+      <StatementLinks causedBy={row.causedBy} index={index} onSelect={onSelect} />
     </Stack>
   )
 }
 
 function InForceList({
-  story,
-  entityId,
-  reading,
+  label,
+  statements,
   name,
   onSelect,
 }: {
-  story: Story
-  entityId: string
-  reading: InForce
+  label: string
+  statements: InForceStatement[]
   name: (id: string) => string
   onSelect: SelectRecord
 }) {
-  const held = inForceForEntity(story, reading.statements, entityId)
   return (
     <Stack gap="sm">
-      <Text size="sm">{describeQuery(reading.query, name)}</Text>
-      <HeldGroup title="Properties" statements={held.properties} name={name} onSelect={onSelect} />
-      <HeldGroup title="Assertions" statements={held.assertions} name={name} onSelect={onSelect} />
+      <Text size="sm">{label}</Text>
+      <HeldGroup
+        title="Properties"
+        statements={statements.filter((statement) => statement.kind === 'property')}
+        name={name}
+        onSelect={onSelect}
+      />
+      <HeldGroup
+        title="Assertions"
+        statements={statements.filter((statement) => statement.kind === 'assertion')}
+        name={name}
+        onSelect={onSelect}
+      />
     </Stack>
   )
 }
@@ -413,7 +357,7 @@ function HeldGroup({
   onSelect,
 }: {
   title: string
-  statements: InForce['statements']
+  statements: InForceStatement[]
   name: (id: string) => string
   onSelect: SelectRecord
 }) {
@@ -442,54 +386,3 @@ function HeldGroup({
   )
 }
 
-function timeOptions(
-  story: Story,
-  moments: { timestamp: string; label: string }[],
-  choice: InForceChoice | null,
-  name: (id: string) => string,
-): NonNullable<NativeSelectProps['data']> {
-  const momentItems = moments.map((moment) => ({ value: `t:${moment.timestamp}`, label: moment.label }))
-  if (
-    choice?.kind === 'timestamp' &&
-    !moments.some((moment) => moment.timestamp === choice.timestamp)
-  ) {
-    momentItems.unshift({
-      value: `t:${choice.timestamp}`,
-      label: choice.timestamp.replace('T', ' '),
-    })
-  }
-  const data: (
-    | { value: string; label: string }
-    | { group: string; items: { value: string; label: string }[] }
-  )[] = [{ value: '', label: 'Pick a time' }]
-  if (momentItems.length > 0) data.push({ group: 'Moments', items: momentItems })
-  if (story.events.length > 0) {
-    data.push({
-      group: 'Events',
-      items: story.events.flatMap((event) => [
-        { value: `e:${event.id}:start`, label: `the start of ${name(event.id)}` },
-        { value: `e:${event.id}:end`, label: `the end of ${name(event.id)}` },
-      ]),
-    })
-  }
-  return data
-}
-
-function selectedTime(choice: InForceChoice | null): string {
-  if (!choice) return ''
-  if (choice.kind === 'timestamp') return `t:${choice.timestamp}`
-  return `e:${choice.eventId}:${choice.edge}`
-}
-
-function onTimeValue(value: string, onTime: (at: string | null, edge: string | null) => void) {
-  if (!value) {
-    onTime(null, null)
-    return
-  }
-  if (value.startsWith('t:')) {
-    onTime(value.slice(2), null)
-    return
-  }
-  const edge = value.endsWith(':end') ? 'end' : 'start'
-  onTime(value.slice(2, value.length - edge.length - 1), edge)
-}

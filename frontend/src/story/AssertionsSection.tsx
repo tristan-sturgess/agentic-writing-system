@@ -37,7 +37,6 @@ export function AssertionsSection({
               <RecordId id={assertion.id} />
               <StatementLinks
                 causedBy={assertion.caused_by}
-                supersedes={assertion.supersedes}
                 index={index}
                 onSelect={onSelect}
               />

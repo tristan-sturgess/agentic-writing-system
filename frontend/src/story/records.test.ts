@@ -10,7 +10,6 @@ function property(id: string, entityId: string): Property {
     statement: `The statement of ${id}.`,
     when: [],
     caused_by: null,
-    supersedes: null,
     revision: 1,
   }
 }

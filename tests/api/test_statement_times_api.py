@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from agentic_writing_system.story_bible.in_force import in_force
+from agentic_writing_system.story_bible.in_force import in_force, in_force_stretches
 from agentic_writing_system.story_bible.records import (
     EventPoint,
     StoryDocument,
@@ -121,3 +121,39 @@ def test_in_force_rejects_a_query_that_is_not_one_point(client: TestClient) -> N
     unknown = client.get(path, params={"event_id": "event_missing", "edge": "start"})
     assert unknown.status_code == 400
     assert unknown.json()["detail"][0]["msg"] == "No Event with id event_missing."
+
+
+def test_in_force_stretches_returns_the_reading(client: TestClient) -> None:
+    story_id = _import(client)
+    response = client.get(
+        f"/api/stories/{story_id}/in-force-stretches",
+        params={"entity_id": "entity_mara"},
+    )
+    assert response.status_code == 200
+    expected = in_force_stretches(
+        StoryDocument.model_validate(_DOCUMENT), "entity_mara"
+    ).model_dump(mode="json")
+    assert response.json() == expected
+
+
+def test_in_force_stretches_unknown_story_404(client: TestClient) -> None:
+    response = client.get(
+        "/api/stories/does-not-exist/in-force-stretches",
+        params={"entity_id": "entity_mara"},
+    )
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Story not found"}
+
+
+def test_in_force_stretches_rejects_a_missing_or_unknown_entity(
+    client: TestClient,
+) -> None:
+    story_id = _import(client)
+    path = f"/api/stories/{story_id}/in-force-stretches"
+    missing = client.get(path)
+    assert missing.status_code == 400
+    assert missing.json()["detail"][0]["msg"] == "Give an entity_id."
+
+    unknown = client.get(path, params={"entity_id": "entity_missing"})
+    assert unknown.status_code == 400
+    assert unknown.json()["detail"][0]["msg"] == "No Entity with id entity_missing."

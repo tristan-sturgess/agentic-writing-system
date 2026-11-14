@@ -32,7 +32,9 @@ _KIND_FOR_TYPE: dict[type[Record], RecordKind] = {
 def record_from_row(row: RecordRow) -> Record:
     kind = cast(RecordKind, row.kind)
     model = RECORD_MODELS[kind]
-    return model.model_validate({**row.fields, "id": row.record_id})
+    # Rows saved while `supersedes` existed still carry the key. The field is gone.
+    fields = {key: value for key, value in row.fields.items() if key != "supersedes"}
+    return model.model_validate({**fields, "id": row.record_id})
 
 
 def record_fields(record: Record) -> dict[str, Any]:

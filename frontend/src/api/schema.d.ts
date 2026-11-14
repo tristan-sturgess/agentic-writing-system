@@ -91,6 +91,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stories/{story_id}/in-force-stretches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get In Force Stretches */
+        get: operations["get_in_force_stretches_api_stories__story_id__in_force_stretches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stories/{story_id}/commits": {
         parameters: {
             query?: never;
@@ -200,8 +217,6 @@ export interface components {
             when?: (components["schemas"]["AtSpan"] | components["schemas"]["RangeSpan"])[];
             /** Caused By */
             caused_by?: string | null;
-            /** Supersedes */
-            supersedes?: string | null;
             /** Id */
             id: string;
         };
@@ -219,8 +234,6 @@ export interface components {
             when?: (components["schemas"]["AtSpan"] | components["schemas"]["RangeSpan"])[];
             /** Caused By */
             caused_by?: string | null;
-            /** Supersedes */
-            supersedes?: string | null;
         };
         /** AssertionPatch */
         AssertionPatch: {
@@ -239,8 +252,6 @@ export interface components {
             when?: (components["schemas"]["AtSpan"] | components["schemas"]["RangeSpan"])[];
             /** Caused By */
             caused_by?: string | null;
-            /** Supersedes */
-            supersedes?: string | null;
         };
         /** AssertionView */
         AssertionView: {
@@ -256,8 +267,6 @@ export interface components {
             when: (components["schemas"]["AtSpan"] | components["schemas"]["RangeSpan"])[];
             /** Caused By */
             caused_by: string | null;
-            /** Supersedes */
-            supersedes: string | null;
             /** Id */
             id: string;
             /** Revision */
@@ -656,6 +665,28 @@ export interface components {
             /** Unresolved */
             unresolved: components["schemas"]["UnresolvedComparison"][];
         };
+        /**
+         * InForceStretch
+         * @description One stretch of story time in which an Entity's in-force set stays put.
+         */
+        InForceStretch: {
+            /** Start */
+            start: string | null;
+            /** End */
+            end: string | null;
+            /** Statements */
+            statements: components["schemas"]["InForceStatement"][];
+        };
+        /**
+         * InForceStretches
+         * @description The stretches body: the Entity, and one entry per stretch, in order.
+         */
+        InForceStretches: {
+            /** Entity Id */
+            entity_id: string;
+            /** Stretches */
+            stretches: components["schemas"]["InForceStretch"][];
+        };
         /** NarrativeUnit */
         NarrativeUnit: {
             /** Title */
@@ -764,7 +795,7 @@ export interface components {
         /** Problem */
         Problem: {
             /** Code */
-            code: ("duplicate_id" | "blank_primary_text" | "unknown_id" | "delete_still_named" | "assertion_needs_two" | "supersedes_self" | "supersedes_other_entity" | "unit_not_placed" | "unit_placed_twice" | "unit_contains_itself" | "duplicate_in_list" | "range_start_after_end" | "at_needs_edge" | "span_cycle") | ("unknown_ref" | "duplicate_ref" | "blank_primary_text" | "unknown_id" | "kind_mismatch") | ("schema_version" | "kind_changed");
+            code: ("duplicate_id" | "blank_primary_text" | "unknown_id" | "delete_still_named" | "assertion_needs_two" | "unit_not_placed" | "unit_placed_twice" | "unit_contains_itself" | "duplicate_in_list" | "range_start_after_end" | "at_needs_edge" | "span_cycle") | ("unknown_ref" | "duplicate_ref" | "blank_primary_text" | "unknown_id" | "kind_mismatch") | ("schema_version" | "kind_changed");
             /** Message */
             message: string;
             /** Record Id */
@@ -799,8 +830,6 @@ export interface components {
             when?: (components["schemas"]["AtSpan"] | components["schemas"]["RangeSpan"])[];
             /** Caused By */
             caused_by?: string | null;
-            /** Supersedes */
-            supersedes?: string | null;
             /** Id */
             id: string;
         };
@@ -814,8 +843,6 @@ export interface components {
             when?: (components["schemas"]["AtSpan"] | components["schemas"]["RangeSpan"])[];
             /** Caused By */
             caused_by?: string | null;
-            /** Supersedes */
-            supersedes?: string | null;
         };
         /** PropertyPatch */
         PropertyPatch: {
@@ -833,8 +860,6 @@ export interface components {
             when?: (components["schemas"]["AtSpan"] | components["schemas"]["RangeSpan"])[];
             /** Caused By */
             caused_by?: string | null;
-            /** Supersedes */
-            supersedes?: string | null;
         };
         /** PropertyView */
         PropertyView: {
@@ -846,8 +871,6 @@ export interface components {
             when: (components["schemas"]["AtSpan"] | components["schemas"]["RangeSpan"])[];
             /** Caused By */
             caused_by: string | null;
-            /** Supersedes */
-            supersedes: string | null;
             /** Id */
             id: string;
             /** Revision */
@@ -1488,6 +1511,57 @@ export interface operations {
                 };
             };
             /** @description The query is not one time point */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaErrors"];
+                };
+            };
+            /** @description No such story for the acting user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description The store is busy; retry */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+        };
+    };
+    get_in_force_stretches_api_stories__story_id__in_force_stretches_get: {
+        parameters: {
+            query?: {
+                entity_id?: string | null;
+            };
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InForceStretches"];
+                };
+            };
+            /** @description The entity_id is missing or not an Entity */
             400: {
                 headers: {
                     [name: string]: unknown;

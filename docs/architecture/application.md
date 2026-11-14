@@ -49,7 +49,7 @@ The `400` body is `{ "detail": [...] }`, one entry per rejected value: where it 
 
 ### Slices 1 and 2
 
-The first endpoints. Slice 1 builds the story endpoints, the commit, and import; slice 2 adds the Event times, the statement times, the in-force view, history, revert, and export, and the frontend that calls them. [build-sequence.md](../build-sequence.md) places each one. In these slices every commit is a hand edit, an import, or a revert.
+The first endpoints. Slice 1 builds the story endpoints, the commit, and import; slice 2 adds the Event times, the statement times, the in-force view, the in-force stretches, history, revert, and export, and the frontend that calls them. [build-sequence.md](../build-sequence.md) places each one. In these slices every commit is a hand edit, an import, or a revert.
 
 | Method and path | What it does |
 | --- | --- |
@@ -60,6 +60,7 @@ The first endpoints. Slice 1 builds the story endpoints, the commit, and import;
 | `GET /stories/{story_id}/event-times` | The story's Events in story time: for each span of each Event, the timestamp each point and bound resolves to, or the reason it does not. [The Event times](#the-event-times) below. |
 | `GET /stories/{story_id}/statement-times` | Each Property and each Assertion in story time, in the same point shape as the Event times. [Statement times](#statement-times) below. |
 | `GET /stories/{story_id}/in-force` | The Properties and Assertions in force at one query point, with each comparison that did not resolve marked. [The in-force view](#the-in-force-view) below. |
+| `GET /stories/{story_id}/in-force-stretches` | The stretches of story time in which one Entity's in-force set stays the same, and the statements in each. [The in-force stretches](#the-in-force-stretches) below. |
 | `POST /stories/{story_id}/commits` | One commit, source `user`. The body is an ordered list of writes: create, update, or delete of one record, or a change to the framing fields or `unit_ids`, each update and delete carrying the revision the frontend loaded. A later write may name what an earlier one created. The three outcomes above. |
 | `GET /stories/{story_id}/history` | The commit records, newest first, with the persistence doc's filters: source, `thread_id`, `run_id`, a time range. Each record carries its changes with the before and after. Grouping by turn is grouping by `thread_id` and `run_id`. |
 | `POST /stories/{story_id}/revert` | A revert commit. The body names commit ids, or a `thread_id` and `run_id` for a whole turn. One commit; it lands whole or not at all, with the three outcomes above. |
@@ -141,7 +142,17 @@ A statement the reading includes only because a comparison did not resolve is in
 
 When the query point itself does not resolve, there is no timestamp to compare against. `statements` then lists only the statements that hold with no comparison to make: an empty `when`, and a `range` with neither bound. The reason is on `query`.
 
-The reading does not consult `supersedes`. A statement whose range was left open is in force beside the statement that supersedes it, and both are returned when their spans say so.
+The result is computed on each request and is not stored. It has no revision.
+
+#### The in-force stretches
+
+The entities view asks where one Entity's in-force set changes. `GET /stories/{story_id}/in-force-stretches` takes `entity_id` and returns those stretches, from one `load`, by the same rules as [the in-force view](#the-in-force-view). The view lists them. It does not decide the stretches, and it does not offer a timestamp that is not one of their bounds. A caller that names a single time still uses `in-force`.
+
+A stretch is the time before the first resolved bound, the time from each bound until the next, and the time from the last bound onward. The bounds are the resolved starts and ends of the ranges on this Entity's Properties and on the Assertions that name it. An `at` span is not a bound. A bound that does not resolve is not a bound. A range with a start and an end therefore contributes the stretch before the start, the stretch from the start until the end, and the stretch from the end onward, unless another bound falls inside one of those and the statements there differ. Two successive stretches whose statements are the same, unresolved marks included, are returned as one.
+
+The body is `{ "entity_id": "...", "stretches": [...] }`. `stretches` has at least one entry. Each stretch has `start`, `end`, and `statements`. `start` and `end` are each a normalised timestamp or null. A null `start` means the stretch begins before every bound. A null `end` means it runs on with no further bound. Both null means the Entity has no resolved bound, so the one stretch covers the whole story. `statements` has the same shape and order as in the in-force view, and it is already limited to this Entity.
+
+A missing `entity_id`, or one that is not an Entity in the story, is `400` in the schema-error shape. An unknown story is `404`.
 
 The result is computed on each request and is not stored. It has no revision.
 

@@ -51,7 +51,6 @@ export function EntitiesSection({
                     <When spans={property.when} index={index} empty="No time recorded" />
                     <StatementLinks
                       causedBy={property.caused_by}
-                      supersedes={property.supersedes}
                       index={index}
                       onSelect={onSelect}
                     />

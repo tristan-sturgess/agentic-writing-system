@@ -98,6 +98,13 @@ def main(argv: list[str] | None = None) -> int:
         help="Which end of --event-id. Required with --event-id",
     )
 
+    stretches_p = sub.add_parser(
+        "in-force-stretches",
+        help="Print the stretches where one Entity's in-force set stays the same",
+    )
+    stretches_p.add_argument("story_id")
+    stretches_p.add_argument("entity_id")
+
     delete_p = sub.add_parser("delete", help="Delete a story")
     delete_p.add_argument("story_id")
 
@@ -144,6 +151,13 @@ def main(argv: list[str] | None = None) -> int:
         if query:
             path = f"{path}?{query}"
         status, raw = _http("GET", base, path)
+    elif args.command == "in-force-stretches":
+        query = urlencode([("entity_id", args.entity_id)])
+        status, raw = _http(
+            "GET",
+            base,
+            f"{API_PREFIX}/stories/{args.story_id}/in-force-stretches?{query}",
+        )
     elif args.command == "delete":
         status, raw = _http("DELETE", base, f"{API_PREFIX}/stories/{args.story_id}")
     elif args.command == "commit":

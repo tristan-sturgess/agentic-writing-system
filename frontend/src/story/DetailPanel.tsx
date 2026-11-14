@@ -100,7 +100,7 @@ function RecordBody({
   const arc = story.arcs.some((item) => item.id === recordId)
   return (
     <>
-      <StoredFields story={story} index={index} recordId={recordId} onSelect={onSelect} />
+      <StoredFields story={story} index={index} recordId={recordId} />
       <ReferenceGroups
         title="Names"
         groups={groupReferences(outgoing, (ref) => ref.to, (ref) => ref.field)}
@@ -130,12 +130,10 @@ function StoredFields({
   story,
   index,
   recordId,
-  onSelect,
 }: {
   story: Story
   index: RecordIndex
   recordId: string
-  onSelect: SelectRecord
 }) {
   const entity = story.entities.find((item) => item.id === recordId)
   if (entity) {
@@ -143,35 +141,11 @@ function StoredFields({
   }
   const property = story.properties.find((item) => item.id === recordId)
   if (property) {
-    return (
-      <Stack gap="xs">
-        <When spans={property.when} index={index} empty="No time recorded" />
-        {property.supersedes && (
-          <Text size="sm">
-            Supersedes:{' '}
-            <RecordLink id={property.supersedes} onSelect={onSelect}>
-              {labelOf(index, property.supersedes)}
-            </RecordLink>
-          </Text>
-        )}
-      </Stack>
-    )
+    return <When spans={property.when} index={index} empty="No time recorded" />
   }
   const assertion = story.assertions.find((item) => item.id === recordId)
   if (assertion) {
-    return (
-      <Stack gap="xs">
-        <When spans={assertion.when} index={index} empty="No time recorded" />
-        {assertion.supersedes && (
-          <Text size="sm">
-            Supersedes:{' '}
-            <RecordLink id={assertion.supersedes} onSelect={onSelect}>
-              {labelOf(index, assertion.supersedes)}
-            </RecordLink>
-          </Text>
-        )}
-      </Stack>
-    )
+    return <When spans={assertion.when} index={index} empty="No time recorded" />
   }
   const event = story.events.find((item) => item.id === recordId)
   if (event) {

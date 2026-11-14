@@ -142,39 +142,25 @@ export function When({
   )
 }
 
-/** The `caused_by` and `supersedes` of a Property or an Assertion, when set. */
+/** The `caused_by` of a Property or an Assertion, when set. */
 export function StatementLinks({
   causedBy,
-  supersedes,
   index,
   onSelect,
 }: {
   causedBy: string | null
-  supersedes: string | null
   index: RecordIndex
   onSelect?: SelectRecord
 }) {
-  if (causedBy === null && supersedes === null) {
+  if (causedBy === null) {
     return null
   }
   return (
-    <Stack gap={0}>
-      {causedBy !== null && (
-        <Text size="sm" c="dimmed">
-          Caused by:{' '}
-          <RecordLink id={causedBy} onSelect={onSelect}>
-            {labelOf(index, causedBy)}
-          </RecordLink>
-        </Text>
-      )}
-      {supersedes !== null && (
-        <Text size="sm" c="dimmed">
-          Supersedes:{' '}
-          <RecordLink id={supersedes} onSelect={onSelect}>
-            {labelOf(index, supersedes)}
-          </RecordLink>
-        </Text>
-      )}
-    </Stack>
+    <Text size="sm" c="dimmed">
+      Caused by:{' '}
+      <RecordLink id={causedBy} onSelect={onSelect}>
+        {labelOf(index, causedBy)}
+      </RecordLink>
+    </Text>
   )
 }

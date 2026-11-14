@@ -34,8 +34,6 @@ RuleProblemCode = Literal[
     "unknown_id",
     "delete_still_named",
     "assertion_needs_two",
-    "supersedes_self",
-    "supersedes_other_entity",
     "unit_not_placed",
     "unit_placed_twice",
     "unit_contains_itself",
@@ -134,8 +132,6 @@ def named_ids(record: Record) -> list[str]:
         _append_unique(result, record.entity_id)
         if record.caused_by is not None:
             _append_unique(result, record.caused_by)
-        if record.supersedes is not None:
-            _append_unique(result, record.supersedes)
     if isinstance(record, (Property, Assertion, Event)):
         for eid in _event_ids_in_when(record.when):
             _append_unique(result, eid)
@@ -160,10 +156,6 @@ def _ids_for_kinds(document: StoryDocument, kinds: tuple[RecordKind, ...]) -> li
         for rec in getattr(document, attr):
             legal.append(rec.id)
     return legal
-
-
-def _properties_by_id(document: StoryDocument) -> dict[str, Property]:
-    return {p.id: p for p in document.properties}
 
 
 def _events_by_id(document: StoryDocument) -> dict[str, Event]:
@@ -258,17 +250,6 @@ def _check_unknown_ids_for_record(
                 deleted_ids=deleted_ids,
             )
         )
-        legal_prop = _ids_for_kinds(document, ("property",))
-        problems.extend(
-            _unknown_scalar(
-                record_id=rid,
-                field="supersedes",
-                value=record.supersedes,
-                legal_ids=legal_prop,
-                legal_set=set(legal_prop),
-                deleted_ids=deleted_ids,
-            )
-        )
         problems.extend(_check_when_unknown(document, rid, record.when, deleted_ids))
     elif isinstance(record, Assertion):
         for field, kinds in (
@@ -296,17 +277,6 @@ def _check_unknown_ids_for_record(
                 value=record.caused_by,
                 legal_ids=legal_event,
                 legal_set=set(legal_event),
-                deleted_ids=deleted_ids,
-            )
-        )
-        legal_assertion = _ids_for_kinds(document, ("assertion",))
-        problems.extend(
-            _unknown_scalar(
-                record_id=rid,
-                field="supersedes",
-                value=record.supersedes,
-                legal_ids=legal_assertion,
-                legal_set=set(legal_assertion),
                 deleted_ids=deleted_ids,
             )
         )
@@ -461,59 +431,6 @@ def _find_assertion_needs_two(document: StoryDocument) -> list[Problem]:
                     ),
                     record_id=assertion.id,
                     ids=sorted(named),
-                )
-            )
-    return problems
-
-
-def _find_supersedes_self(document: StoryDocument) -> list[Problem]:
-    problems: list[Problem] = []
-    for prop in document.properties:
-        if prop.supersedes == prop.id:
-            problems.append(
-                Problem(
-                    code="supersedes_self",
-                    message=f"{prop.id} supersedes itself.",
-                    record_id=prop.id,
-                    field="supersedes",
-                    ids=[prop.id],
-                )
-            )
-    for assertion in document.assertions:
-        if assertion.supersedes == assertion.id:
-            problems.append(
-                Problem(
-                    code="supersedes_self",
-                    message=f"{assertion.id} supersedes itself.",
-                    record_id=assertion.id,
-                    field="supersedes",
-                    ids=[assertion.id],
-                )
-            )
-    return problems
-
-
-def _find_supersedes_other_entity(document: StoryDocument) -> list[Problem]:
-    by_id = _properties_by_id(document)
-    problems: list[Problem] = []
-    for prop in document.properties:
-        if prop.supersedes is None:
-            continue
-        other = by_id.get(prop.supersedes)
-        if other is None:
-            continue
-        if other.entity_id != prop.entity_id:
-            problems.append(
-                Problem(
-                    code="supersedes_other_entity",
-                    message=(
-                        f"{prop.id} belongs to {prop.entity_id} and supersedes "
-                        f"{prop.supersedes}, which belongs to {other.entity_id}. "
-                        "A Property supersedes a Property of the same Entity."
-                    ),
-                    record_id=prop.id,
-                    field="supersedes",
-                    ids=[prop.supersedes],
                 )
             )
     return problems
@@ -781,8 +698,6 @@ def _build_referrers(document: StoryDocument) -> dict[str, list[str]]:
         add(prop.entity_id, prop.id)
         if prop.caused_by:
             add(prop.caused_by, prop.id)
-        if prop.supersedes:
-            add(prop.supersedes, prop.id)
         for eid in _event_ids_in_when(prop.when):
             add(eid, prop.id)
     for assertion in document.assertions:
@@ -794,8 +709,6 @@ def _build_referrers(document: StoryDocument) -> dict[str, list[str]]:
             add(aid, assertion.id)
         if assertion.caused_by:
             add(assertion.caused_by, assertion.id)
-        if assertion.supersedes:
-            add(assertion.supersedes, assertion.id)
         for eid in _event_ids_in_when(assertion.when):
             add(eid, assertion.id)
     for event in document.events:
@@ -863,8 +776,6 @@ def check_document(
     problems.extend(_check_story_unit_ids(document, deleted_set))
     problems.extend(_find_delete_still_named(document, deleted_set))
     problems.extend(_find_assertion_needs_two(document))
-    problems.extend(_find_supersedes_self(document))
-    problems.extend(_find_supersedes_other_entity(document))
     problems.extend(_find_unit_placement_problems(document))
     problems.extend(_find_unit_contains_itself(document))
     problems.extend(_find_duplicates_in_lists(document))

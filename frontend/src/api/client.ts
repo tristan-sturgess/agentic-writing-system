@@ -115,7 +115,7 @@ export type InForceRequest =
   | { timestamp: string }
   | { eventId: string; edge: 'start' | 'end' }
 
-/** The statements in force at one story time. The entities view draws this. */
+/** The statements in force at one story time. A caller that names a time uses this. */
 export function getInForce(storyId: string, query: InForceRequest): Promise<InForce> {
   const params = new URLSearchParams()
   if ('timestamp' in query) {
@@ -125,4 +125,13 @@ export function getInForce(storyId: string, query: InForceRequest): Promise<InFo
     params.set('edge', query.edge)
   }
   return get(`/stories/${encodeURIComponent(storyId)}/in-force?${params.toString()}`)
+}
+
+export type InForceStretches = Schemas['InForceStretches']
+export type InForceStretch = Schemas['InForceStretch']
+
+/** The stretches in which one Entity's in-force set stays the same. */
+export function getInForceStretches(storyId: string, entityId: string): Promise<InForceStretches> {
+  const params = new URLSearchParams({ entity_id: entityId })
+  return get(`/stories/${encodeURIComponent(storyId)}/in-force-stretches?${params.toString()}`)
 }

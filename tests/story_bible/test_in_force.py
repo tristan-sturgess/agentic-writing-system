@@ -8,7 +8,12 @@ from typing import Any, cast
 
 import pytest
 
-from agentic_writing_system.story_bible.in_force import InForce, in_force
+from agentic_writing_system.story_bible.in_force import (
+    InForce,
+    InForceStretches,
+    in_force,
+    in_force_stretches,
+)
 from agentic_writing_system.story_bible.records import (
     EventPoint,
     StoryDocument,
@@ -296,23 +301,6 @@ def test_a_range_that_ends_before_it_starts_covers_no_point() -> None:
     assert _ids(_at(document, "1847-04-01")) == []
 
 
-def test_supersedes_does_not_close_a_range_the_spans_leave_open() -> None:
-    document = _document(
-        properties=[
-            _property(
-                "prop_old",
-                [{"kind": "range", "start": {"timestamp": "1847-03-04"}}],
-            ),
-            _property(
-                "prop_new",
-                [{"kind": "range", "start": {"timestamp": "1847-03-12"}}],
-                supersedes="prop_old",
-            ),
-        ]
-    )
-    assert _ids(_at(document, "1847-03-12")) == ["prop_old", "prop_new"]
-
-
 def test_two_contradictory_statements_are_both_included() -> None:
     document = _document(
         properties=[
@@ -414,3 +402,185 @@ def test_ensemble_sample_readings() -> None:
     assert ended.query.timestamp == LETTER_END
     assert parting.query.timestamp == PARTING
     assert _at(document, "1847-03-11").query.timestamp == LETTER_DURING
+
+
+def _closed_range(start: str, end: str) -> dict[str, Any]:
+    return {
+        "kind": "range",
+        "start": {"timestamp": start},
+        "end": {"timestamp": end},
+    }
+
+
+def _stretch_ids(result: InForceStretches, index: int) -> list[str]:
+    return [statement.id for statement in result.stretches[index].statements]
+
+
+def test_a_closed_range_is_three_stretches() -> None:
+    """Before the start, while the range holds, and from the end onward."""
+    document = _document(
+        entities=[{"id": "entity_mara", "name": "Mara"}],
+        properties=[
+            _property("prop_standing"),
+            _property("prop_closed", when=[_closed_range("1847-03-02", "1847-03-12")]),
+        ],
+    )
+    result = in_force_stretches(document, "entity_mara")
+    assert [(stretch.start, stretch.end) for stretch in result.stretches] == [
+        (None, "1847-03-02T00:00:00"),
+        ("1847-03-02T00:00:00", "1847-03-12T00:00:00"),
+        ("1847-03-12T00:00:00", None),
+    ]
+    assert _stretch_ids(result, 0) == ["prop_standing"]
+    assert _stretch_ids(result, 1) == ["prop_standing", "prop_closed"]
+    assert _stretch_ids(result, 2) == ["prop_standing"]
+
+
+def test_a_range_with_no_end_is_two_stretches() -> None:
+    document = _document(
+        entities=[{"id": "entity_mara", "name": "Mara"}],
+        properties=[
+            _property(
+                "prop_open",
+                when=[{"kind": "range", "start": {"timestamp": "1847-03-12"}}],
+            )
+        ],
+    )
+    result = in_force_stretches(document, "entity_mara")
+    assert [(stretch.start, stretch.end) for stretch in result.stretches] == [
+        (None, "1847-03-12T00:00:00"),
+        ("1847-03-12T00:00:00", None),
+    ]
+    assert _stretch_ids(result, 0) == []
+    assert _stretch_ids(result, 1) == ["prop_open"]
+
+
+def test_a_gap_between_ranges_is_its_own_stretch() -> None:
+    document = _document(
+        entities=[{"id": "entity_mara", "name": "Mara"}],
+        properties=[
+            _property(
+                "prop_gapped",
+                when=[
+                    _closed_range("1847-01-01", "1847-02-01"),
+                    {"kind": "range", "start": {"timestamp": "1847-03-01"}},
+                ],
+            )
+        ],
+    )
+    result = in_force_stretches(document, "entity_mara")
+    assert [stretch.start for stretch in result.stretches] == [
+        None,
+        "1847-01-01T00:00:00",
+        "1847-02-01T00:00:00",
+        "1847-03-01T00:00:00",
+    ]
+    assert _stretch_ids(result, 1) == ["prop_gapped"]
+    assert _stretch_ids(result, 2) == []
+    assert _stretch_ids(result, 3) == ["prop_gapped"]
+
+
+def test_an_observation_and_an_unresolved_bound_do_not_cut_a_stretch() -> None:
+    document = _document(
+        entities=[{"id": "entity_mara", "name": "Mara"}],
+        events=[_event("event_rumour")],
+        properties=[
+            _property(
+                "prop_seen",
+                when=[{"kind": "at", "at": {"timestamp": "1847-03-05"}}],
+            ),
+            _property(
+                "prop_unresolved",
+                when=[
+                    {
+                        "kind": "range",
+                        "start": {"event_id": "event_rumour", "edge": "end"},
+                    }
+                ],
+            ),
+            _property("prop_closed", when=[_closed_range("1847-03-02", "1847-03-12")]),
+        ],
+    )
+    result = in_force_stretches(document, "entity_mara")
+    assert len(result.stretches) == 3
+    assert "prop_seen" not in _stretch_ids(result, 1)
+    for index in range(3):
+        assert "prop_unresolved" in _stretch_ids(result, index)
+        statement = next(
+            item
+            for item in result.stretches[index].statements
+            if item.id == "prop_unresolved"
+        )
+        assert statement.unresolved[0].unresolved.code == "no_time"
+
+
+def test_overlapping_ranges_of_one_statement_are_one_stretch() -> None:
+    document = _document(
+        entities=[{"id": "entity_mara", "name": "Mara"}],
+        properties=[
+            _property(
+                "prop_overlap",
+                when=[
+                    _closed_range("1847-03-02", "1847-03-12"),
+                    _closed_range("1847-03-04", "1847-06-01"),
+                ],
+            )
+        ],
+    )
+    result = in_force_stretches(document, "entity_mara")
+    assert [(stretch.start, stretch.end) for stretch in result.stretches] == [
+        (None, "1847-03-02T00:00:00"),
+        ("1847-03-02T00:00:00", "1847-06-01T00:00:00"),
+        ("1847-06-01T00:00:00", None),
+    ]
+    assert _stretch_ids(result, 1) == ["prop_overlap"]
+
+
+def test_another_entity_does_not_cut_these_stretches() -> None:
+    document = _document(
+        entities=[
+            {"id": "entity_mara", "name": "Mara"},
+            {"id": "entity_john", "name": "John"},
+        ],
+        properties=[
+            _property("prop_standing"),
+            _property(
+                "prop_john",
+                when=[_closed_range("1847-03-02", "1847-03-12")],
+                entity_id="entity_john",
+            ),
+        ],
+    )
+    result = in_force_stretches(document, "entity_mara")
+    assert len(result.stretches) == 1
+    assert result.stretches[0].start is None
+    assert result.stretches[0].end is None
+    assert _stretch_ids(result, 0) == ["prop_standing"]
+
+
+def test_ensemble_stretches_follow_maras_bounds() -> None:
+    document = StoryDocument.model_validate(
+        cast(dict[str, Any], json.loads(ENSEMBLE.read_text(encoding="utf-8")))
+    )
+    result = in_force_stretches(document, "entity_mara")
+    assert [(stretch.start, stretch.end) for stretch in result.stretches] == [
+        (None, "1846-01-01T00:00:00"),
+        ("1846-01-01T00:00:00", "1847-01-01T00:00:00"),
+        ("1847-01-01T00:00:00", "1847-03-02T00:00:00"),
+        ("1847-03-02T00:00:00", "1847-03-04T09:00:00"),
+        ("1847-03-04T09:00:00", "1847-03-12T00:00:00"),
+        ("1847-03-12T00:00:00", "1847-06-01T00:00:00"),
+        ("1847-06-01T00:00:00", None),
+    ]
+    distrust = "prop_mara_is_generally_distrustful_of_strangers"
+    cautious = "prop_mara_is_cautiously_willing_to_trust_strangers"
+    stall = "prop_mara_works_a_stall_at_the_grey_market"
+    assert distrust not in _stretch_ids(result, 2)
+    assert distrust in _stretch_ids(result, 3)
+    assert distrust in _stretch_ids(result, 4)
+    assert distrust not in _stretch_ids(result, 5)
+    assert cautious not in _stretch_ids(result, 4)
+    assert cautious in _stretch_ids(result, 5)
+    assert stall not in _stretch_ids(result, 2)
+    assert stall not in _stretch_ids(result, 3)
+    assert stall in _stretch_ids(result, 4)

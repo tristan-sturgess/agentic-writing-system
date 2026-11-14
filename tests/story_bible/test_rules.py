@@ -10,7 +10,6 @@ from agentic_writing_system.story_bible.records import (
     Entity,
     EventPoint,
     NarrativeUnit,
-    Property,
     RangeSpan,
     TimestampPoint,
 )
@@ -116,28 +115,6 @@ def test_assertion_needs_two() -> None:
     )
     p = next(x for x in check_document(doc) if x.code == "assertion_needs_two")
     assert p.record_id == "assertion_lonely"
-
-
-def test_supersedes_self() -> None:
-    doc = valid_document()
-    doc.properties[1].supersedes = doc.properties[1].id
-    p = next(x for x in check_document(doc) if x.code == "supersedes_self")
-    assert p.record_id == "prop_mara_cautious"
-    assert p.field == "supersedes"
-
-
-def test_supersedes_other_entity() -> None:
-    doc = valid_document()
-    other = Property(
-        id="prop_john_trait",
-        entity_id="entity_john",
-        statement="John is calm.",
-    )
-    doc.properties.append(other)
-    doc.properties[0].supersedes = "prop_john_trait"
-    p = next(x for x in check_document(doc) if x.code == "supersedes_other_entity")
-    assert p.record_id == "prop_mara_distrustful"
-    assert p.ids == ["prop_john_trait"]
 
 
 def test_unit_not_placed() -> None:

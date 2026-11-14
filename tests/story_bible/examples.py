@@ -74,7 +74,6 @@ def example_story_document() -> StoryDocument:
                             }
                         ],
                         "caused_by": "event_the_letter",
-                        "supersedes": "prop_mara_distrustful",
                     }
                 ),
             ],

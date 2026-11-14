@@ -168,7 +168,6 @@ class PropertyFields(_RecordBase):
     statement: str
     when: list[Span] = Field(default_factory=list)
     caused_by: str | None = None
-    supersedes: str | None = None
 
 
 class Property(PropertyFields):
@@ -180,7 +179,6 @@ class PropertyPatch(_RecordBase):
     statement: str = ""
     when: list[Span] = Field(default_factory=list)
     caused_by: str | None = None
-    supersedes: str | None = None
 
 
 # --- Assertion --------------------------------------------------------------
@@ -193,7 +191,6 @@ class AssertionFields(_RecordBase):
     statement: str
     when: list[Span] = Field(default_factory=list)
     caused_by: str | None = None
-    supersedes: str | None = None
 
 
 class Assertion(AssertionFields):
@@ -207,7 +204,6 @@ class AssertionPatch(_RecordBase):
     statement: str = ""
     when: list[Span] = Field(default_factory=list)
     caused_by: str | None = None
-    supersedes: str | None = None
 
 
 # --- Event ------------------------------------------------------------------
