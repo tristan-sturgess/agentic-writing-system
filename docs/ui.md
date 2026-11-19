@@ -66,9 +66,9 @@ No screen saves anything until step 9 of slice 2. The application doc already fi
 | Records | What does each record store, field by field, exactly as stored? | Slice 2, step 1. Built. | [Below](#the-records-view). |
 | Timeline | When does each Event happen, in what order, what is happening and who is involved at a given time, which Arc is each Event in, and where could a new Event go? | Slice 2, steps 3 to 5. Built. | [ui/timeline.md](ui/timeline.md) |
 | Entities | What is true of an Entity and when, what holds at a chosen time, why a claim changed, and which Assertions tie it to other Entities? | Slice 2, step 6. Built. | [ui/entities.md](ui/entities.md) |
-| Graph | How are the records connected, what connects to nothing, and what surrounds one record or one Arc? | Slice 2, steps 7 and 8. | Written when step 7 starts. |
+| Graph | How are the records connected, what connects to nothing, and what surrounds one record or one Arc? | Slice 2, steps 7 and 8. | [ui/graph.md](ui/graph.md) |
 
-The questions for the graph are a placeholder until its doc is written. The timeline's questions and the entities view's questions are in their docs.
+Each view's questions are stated in full in its doc.
 
 The timeline draws both of the pictures the Story Bible doc requires. Events in story time is the axis. Arcs laid over the Events is the timeline with one Arc highlighted. The entities view and the graph are not required by the Story Bible doc. They are here because the owner asked for them.
 
@@ -113,7 +113,7 @@ A view is judged on stories, so each view step adds a sample that stresses that 
 | `samples/sample_story.json` | A small story with every kind of record. The baseline for every screen. | Slice 1 |
 | A story shaped by time | Events with every shape of span. [ui/timeline.md](ui/timeline.md) lists what it contains. | Slice 2, step 3 |
 | `samples/ensemble_story.json` | Several Entities whose Properties change over time and bear on each other through Assertions and shared Events. [ui/entities.md](ui/entities.md) lists what it contains. | Slice 2, step 6 |
-| A larger story | Enough records to show whether the graph stays readable. Added only if the others are too small. | Slice 2, step 7 |
+| `samples/large_story.json` | Enough records, about 150 to 200, to show whether the graph stays readable. The others hold at most about thirty. [ui/graph.md](ui/graph.md) lists what it contains. | Slice 2, step 7 |
 
 ## How a screen is checked
 
@@ -121,5 +121,5 @@ Logic that does not render has Vitest tests: laying out resolved spans, assignin
 
 ## What stays open
 
-- The widget each view is drawn with. It is chosen in the view's doc when its step starts. This is the part of question 22 that slice 2 closes one view at a time. The timeline is drawn with a grid, plain marks, and Mantine, as its doc says. The entities view is selects and lists, as its doc says.
+- The widget each view is drawn with. It is chosen in the view's doc when its step starts. This is the part of question 22 that slice 2 closes one view at a time. The timeline is drawn with a grid, plain marks, and Mantine, as its doc says. The entities view is selects and lists, as its doc says. The graph is Cytoscape.js with the fcose layout, as its doc says.
 - What the later screens look like. Each is decided at its step.

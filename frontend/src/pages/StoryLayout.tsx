@@ -20,12 +20,13 @@ import { indexRecords } from '../story/records'
 import { useLoad } from '../useLoad'
 import type { StoryOutlet } from './storyContext'
 
-// A view is added here when its screen exists. The graph is a later step,
-// and this page does not link to a view that has no screen.
+// A view is added here when its screen exists. This page does not link to a
+// view that has no screen.
 const VIEWS = [
   { path: 'records', label: 'Records' },
   { path: 'timeline', label: 'Timeline' },
   { path: 'entities', label: 'Entities' },
+  { path: 'graph', label: 'Graph' },
 ] as const
 
 /**

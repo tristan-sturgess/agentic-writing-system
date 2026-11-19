@@ -1,6 +1,6 @@
 // The references between records, from "How the records connect" in the Story
-// Bible doc. The detail panel lists them, and the graph will draw the same
-// list as its edges.
+// Bible doc. The detail panel lists them, and the graph draws the same list
+// as its edges.
 
 import type { Span, Story } from '../api/client'
 
