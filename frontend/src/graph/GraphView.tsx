@@ -11,6 +11,7 @@ import fcose from 'cytoscape-fcose'
 import { useStory } from '../pages/storyContext'
 import { indexRecords, type RecordKind } from '../story/records'
 import { RecordLink } from '../story/parts'
+import { edgeElasticity, idealEdgeLength, nodeRepulsion, seededPositions, withSeededRandom } from './layout'
 import { graphOf, RECORD_KINDS, type GraphData, type GraphEdge } from './model'
 
 cytoscape.use(fcose)
@@ -53,6 +54,9 @@ export function GraphView() {
   const [params, setParams] = useSearchParams()
   const theme = useMantineTheme()
   const hideValue = params.get('hide')
+  // `?trial=neighborhood` is the layout under consideration: properties on a
+  // short stiff spring to their entity, everything else on a long soft one.
+  const neighborhood = params.get('trial') === 'neighborhood'
   const hidden = useMemo(() => hiddenFromSearch(hideValue), [hideValue])
   const index = useMemo(() => (story ? indexRecords(story) : null), [story])
   const full = useMemo(
@@ -66,6 +70,7 @@ export function GraphView() {
   const selectedId = outlet?.selectedId ?? null
   const selectRecord = outlet?.selectRecord
 
+  const storyId = story?.id
   const containerRef = useRef<HTMLDivElement>(null)
   const cyRef = useRef<cytoscape.Core | null>(null)
   const laidOutRef = useRef(false)
@@ -81,18 +86,23 @@ export function GraphView() {
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container || !full) return
+    if (!container || !full || !storyId) return
+    // The screenshot command waits for this, and only a finished layout sets it.
+    container.removeAttribute('data-layout')
     let cancelled = false
     const cy = cytoscape({
       container,
-      elements: elementsOf(full),
+      elements: elementsOf(full, storyId),
       style: stylesheet(theme),
       minZoom: 0.08,
       maxZoom: 2.5,
-      wheelSensitivity: 0.25,
       boxSelectionEnabled: false,
       autounselectify: true,
     })
+    // About 15% per mouse-wheel notch, so a short spin reaches a record from
+    // the fitted view. Set here because the constructor warns about any value
+    // other than Cytoscape's own.
+    ;(cy.renderer() as { wheelSensitivity: number }).wheelSensitivity = 5
     cyRef.current = cy
     cy.on('tap', 'node', (event) => {
       const node = event.target
@@ -109,15 +119,21 @@ export function GraphView() {
     const layout = cy.layout({
       name: 'fcose',
       quality: 'proof',
-      randomize: true,
+      randomize: false,
       animate: false,
       fit: true,
       padding: 36,
       nodeDimensionsIncludeLabels: true,
       packComponents: false,
       nodeSeparation: 120,
-      idealEdgeLength: 90,
-      nodeRepulsion: 12000,
+      // A lower gravity lets a neighborhood stay where its springs put it.
+      gravity: neighborhood ? 0.02 : 0.25,
+      idealEdgeLength: (edge: cytoscape.EdgeSingular) =>
+        idealEdgeLength(edgeFieldList(edge), neighborhood),
+      edgeElasticity: (edge: cytoscape.EdgeSingular) =>
+        edgeElasticity(edgeFieldList(edge), neighborhood),
+      nodeRepulsion: (node: cytoscape.NodeSingular) =>
+        nodeRepulsion(String(node.data('kind') ?? ''), neighborhood),
       numIter: 2500,
       tile: true,
       stop: () => {
@@ -126,18 +142,20 @@ export function GraphView() {
         const visible = shownRef.current
         if (visible) applyVisibility(cy, visible)
         applySelection(cy, selectedRef.current)
+        container.dataset.layout = 'done'
       },
     } as cytoscape.LayoutOptions)
     cy.resize()
-    layout.run()
+    withSeededRandom(storyId, () => layout.run())
 
     return () => {
       cancelled = true
       laidOutRef.current = false
+      container.removeAttribute('data-layout')
       cy.destroy()
       cyRef.current = null
     }
-  }, [full, theme])
+  }, [full, theme, storyId, neighborhood])
 
   useEffect(() => {
     const cy = cyRef.current
@@ -281,10 +299,12 @@ function shade(theme: MantineTheme, name: PaletteName, index: 1 | 6): string {
   return theme.colors[name][index]
 }
 
-function elementsOf(graph: GraphData): cytoscape.ElementDefinition[] {
+function elementsOf(graph: GraphData, storyId: string): cytoscape.ElementDefinition[] {
   const unconnected = new Set(graph.unconnected)
+  const positions = seededPositions(storyId, graph.nodes.map((node) => node.id))
   const nodes: cytoscape.ElementDefinition[] = graph.nodes.map((node) => ({
     data: { id: node.id, label: node.label, kind: node.kind },
+    position: positions.get(node.id),
     classes: node.kind !== 'story' && unconnected.has(node.id) ? 'unconnected' : '',
   }))
   const edges: cytoscape.ElementDefinition[] = graph.edges.map((edge) => ({
@@ -296,6 +316,11 @@ function elementsOf(graph: GraphData): cytoscape.ElementDefinition[] {
     },
   }))
   return [...nodes, ...edges]
+}
+
+function edgeFieldList(edge: cytoscape.EdgeSingular): string[] {
+  const fields = edge.data('fields')
+  return typeof fields === 'string' && fields.length > 0 ? fields.split(', ') : []
 }
 
 function edgeElementId(edge: GraphEdge): string {

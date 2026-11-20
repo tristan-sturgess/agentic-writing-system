@@ -59,7 +59,7 @@ A statement with an unresolved comparison shows each one: which span, which boun
 
 ## What the view does not do
 
-- It does not edit. Step 9 adds that, in the detail panel.
+- It does not edit. Step 10 adds that, in the detail panel.
 - It does not draw Events on an axis. That is the timeline. A `caused_by` link selects the Event, and the writer opens the timeline on that selection.
 - It does not resolve a time point, and it does not decide what is in force. The service does both.
 - It does not detect that two statements contradict. Both are shown when both are in force.

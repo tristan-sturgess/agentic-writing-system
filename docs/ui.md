@@ -8,7 +8,9 @@ This doc owns the screens. It does not own what they are built on. [architecture
 
 The UI is supporting work in this project. A screen takes the plainest form that does its job.
 
-A view is specified by the questions it answers, not by its layout. The questions are the view's acceptance test: the view is done when a person can answer each of them from the screen, on the sample stories, without opening the records view or the stored document. The questions are also the view's scope. A feature that answers none of them waits until a question is added to the view's doc.
+A view is specified by the questions it answers, not by its layout. The questions are what the writer is asking while looking at the view. They do not say how the screen answers them, and they are the starting point a design is built from.
+
+A view answers every question in its doc unless the doc says otherwise. When it does not answer them all, its doc says which questions it answers, which it helps with only partly, for example by letting the writer open records in the detail panel, and which wait for a later step. The view is done when a person can answer each question it claims to answer from the screen, on the sample stories, without opening the records view or the stored document. A feature that serves none of the questions waits until a question is added to the view's doc.
 
 The layout in a view doc is the first attempt at answering the questions. It can change once the view has been used. The questions change only when the owner changes them.
 
@@ -57,7 +59,7 @@ A view that is loading says so. A story the acting user cannot see is reported a
 
 ### Saving
 
-No screen saves anything until step 9 of slice 2. The application doc already fixes what a save may return and that the writer's edit stays on screen through a refusal, a conflict, or a busy error. How the panel shows each of those is specified here when that step starts.
+No screen saves anything until step 10 of slice 2. The application doc already fixes what a save may return and that the writer's edit stays on screen through a refusal, a conflict, or a busy error. How the panel shows each of those is specified here when that step starts.
 
 ## The views
 
@@ -66,7 +68,7 @@ No screen saves anything until step 9 of slice 2. The application doc already fi
 | Records | What does each record store, field by field, exactly as stored? | Slice 2, step 1. Built. | [Below](#the-records-view). |
 | Timeline | When does each Event happen, in what order, what is happening and who is involved at a given time, which Arc is each Event in, and where could a new Event go? | Slice 2, steps 3 to 5. Built. | [ui/timeline.md](ui/timeline.md) |
 | Entities | What is true of an Entity and when, what holds at a chosen time, why a claim changed, and which Assertions tie it to other Entities? | Slice 2, step 6. Built. | [ui/entities.md](ui/entities.md) |
-| Graph | How are the records connected, what connects to nothing, and what surrounds one record or one Arc? | Slice 2, steps 7 and 8. | [ui/graph.md](ui/graph.md) |
+| Graph | How are the records connected, where are the isolated groups, which records mention some text, what surrounds one record or one Arc, what does an Arc depend on, how would a change affect the story, how are the records related, and what role does an Entity play? | Slice 2, steps 7 to 9. Step 7 built. | [ui/graph.md](ui/graph.md) |
 
 Each view's questions are stated in full in its doc.
 
@@ -84,8 +86,8 @@ These are required by other docs. Each gets a section or a doc here when its ste
 
 | Screen | Required by | Built in |
 | --- | --- | --- |
-| The Arc editor | [story-bible.md](story-bible.md) | Slice 2, step 11 |
-| The history, with what each commit changed and a revert | [architecture/persistence.md](architecture/persistence.md), and item 23 in [open-questions.md](open-questions.md) | Slice 2, step 13. Slice 3 adds the turn. |
+| The Arc editor | [story-bible.md](story-bible.md) | Slice 2, step 12 |
+| The history, with what each commit changed and a revert | [architecture/persistence.md](architecture/persistence.md), and item 23 in [open-questions.md](open-questions.md) | Slice 2, step 14. Slice 3 adds the turn. |
 | Model configs and the API key | [architecture/model-configuration.md](architecture/model-configuration.md) | Slice 3 |
 | The chat panel and the turn's status | [architecture/application.md](architecture/application.md) | Slice 3 |
 | The call list | [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md) | Slice 3 |
@@ -117,7 +119,7 @@ A view is judged on stories, so each view step adds a sample that stresses that 
 
 ## How a screen is checked
 
-Logic that does not render has Vitest tests: laying out resolved spans, assigning lanes, deriving the references between records. What the service computes has its own tests in Python. A screen is not tested by rendering it in a test. It is checked by using it in a browser, against a service on a scratch data directory with the samples imported, and the report says which of the view's questions were answered on which sample. `AGENTS.md` and item 21 in [open-questions.md](open-questions.md) state this rule; this section applies it to the views.
+Logic that does not render has Vitest tests: laying out resolved spans, assigning lanes, deriving the references between records. What the service computes has its own tests in Python. A screen is not tested by rendering it in a test. It is checked by using it in a browser, against a service on a scratch data directory with the samples imported, and the report says which of the view's questions were answered on which sample. From step 8 the graph also has a command that saves a screenshot of it, as [ui/graph.md](ui/graph.md) says, so a layout can be judged and compared from images. A screenshot goes with the report of a check in the browser; it does not replace the check. `AGENTS.md` and item 21 in [open-questions.md](open-questions.md) state this rule; this section applies it to the views.
 
 ## What stays open
 

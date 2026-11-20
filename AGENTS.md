@@ -52,6 +52,7 @@ Use these. Changing one is an architecture change: update the docs first.
 - **SQLAlchemy 2.1** (async) for the stores, with **Alembic** for migrations. **SQLite** locally through `aiosqlite`, **Postgres** when hosted through `psycopg`. LangGraph's SQLite and Postgres checkpointers hold conversation threads.
 - **pytest** for tests, **Ruff** for linting and formatting, **mypy** for type checking.
 - **Railway** as the eventual hosted target. The local app comes first.
+- **Playwright** for Python, with Chromium, as a development-only tool in a Poetry dev group. It drives the screenshot command for the graph, so a layout can be judged and compared from images. It is not part of the app and does not test screens: a screenshot goes with the report of a check in the browser.
 - The UI is a **separate frontend** that talks only to the Python API. It lives in `frontend/`: **React** and **TypeScript**, built by **Vite**, with **Mantine** for components, managed with **npm** on Node 22.12 or later. **Vitest** for its tests, **ESLint** for linting. Its API types are generated from the service's OpenAPI document. `docs/architecture/application.md` says how it is built and served. `docs/ui.md` says which screens exist and the questions each view must answer, and each view has its own doc under `docs/ui/`. Before changing `frontend/`, read `.cursor/rules/frontend-mantine.mdc` and use the Mantine MCP server in `.cursor/mcp.json`. Forms, comboboxes, and custom components have skills under `frontend/.agents/skills/`.
 
 Not yet decided: the LangChain integration used to reach OpenRouter (decided in slice 3). Update this section when it is.
@@ -79,6 +80,8 @@ poetry run ruff format .    # format
 poetry run mypy             # type check
 poetry run python -m agentic_writing_system serve    # the API on http://127.0.0.1:8000, docs at /api/docs
 poetry run python scripts/story_api.py --help        # command-line client for the story endpoints
+poetry run playwright install chromium               # once, the browser the screenshot command drives
+poetry run python scripts/graph_screenshot.py --help # a PNG of a story's graph from a running service (slice 2, step 8)
 
 npm --prefix frontend install        # install the frontend's dependencies (Node 22.12 or later)
 npm --prefix frontend run build      # build the frontend into frontend/dist, which `serve` then serves at /

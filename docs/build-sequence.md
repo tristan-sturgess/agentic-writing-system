@@ -75,18 +75,19 @@ The views, read-only:
 5. **Entities and Arcs on the timeline.** The highlight in [ui/timeline.md](ui/timeline.md): the Events one Entity takes part in, or the Events of one Arc. This is the second picture, Arcs laid over the Events, built read-only.
 6. **Entities and their Properties.** One Entity with its Properties over story time, their `caused_by` links, and the Assertions that name it. The in-force view from the Story Bible doc is shown here, computed by the service as item 43 says. It adds a sample story with several Entities whose Properties change and bear on each other. Visible as that sample in the view.
 7. **The graph.** Every record as a node and every reference as an edge, with a filter by kind of record. A larger sample story is added if the first three are too small to show whether the graph stays readable. Visible as a sample's records and their connections.
-8. **Search and focus on the graph.** Finding a record by its text, and narrowing the graph to one Arc or to the records around one record.
+8. **A readable graph.** The large sample is not readable as step 7 drew it. This step adds a command that saves a screenshot of the graph from a running service, makes the layout place one story the same way on every load, adds an isolated group of records to the large sample, and makes the layout changes the owner chooses from screenshots, written into [ui/graph.md](ui/graph.md) before they are built. Visible as screenshots of the large sample before and after.
+9. **Search and focus on the graph.** Finding the records that mention some text, and narrowing the graph to the records around one record or one Arc, to what an Arc depends on, or to what depends on a record. Visible as the graph focused on a main character and on an Arc.
 
 The editing:
 
-9. **Entities and Properties.** Create, edit, and delete as structured fields, in the detail panel. A refusal or a conflict is shown with the edit kept.
-10. **Events.** Create, edit, and delete. Selecting an Event on the timeline opens it for editing.
-11. **Arcs.** The Arc editor: create, edit, and delete, and the order of an Arc's Events. The second picture from step 5 is where the result is seen.
-12. **The other records.** Assertions, Narrative Units, and the story framing. A Narrative Unit is edited as structure: its place in the reading order, its children, and its subjects. Its prose stays empty, and this slice does not grow a prose editor.
-13. **History, revert, and export.** The history and revert endpoints, and the story's commit history newest first, with what each commit changed and a revert of one commit. The export endpoint, and an export action. In this slice every commit is a hand edit, an import, or a revert. Slice 3 adds the agent's commits to the same list, grouped by turn, and the turn-level revert.
-14. **Tweak.** No new features. The writer uses the screens by hand and fixes what gets in the way. A change to the model or a rule found here goes into the docs first, before any agent depends on it. This step closes question 22.
+10. **Entities and Properties.** Create, edit, and delete as structured fields, in the detail panel. A refusal or a conflict is shown with the edit kept.
+11. **Events.** Create, edit, and delete. Selecting an Event on the timeline opens it for editing.
+12. **Arcs.** The Arc editor: create, edit, and delete, and the order of an Arc's Events. The second picture from step 5 is where the result is seen.
+13. **The other records.** Assertions, Narrative Units, and the story framing. A Narrative Unit is edited as structure: its place in the reading order, its children, and its subjects. Its prose stays empty, and this slice does not grow a prose editor.
+14. **History, revert, and export.** The history and revert endpoints, and the story's commit history newest first, with what each commit changed and a revert of one commit. The export endpoint, and an export action. In this slice every commit is a hand edit, an import, or a revert. Slice 3 adds the agent's commits to the same list, grouped by turn, and the turn-level revert.
+15. **Tweak.** No new features. The writer uses the screens by hand and fixes what gets in the way. A change to the model or a rule found here goes into the docs first, before any agent depends on it. This step closes question 22.
 
-"A little" is the bar. The views make the model inspectable and hand-editable. They do not cover later workflows. The questions in a view's doc are its scope: a feature that answers none of them waits. A view beyond the ones in [ui.md](ui.md) is added to that doc first. The widget that draws a view is chosen in its view doc when its step starts. It is not specified here.
+"A little" is the bar. The views make the model inspectable and hand-editable. They do not cover later workflows. The questions in a view's doc are where its design starts: a feature that serves none of them waits. A view beyond the ones in [ui.md](ui.md) is added to that doc first. The widget that draws a view is chosen in its view doc when its step starts. It is not specified here.
 
 Slice 2 is done when a person can build a small bible by hand, see the events, the arcs, and the entities without reading storage, and revert an edit from the history.
 
