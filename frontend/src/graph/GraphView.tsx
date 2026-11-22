@@ -1,9 +1,10 @@
 // The graph: every record, the references between them, and what connects to
-// nothing. Cytoscape draws it. The layout runs once per story, so a filter
-// or a new selection does not move the nodes.
+// nothing. Cytoscape draws it. The layout runs once per story and once per
+// Regenerate in the layout panel, so a filter or a new selection does not move
+// the nodes.
 
 import { Box, Chip, Group, Stack, Text, useMantineTheme, type MantineTheme } from '@mantine/core'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import cytoscape from 'cytoscape'
 import fcose from 'cytoscape-fcose'
@@ -11,7 +12,16 @@ import fcose from 'cytoscape-fcose'
 import { useStory } from '../pages/storyContext'
 import { indexRecords, type RecordKind } from '../story/records'
 import { RecordLink } from '../story/parts'
-import { edgeElasticity, idealEdgeLength, nodeRepulsion, seededPositions, withSeededRandom } from './layout'
+import {
+  DEFAULT_LAYOUT_SETTINGS,
+  entityGroups,
+  fcoseOptions,
+  layoutSeed,
+  seededPositions,
+  withSeededRandom,
+  type LayoutSettings,
+} from './layout'
+import { LayoutControls } from './LayoutControls'
 import { graphOf, RECORD_KINDS, type GraphData, type GraphEdge } from './model'
 
 cytoscape.use(fcose)
@@ -54,9 +64,8 @@ export function GraphView() {
   const [params, setParams] = useSearchParams()
   const theme = useMantineTheme()
   const hideValue = params.get('hide')
-  // `?trial=neighborhood` is the layout under consideration: properties on a
-  // short stiff spring to their entity, everything else on a long soft one.
-  const neighborhood = params.get('trial') === 'neighborhood'
+  const [draft, setDraft] = useState<LayoutSettings>(DEFAULT_LAYOUT_SETTINGS)
+  const [applied, setApplied] = useState<LayoutSettings>(DEFAULT_LAYOUT_SETTINGS)
   const hidden = useMemo(() => hiddenFromSearch(hideValue), [hideValue])
   const index = useMemo(() => (story ? indexRecords(story) : null), [story])
   const full = useMemo(
@@ -89,10 +98,14 @@ export function GraphView() {
     if (!container || !full || !storyId) return
     // The screenshot command waits for this, and only a finished layout sets it.
     container.removeAttribute('data-layout')
+    const seed = layoutSeed(storyId, applied.seed)
     let cancelled = false
     const cy = cytoscape({
       container,
-      elements: elementsOf(full, storyId),
+      elements: elementsOf(full, seed),
+      // The constructor's own layout is a grid, and that grid would replace the
+      // seeded positions before fcose could read them. Preset keeps them.
+      layout: { name: 'preset' },
       style: stylesheet(theme),
       minZoom: 0.08,
       maxZoom: 2.5,
@@ -102,11 +115,12 @@ export function GraphView() {
     // About 15% per mouse-wheel notch, so a short spin reaches a record from
     // the fitted view. Set here because the constructor warns about any value
     // other than Cytoscape's own.
-    ;(cy.renderer() as { wheelSensitivity: number }).wheelSensitivity = 5
+    ;(cy as unknown as { renderer(): { wheelSensitivity: number } }).renderer().wheelSensitivity = 5
     cyRef.current = cy
     cy.on('tap', 'node', (event) => {
       const node = event.target
-      if (node.data('kind') === 'story') return
+      const kind = node.data('kind')
+      if (kind === 'story' || kind === 'group') return
       selectRef.current?.(node.id())
     })
     cy.on('mouseover', 'edge', (event) => {
@@ -117,25 +131,7 @@ export function GraphView() {
     })
 
     const layout = cy.layout({
-      name: 'fcose',
-      quality: 'proof',
-      randomize: false,
-      animate: false,
-      fit: true,
-      padding: 36,
-      nodeDimensionsIncludeLabels: true,
-      packComponents: false,
-      nodeSeparation: 120,
-      // A lower gravity lets a neighborhood stay where its springs put it.
-      gravity: neighborhood ? 0.02 : 0.25,
-      idealEdgeLength: (edge: cytoscape.EdgeSingular) =>
-        idealEdgeLength(edgeFieldList(edge), neighborhood),
-      edgeElasticity: (edge: cytoscape.EdgeSingular) =>
-        edgeElasticity(edgeFieldList(edge), neighborhood),
-      nodeRepulsion: (node: cytoscape.NodeSingular) =>
-        nodeRepulsion(String(node.data('kind') ?? ''), neighborhood),
-      numIter: 2500,
-      tile: true,
+      ...fcoseOptions(applied),
       stop: () => {
         if (cancelled || cy.destroyed()) return
         laidOutRef.current = true
@@ -146,7 +142,7 @@ export function GraphView() {
       },
     } as cytoscape.LayoutOptions)
     cy.resize()
-    withSeededRandom(storyId, () => layout.run())
+    withSeededRandom(seed, () => layout.run())
 
     return () => {
       cancelled = true
@@ -155,7 +151,7 @@ export function GraphView() {
       cy.destroy()
       cyRef.current = null
     }
-  }, [full, theme, storyId, neighborhood])
+  }, [full, theme, storyId, applied])
 
   useEffect(() => {
     const cy = cyRef.current
@@ -201,24 +197,33 @@ export function GraphView() {
           <Text size="sm">Story</Text>
         </Group>
       </Group>
-      <Group align="stretch" wrap="wrap" gap="md">
+      <Group align="stretch" wrap="nowrap" gap="md">
         <Box
           ref={containerRef}
           aria-label="Record graph"
           style={{
             flex: '1 1 28rem',
+            minWidth: 0,
             height: '70vh',
             minHeight: 420,
             border: '1px solid var(--mantine-color-default-border)',
             borderRadius: 'var(--mantine-radius-sm)',
           }}
         />
-        <UnconnectedList
-          ids={full.unconnected}
-          index={index}
-          selectedId={selectedId}
-          onSelect={selectRecord}
-        />
+        <Stack gap="md" style={{ flex: '0 0 300px', maxHeight: '70vh', overflow: 'auto', paddingRight: 8 }}>
+          <LayoutControls
+            value={draft}
+            applied={applied}
+            onChange={setDraft}
+            onRegenerate={() => setApplied({ ...draft })}
+          />
+          <UnconnectedList
+            ids={full.unconnected}
+            index={index}
+            selectedId={selectedId}
+            onSelect={selectRecord}
+          />
+        </Stack>
       </Group>
     </Stack>
   )
@@ -236,7 +241,7 @@ function UnconnectedList({
   onSelect: (id: string) => void
 }) {
   return (
-    <Stack gap="xs" style={{ flex: '1 1 16rem', maxWidth: 280, maxHeight: '70vh', overflow: 'auto' }}>
+    <Stack gap="xs">
       <Text fw={600} size="sm">
         Connects to nothing ({ids.length})
       </Text>
@@ -299,11 +304,18 @@ function shade(theme: MantineTheme, name: PaletteName, index: 1 | 6): string {
   return theme.colors[name][index]
 }
 
-function elementsOf(graph: GraphData, storyId: string): cytoscape.ElementDefinition[] {
+function elementsOf(graph: GraphData, seed: string): cytoscape.ElementDefinition[] {
   const unconnected = new Set(graph.unconnected)
-  const positions = seededPositions(storyId, graph.nodes.map((node) => node.id))
+  const positions = seededPositions(
+    seed,
+    graph.nodes.map((node) => node.id),
+  )
+  const groups = entityGroups(graph.nodes, graph.edges)
+  const boxes: cytoscape.ElementDefinition[] = [...new Set(groups.values())].map((id) => ({
+    data: { id, kind: 'group' },
+  }))
   const nodes: cytoscape.ElementDefinition[] = graph.nodes.map((node) => ({
-    data: { id: node.id, label: node.label, kind: node.kind },
+    data: { id: node.id, label: node.label, kind: node.kind, parent: groups.get(node.id) },
     position: positions.get(node.id),
     classes: node.kind !== 'story' && unconnected.has(node.id) ? 'unconnected' : '',
   }))
@@ -315,12 +327,7 @@ function elementsOf(graph: GraphData, storyId: string): cytoscape.ElementDefinit
       fields: edge.fields.join(', '),
     },
   }))
-  return [...nodes, ...edges]
-}
-
-function edgeFieldList(edge: cytoscape.EdgeSingular): string[] {
-  const fields = edge.data('fields')
-  return typeof fields === 'string' && fields.length > 0 ? fields.split(', ') : []
+  return [...boxes, ...nodes, ...edges]
 }
 
 function edgeElementId(edge: GraphEdge): string {
@@ -331,8 +338,12 @@ function applyVisibility(cy: cytoscape.Core, shown: GraphData) {
   const nodeIds = new Set(shown.nodes.map((node) => node.id))
   const edgeIds = new Set(shown.edges.map(edgeElementId))
   cy.batch(() => {
+    // Hiding a box hides everything in it, so a box stays while any member shows.
     cy.nodes().forEach((node) => {
-      node.style('display', nodeIds.has(node.id()) ? 'element' : 'none')
+      const show = node.isParent()
+        ? node.children().filter((child) => nodeIds.has(child.id())).nonempty()
+        : nodeIds.has(node.id())
+      node.style('display', show ? 'element' : 'none')
     })
     cy.edges().forEach((edge) => {
       edge.style('display', edgeIds.has(edge.id()) ? 'element' : 'none')
@@ -379,6 +390,18 @@ function stylesheet(theme: MantineTheme): cytoscape.StylesheetJson {
       },
     },
     ...kindRules,
+    {
+      selector: 'node[kind = "group"]',
+      style: {
+        label: '',
+        'background-color': shade(theme, KIND_PALETTE.entity, 1),
+        'background-opacity': 0.35,
+        'border-color': shade(theme, KIND_PALETTE.entity, 6),
+        'border-width': 1,
+        'border-opacity': 0.5,
+        padding: '12px',
+      },
+    },
     {
       selector: 'node.unconnected',
       style: { 'border-style': 'dashed', 'border-width': 3 },
