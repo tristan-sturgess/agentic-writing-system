@@ -1,0 +1,2103 @@
+{
+  "schema_version": 1,
+  "title": "The Salt Market",
+  "description": "A harbor week: a stuck gate, a missing barrel, a wreck with a name, and a charter the council will not spend oil on.",
+  "premise": "Nothing lands at the salt market until someone writes it down, and the one wreck that matters was never written down.",
+  "tone": "Damp stone, lamp oil, argument over paper",
+  "themes": "Records against what the water keeps, duty, the price of a landing",
+  "writing_style": "Close third, concrete work, short scenes",
+  "unit_ids": [
+    "unit_salt_book"
+  ],
+  "entities": [
+    {
+      "id": "entity_mara",
+      "name": "Mara Quinn",
+      "notes": "Harbormaster. She keeps the gate and the bell."
+    },
+    {
+      "id": "entity_tide_gate",
+      "name": "The Tide Gate",
+      "notes": "The only gap in the harbor wall."
+    },
+    {
+      "id": "entity_kestrel",
+      "name": "The Kestrel",
+      "notes": "A salt carrier with a patched sail."
+    },
+    {
+      "id": "entity_ivo",
+      "name": "Captain Ivo",
+      "notes": "Master of the Kestrel. He hates a night tide."
+    },
+    {
+      "id": "entity_storm_bell",
+      "name": "The Storm Bell",
+      "notes": "Hung above the gate. Two rings mean stay."
+    },
+    {
+      "id": "entity_salt_market",
+      "name": "The Salt Market",
+      "notes": "Stalls along the inner quay."
+    },
+    {
+      "id": "entity_sera",
+      "name": "Baker Sera",
+      "notes": "Feeds the night shift from Oven Row."
+    },
+    {
+      "id": "entity_oven_row",
+      "name": "Oven Row",
+      "notes": "Three brick ovens behind the market."
+    },
+    {
+      "id": "entity_warehouse",
+      "name": "The North Warehouse",
+      "notes": "Where landed salt waits for the ledger."
+    },
+    {
+      "id": "entity_holm",
+      "name": "Factor Holm",
+      "notes": "Counts barrels and pays the pilots."
+    },
+    {
+      "id": "entity_ledger",
+      "name": "The Ledger",
+      "notes": "Holm's book. Nothing lands until it is in it."
+    },
+    {
+      "id": "entity_bram",
+      "name": "Councilor Bram",
+      "notes": "Reads the charter aloud when he wants quiet."
+    },
+    {
+      "id": "entity_charter",
+      "name": "The Charter",
+      "notes": "The town's landing law, ink and ribbon."
+    },
+    {
+      "id": "entity_custom_house",
+      "name": "The Custom House",
+      "notes": "Where Ness files what the ships declare."
+    },
+    {
+      "id": "entity_ness",
+      "name": "Clerk Ness",
+      "notes": "Writes the landings and copies the charter."
+    },
+    {
+      "id": "entity_archive",
+      "name": "The Lantern Archive",
+      "notes": "Old soundings, filed by the stair."
+    },
+    {
+      "id": "entity_pell",
+      "name": "Warden Pell",
+      "notes": "Keeps the archive and closes the reef road."
+    },
+    {
+      "id": "entity_jun",
+      "name": "Pilot Jun",
+      "notes": "Sounds the reef from a light skiff."
+    },
+    {
+      "id": "entity_skiff",
+      "name": "The Pilot's Skiff",
+      "notes": "Jun's boat. It comes back lighter than it goes."
+    },
+    {
+      "id": "entity_reef_road",
+      "name": "The Reef Road",
+      "notes": "The path above the wrecks."
+    },
+    {
+      "id": "entity_ani",
+      "name": "Diver Ani",
+      "notes": "Goes down to hulls the tide uncovers."
+    },
+    {
+      "id": "entity_sable",
+      "name": "The Wreck of the Sable",
+      "notes": "A stern with a name and no manifest."
+    },
+    {
+      "id": "entity_gray_cat",
+      "name": "The gray cat",
+      "notes": "Sleeps on the warehouse wall. Nothing in the story names it."
+    },
+    {
+      "id": "entity_blank_coin",
+      "name": "A coin with no mint",
+      "notes": "Found in a drawer and never entered."
+    }
+  ],
+  "properties": [
+    {
+      "id": "prop_mara_keeps_hours",
+      "entity_id": "entity_mara",
+      "statement": "Mara keeps the gate's hours herself.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_gate_sticks",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_gate_sticks"
+    },
+    {
+      "id": "prop_mara_trusts_bell",
+      "entity_id": "entity_mara",
+      "statement": "Mara trusts the bell more than the council.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_bell_rings",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_bell_rings"
+    },
+    {
+      "id": "prop_mara_shuts_gate",
+      "entity_id": "entity_mara",
+      "statement": "Mara shuts the gate when the bell has rung.",
+      "when": [],
+      "caused_by": "event_gate_logged"
+    },
+    {
+      "id": "prop_mara_knows_stern",
+      "entity_id": "entity_mara",
+      "statement": "Mara knows the Sable's name from the old lists.",
+      "when": [],
+      "caused_by": "event_stern_name"
+    },
+    {
+      "id": "prop_mara_argues_tax",
+      "entity_id": "entity_mara",
+      "statement": "Mara argues the landing tax in person.",
+      "when": [],
+      "caused_by": "event_tax_argued"
+    },
+    {
+      "id": "prop_mara_reads_tide",
+      "entity_id": "entity_mara",
+      "statement": "Mara reads the tide before she reads a paper.",
+      "when": []
+    },
+    {
+      "id": "prop_gate_sticks_dawn",
+      "entity_id": "entity_tide_gate",
+      "statement": "The gate sticks on a dawn tide.",
+      "when": [],
+      "caused_by": "event_gate_sticks"
+    },
+    {
+      "id": "prop_gate_one_gap",
+      "entity_id": "entity_tide_gate",
+      "statement": "The gate is the only gap in the wall.",
+      "when": []
+    },
+    {
+      "id": "prop_kestrel_patched",
+      "entity_id": "entity_kestrel",
+      "statement": "The Kestrel's sail is patched with old canvas.",
+      "when": []
+    },
+    {
+      "id": "prop_kestrel_salt",
+      "entity_id": "entity_kestrel",
+      "statement": "The Kestrel carries salt and little else.",
+      "when": [],
+      "caused_by": "event_salt_landed"
+    },
+    {
+      "id": "prop_ivo_hates_night",
+      "entity_id": "entity_ivo",
+      "statement": "Ivo will not take a night tide.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_ivo_refuses",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_ivo_refuses"
+    },
+    {
+      "id": "prop_ivo_signs",
+      "entity_id": "entity_ivo",
+      "statement": "Ivo signs what he has already decided.",
+      "when": [],
+      "caused_by": "event_ivo_signs"
+    },
+    {
+      "id": "prop_bell_two_rings",
+      "entity_id": "entity_storm_bell",
+      "statement": "Two rings from the bell mean stay out.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_bell_rings",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_bell_rings"
+    },
+    {
+      "id": "prop_bell_needs_oil",
+      "entity_id": "entity_storm_bell",
+      "statement": "The bell's lamp drinks oil the council holds.",
+      "when": [],
+      "caused_by": "event_oil_refused"
+    },
+    {
+      "id": "prop_market_noon",
+      "entity_id": "entity_salt_market",
+      "statement": "The market posts its price at noon.",
+      "when": [],
+      "caused_by": "event_price_posted"
+    },
+    {
+      "id": "prop_market_inner",
+      "entity_id": "entity_salt_market",
+      "statement": "The market sits on the inner quay.",
+      "when": []
+    },
+    {
+      "id": "prop_sera_before_bell",
+      "entity_id": "entity_sera",
+      "statement": "Sera lights the ovens before the bell.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_ovens_light",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_ovens_light"
+    },
+    {
+      "id": "prop_sera_feeds_shift",
+      "entity_id": "entity_sera",
+      "statement": "Sera feeds whoever works the night.",
+      "when": [],
+      "caused_by": "event_night_shift"
+    },
+    {
+      "id": "prop_sera_hears_bell",
+      "entity_id": "entity_sera",
+      "statement": "Sera can hear the bell from the ovens.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_sera_hears",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_sera_hears"
+    },
+    {
+      "id": "prop_sera_feeds_diver",
+      "entity_id": "entity_sera",
+      "statement": "Sera feeds Ani after a dive.",
+      "when": [],
+      "caused_by": "event_ani_eats"
+    },
+    {
+      "id": "prop_sera_keeps_heat",
+      "entity_id": "entity_sera",
+      "statement": "Sera keeps the ovens hot through a closed gate.",
+      "when": []
+    },
+    {
+      "id": "prop_ovens_three",
+      "entity_id": "entity_oven_row",
+      "statement": "Oven Row is three brick ovens.",
+      "when": []
+    },
+    {
+      "id": "prop_ovens_before_dawn",
+      "entity_id": "entity_oven_row",
+      "statement": "The ovens are lit before dawn.",
+      "when": [],
+      "caused_by": "event_ovens_light"
+    },
+    {
+      "id": "prop_warehouse_short",
+      "entity_id": "entity_warehouse",
+      "statement": "The warehouse is short a barrel.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_barrel_missing",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_barrel_missing"
+    },
+    {
+      "id": "prop_warehouse_holds_salt",
+      "entity_id": "entity_warehouse",
+      "statement": "Landed salt waits in the north warehouse.",
+      "when": [],
+      "caused_by": "event_salt_landed"
+    },
+    {
+      "id": "prop_holm_counts",
+      "entity_id": "entity_holm",
+      "statement": "Holm counts barrels before he counts coins.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_holm_counts",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_holm_counts"
+    },
+    {
+      "id": "prop_holm_writes_depths",
+      "entity_id": "entity_holm",
+      "statement": "Holm writes soundings in the same book as salt.",
+      "when": [],
+      "caused_by": "event_sounding_ledger"
+    },
+    {
+      "id": "prop_holm_pays_pilots",
+      "entity_id": "entity_holm",
+      "statement": "Holm pays the pilots out of the landing.",
+      "when": [],
+      "caused_by": "event_holm_pays"
+    },
+    {
+      "id": "prop_holm_posts_price",
+      "entity_id": "entity_holm",
+      "statement": "Holm posts the salt price himself.",
+      "when": [],
+      "caused_by": "event_price_posted"
+    },
+    {
+      "id": "prop_holm_argues",
+      "entity_id": "entity_holm",
+      "statement": "Holm argues a tax that touches his barrels.",
+      "when": [],
+      "caused_by": "event_tax_argued"
+    },
+    {
+      "id": "prop_ledger_first",
+      "entity_id": "entity_ledger",
+      "statement": "Nothing has landed until the ledger says so.",
+      "when": []
+    },
+    {
+      "id": "prop_ledger_shows_fee",
+      "entity_id": "entity_ledger",
+      "statement": "The ledger shows the pilot's fee.",
+      "when": [],
+      "caused_by": "event_holm_pays"
+    },
+    {
+      "id": "prop_bram_reads",
+      "entity_id": "entity_bram",
+      "statement": "Bram reads the charter when he wants the room quiet.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_charter_read",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_charter_read"
+    },
+    {
+      "id": "prop_bram_holds_oil",
+      "entity_id": "entity_bram",
+      "statement": "Bram holds the oil and calls it the law.",
+      "when": [],
+      "caused_by": "event_oil_withheld"
+    },
+    {
+      "id": "prop_bram_walks",
+      "entity_id": "entity_bram",
+      "statement": "Bram walks a road once before it is closed.",
+      "when": [],
+      "caused_by": "event_bram_walks"
+    },
+    {
+      "id": "prop_bram_hears_diver",
+      "entity_id": "entity_bram",
+      "statement": "Bram hears the diver before he hears the pilot.",
+      "when": [],
+      "caused_by": "event_divers_report"
+    },
+    {
+      "id": "prop_bram_carries",
+      "entity_id": "entity_bram",
+      "statement": "Bram carries the charter down to the gate.",
+      "when": [],
+      "caused_by": "event_charter_to_gate"
+    },
+    {
+      "id": "prop_charter_clause",
+      "entity_id": "entity_charter",
+      "statement": "The charter's landing clause is the one Bram reads.",
+      "when": [],
+      "caused_by": "event_charter_read"
+    },
+    {
+      "id": "prop_charter_copied",
+      "entity_id": "entity_charter",
+      "statement": "The charter has a copy in the custom house.",
+      "when": [],
+      "caused_by": "event_charter_filed"
+    },
+    {
+      "id": "prop_custom_files",
+      "entity_id": "entity_custom_house",
+      "statement": "The custom house files every landing.",
+      "when": [],
+      "caused_by": "event_landing_filed"
+    },
+    {
+      "id": "prop_custom_copy",
+      "entity_id": "entity_custom_house",
+      "statement": "A copy of the charter sits in the custom house.",
+      "when": [],
+      "caused_by": "event_charter_filed"
+    },
+    {
+      "id": "prop_ness_writes",
+      "entity_id": "entity_ness",
+      "statement": "Ness writes the landing before the captain signs.",
+      "when": [],
+      "caused_by": "event_landing_filed"
+    },
+    {
+      "id": "prop_ness_copies",
+      "entity_id": "entity_ness",
+      "statement": "Ness copies what the council reads aloud.",
+      "when": [],
+      "caused_by": "event_charter_filed"
+    },
+    {
+      "id": "prop_archive_barred",
+      "entity_id": "entity_archive",
+      "statement": "The archive stairs are barred from the inside.",
+      "when": [],
+      "caused_by": "event_stairs_closed"
+    },
+    {
+      "id": "prop_archive_copies",
+      "entity_id": "entity_archive",
+      "statement": "The archive keeps a copy of every sounding.",
+      "when": [],
+      "caused_by": "event_soundings_copied"
+    },
+    {
+      "id": "prop_pell_bars",
+      "entity_id": "entity_pell",
+      "statement": "Pell bars the archive when the road is uneasy.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_stairs_closed",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_stairs_closed"
+    },
+    {
+      "id": "prop_pell_closes_road",
+      "entity_id": "entity_pell",
+      "statement": "Pell closes the reef road on his own word.",
+      "when": [],
+      "caused_by": "event_road_closed"
+    },
+    {
+      "id": "prop_jun_sounds_dawn",
+      "entity_id": "entity_jun",
+      "statement": "Jun sounds the reef at first light.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_jun_sounds",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_jun_sounds"
+    },
+    {
+      "id": "prop_jun_paid",
+      "entity_id": "entity_jun",
+      "statement": "Jun is paid from the landing, not the council.",
+      "when": [],
+      "caused_by": "event_holm_pays"
+    },
+    {
+      "id": "prop_skiff_light",
+      "entity_id": "entity_skiff",
+      "statement": "The skiff comes back lighter than it goes.",
+      "when": [],
+      "caused_by": "event_skiff_returns"
+    },
+    {
+      "id": "prop_skiff_stored",
+      "entity_id": "entity_skiff",
+      "statement": "The skiff is stored in the warehouse.",
+      "when": [],
+      "caused_by": "event_skiff_hauled"
+    },
+    {
+      "id": "prop_road_above",
+      "entity_id": "entity_reef_road",
+      "statement": "The road runs above the wrecks.",
+      "when": []
+    },
+    {
+      "id": "prop_road_shut",
+      "entity_id": "entity_reef_road",
+      "statement": "The road is shut after Bram walks it.",
+      "when": [],
+      "caused_by": "event_road_closed"
+    },
+    {
+      "id": "prop_ani_slack",
+      "entity_id": "entity_ani",
+      "statement": "Ani dives on the slack and not before.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_ani_dives",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_ani_dives"
+    },
+    {
+      "id": "prop_ani_reads_sterns",
+      "entity_id": "entity_ani",
+      "statement": "Ani reads a stern before she reports it.",
+      "when": [],
+      "caused_by": "event_stern_name"
+    },
+    {
+      "id": "prop_ani_eats_after",
+      "entity_id": "entity_ani",
+      "statement": "Ani eats at Oven Row after a dive.",
+      "when": [],
+      "caused_by": "event_ani_eats"
+    },
+    {
+      "id": "prop_ani_tells_bram",
+      "entity_id": "entity_ani",
+      "statement": "Ani tells the council what she saw, not what she guesses.",
+      "when": [],
+      "caused_by": "event_divers_report"
+    },
+    {
+      "id": "prop_ani_knows_sable",
+      "entity_id": "entity_ani",
+      "statement": "Ani knows the Sable by the break in its stern.",
+      "when": []
+    },
+    {
+      "id": "prop_sable_name",
+      "entity_id": "entity_sable",
+      "statement": "The Sable's name is still on the stern.",
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_stern_name",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_stern_name"
+    },
+    {
+      "id": "prop_sable_no_manifest",
+      "entity_id": "entity_sable",
+      "statement": "The Sable has a name and no manifest.",
+      "when": []
+    }
+  ],
+  "events": [
+    {
+      "id": "event_gate_sticks",
+      "title": "The gate sticks",
+      "description": "The tide gate will not lift at dawn.",
+      "entity_ids": [
+        "entity_mara",
+        "entity_tide_gate"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1884-03-02T05:40"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_kestrel_asks",
+      "title": "The Kestrel asks",
+      "description": "Ivo asks for the channel.",
+      "entity_ids": [
+        "entity_ivo",
+        "entity_kestrel",
+        "entity_mara"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_gate_sticks",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_bell_rings",
+      "title": "The bell rings twice",
+      "description": "Two rings, which means stay out.",
+      "entity_ids": [
+        "entity_storm_bell",
+        "entity_mara"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1884-03-02T06:05"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_ivo_refuses",
+      "title": "Ivo refuses the night tide",
+      "description": "He will not bring the Kestrel in after dark.",
+      "entity_ids": [
+        "entity_ivo",
+        "entity_mara"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_kestrel_asks",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_gate_opens",
+      "title": "The gate opens",
+      "description": "The gate lifts for the Kestrel.",
+      "entity_ids": [
+        "entity_ivo",
+        "entity_kestrel",
+        "entity_tide_gate",
+        "entity_mara"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_ivo_refuses",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_ovens_light",
+      "title": "The ovens light",
+      "description": "Sera lights the ovens before the bell.",
+      "entity_ids": [
+        "entity_sera",
+        "entity_oven_row"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1884-03-02T04:30"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_holm_counts",
+      "title": "Holm counts the barrels",
+      "description": "The warehouse is one barrel short on paper.",
+      "entity_ids": [
+        "entity_holm",
+        "entity_ledger",
+        "entity_warehouse"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1884-03-02T09:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_price_posted",
+      "title": "The salt price is posted",
+      "description": "The market board goes up at noon.",
+      "entity_ids": [
+        "entity_salt_market",
+        "entity_holm"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1884-03-02T12:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_night_shift",
+      "title": "Sera feeds the night shift",
+      "description": "Bread for the warehouse and the gate.",
+      "entity_ids": [
+        "entity_sera",
+        "entity_oven_row",
+        "entity_holm"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_ovens_light",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_barrel_missing",
+      "title": "A barrel goes missing",
+      "description": "The short count becomes a missing barrel.",
+      "entity_ids": [
+        "entity_warehouse",
+        "entity_holm",
+        "entity_ledger"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_holm_counts",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_charter_read",
+      "title": "Bram reads the charter",
+      "description": "He reads the landing clause to an empty room.",
+      "entity_ids": [
+        "entity_bram",
+        "entity_charter"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1884-03-03T10:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_landing_filed",
+      "title": "Ness files the landing",
+      "description": "The Kestrel is written into the book.",
+      "entity_ids": [
+        "entity_ness",
+        "entity_custom_house",
+        "entity_ivo"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1884-03-03T11:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_stairs_closed",
+      "title": "Pell closes the stairs",
+      "description": "The archive stairs are barred.",
+      "entity_ids": [
+        "entity_pell",
+        "entity_archive"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1884-03-03T08:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_oil_withheld",
+      "title": "The council withholds oil",
+      "description": "No oil for the bell or the archive lamp.",
+      "entity_ids": [
+        "entity_bram",
+        "entity_ness",
+        "entity_charter"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_charter_read",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_soundings_copied",
+      "title": "Pell copies the soundings",
+      "description": "Jun's depths are copied into the archive.",
+      "entity_ids": [
+        "entity_pell",
+        "entity_archive",
+        "entity_jun"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_stairs_closed",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_jun_sounds",
+      "title": "Jun sounds the reef",
+      "description": "The skiff takes the morning sounding.",
+      "entity_ids": [
+        "entity_jun",
+        "entity_reef_road",
+        "entity_skiff"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1884-03-04T07:10"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_ani_dives",
+      "title": "Ani dives to the Sable",
+      "description": "She goes down on the slack.",
+      "entity_ids": [
+        "entity_ani",
+        "entity_sable"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_jun_sounds",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_skiff_returns",
+      "title": "The skiff returns light",
+      "description": "Jun comes back without the spare line.",
+      "entity_ids": [
+        "entity_jun",
+        "entity_skiff",
+        "entity_ani"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_ani_dives",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_stern_name",
+      "title": "A name on the stern",
+      "description": "The Sable's name is still readable.",
+      "entity_ids": [
+        "entity_ani",
+        "entity_sable",
+        "entity_mara"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_ani_dives",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_road_closed",
+      "title": "The reef road is closed",
+      "description": "Pell shuts the path above the wreck.",
+      "entity_ids": [
+        "entity_pell",
+        "entity_reef_road"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1884-03-04T16:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_tax_argued",
+      "title": "The landing tax is argued",
+      "description": "Bram, Holm, and Mara argue the rate.",
+      "entity_ids": [
+        "entity_bram",
+        "entity_holm",
+        "entity_mara",
+        "entity_salt_market"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "timestamp": "1884-03-05T15:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_oil_refused",
+      "title": "Oil for the bell is refused",
+      "description": "Bram will not release oil for the storm bell.",
+      "entity_ids": [
+        "entity_bram",
+        "entity_mara",
+        "entity_storm_bell"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_oil_withheld",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_sounding_ledger",
+      "title": "The sounding enters the ledger",
+      "description": "Holm writes Jun's depths beside the barrels.",
+      "entity_ids": [
+        "entity_holm",
+        "entity_jun",
+        "entity_ledger"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_jun_sounds",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_ani_eats",
+      "title": "Ani eats at Oven Row",
+      "description": "Sera feeds the diver after the dive.",
+      "entity_ids": [
+        "entity_ani",
+        "entity_sera"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_ani_dives",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_charter_to_gate",
+      "title": "The charter goes to the gate",
+      "description": "Bram carries the charter down to Mara.",
+      "entity_ids": [
+        "entity_bram",
+        "entity_mara",
+        "entity_charter",
+        "entity_tide_gate"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_charter_read",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_ivo_signs",
+      "title": "Ivo signs the landing",
+      "description": "Ivo signs what Ness wrote.",
+      "entity_ids": [
+        "entity_ivo",
+        "entity_ness",
+        "entity_custom_house"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_landing_filed",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_salt_landed",
+      "title": "The Kestrel's salt is landed",
+      "description": "The warehouse takes the Kestrel's salt.",
+      "entity_ids": [
+        "entity_holm",
+        "entity_ivo",
+        "entity_warehouse",
+        "entity_kestrel"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_gate_opens",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_pell_warns",
+      "title": "Pell warns Jun",
+      "description": "Pell tells Jun to stay off the road.",
+      "entity_ids": [
+        "entity_pell",
+        "entity_jun"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_road_closed",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_bell_and_ovens",
+      "title": "The bell and the ovens",
+      "description": "The bell rings while the ovens are lit.",
+      "entity_ids": [
+        "entity_sera",
+        "entity_mara",
+        "entity_storm_bell",
+        "entity_oven_row"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_bell_rings",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_charter_filed",
+      "title": "The charter is copied",
+      "description": "Ness files a copy at the custom house.",
+      "entity_ids": [
+        "entity_ness",
+        "entity_charter",
+        "entity_custom_house"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_charter_read",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_divers_report",
+      "title": "The diver's report",
+      "description": "Ani tells Bram what the stern said.",
+      "entity_ids": [
+        "entity_ani",
+        "entity_bram",
+        "entity_sable"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_stern_name",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_holm_pays",
+      "title": "Holm pays the pilot",
+      "description": "The ledger shows Jun's fee.",
+      "entity_ids": [
+        "entity_holm",
+        "entity_jun",
+        "entity_ledger"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_sounding_ledger",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_gate_logged",
+      "title": "The gate is logged shut",
+      "description": "Ness writes that Mara shut the gate.",
+      "entity_ids": [
+        "entity_mara",
+        "entity_tide_gate",
+        "entity_ness"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_gate_opens",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_sera_hears",
+      "title": "Sera hears the bell",
+      "description": "The bell carries to Oven Row.",
+      "entity_ids": [
+        "entity_sera",
+        "entity_storm_bell"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_bell_rings",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_skiff_hauled",
+      "title": "The skiff is hauled in",
+      "description": "The skiff is stored in the warehouse.",
+      "entity_ids": [
+        "entity_jun",
+        "entity_skiff",
+        "entity_warehouse"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_skiff_returns",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_bram_walks",
+      "title": "Bram walks the reef road",
+      "description": "Bram walks it once before Pell closes it.",
+      "entity_ids": [
+        "entity_bram",
+        "entity_reef_road",
+        "entity_pell"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_road_closed",
+            "edge": "start"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_unwritten",
+      "title": "The night never logged",
+      "description": "A watch that no book records.",
+      "entity_ids": [],
+      "when": []
+    },
+    {
+      "id": "event_margin",
+      "title": "A note in the margin",
+      "description": "A line with no ship and no name.",
+      "entity_ids": [],
+      "when": []
+    }
+  ],
+  "arcs": [
+    {
+      "id": "arc_gate",
+      "title": "The gate",
+      "description": "From a stuck gate to the shutting of it.",
+      "event_ids": [
+        "event_gate_sticks",
+        "event_kestrel_asks",
+        "event_ivo_refuses",
+        "event_gate_opens",
+        "event_gate_logged"
+      ]
+    },
+    {
+      "id": "arc_market",
+      "title": "The salt",
+      "description": "Ovens, barrels, and the posted price.",
+      "event_ids": [
+        "event_ovens_light",
+        "event_holm_counts",
+        "event_price_posted",
+        "event_night_shift",
+        "event_barrel_missing",
+        "event_tax_argued"
+      ]
+    },
+    {
+      "id": "arc_charter",
+      "title": "The charter",
+      "description": "What the council reads and withholds.",
+      "event_ids": [
+        "event_charter_read",
+        "event_oil_withheld",
+        "event_charter_to_gate",
+        "event_charter_filed",
+        "event_tax_argued"
+      ]
+    },
+    {
+      "id": "arc_sounding",
+      "title": "The sounding",
+      "description": "The reef, the dive, and the Sable.",
+      "event_ids": [
+        "event_jun_sounds",
+        "event_ani_dives",
+        "event_skiff_returns",
+        "event_stern_name",
+        "event_sounding_ledger",
+        "event_soundings_copied"
+      ]
+    },
+    {
+      "id": "arc_storm",
+      "title": "The bell",
+      "description": "Two rings, and who is refused oil.",
+      "event_ids": [
+        "event_bell_rings",
+        "event_oil_refused",
+        "event_bell_and_ovens",
+        "event_sera_hears"
+      ]
+    },
+    {
+      "id": "arc_landing",
+      "title": "The landing",
+      "description": "The paper that lets the salt come ashore.",
+      "event_ids": [
+        "event_landing_filed",
+        "event_ivo_signs",
+        "event_salt_landed",
+        "event_holm_pays",
+        "event_gate_logged"
+      ]
+    },
+    {
+      "id": "arc_archive",
+      "title": "The archive",
+      "description": "Stairs, soundings, and a closed road.",
+      "event_ids": [
+        "event_stairs_closed",
+        "event_soundings_copied",
+        "event_pell_warns",
+        "event_bram_walks"
+      ]
+    },
+    {
+      "id": "arc_unclaimed",
+      "title": "The charter no one signed",
+      "description": "An arc with no events and nothing pointing at it.",
+      "event_ids": []
+    }
+  ],
+  "assertions": [
+    {
+      "id": "assertion_bell_starts_the_ovens",
+      "statement": "The bell and the ovens start the day together.",
+      "entity_ids": [
+        "entity_sera",
+        "entity_mara"
+      ],
+      "event_ids": [
+        "event_bell_rings",
+        "event_ovens_light"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_bell_rings",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_bell_rings"
+    },
+    {
+      "id": "assertion_gate_follows_the_bell",
+      "statement": "The gate opens only after the bell has had its say.",
+      "event_ids": [
+        "event_bell_rings",
+        "event_gate_opens"
+      ],
+      "arc_ids": [
+        "arc_storm",
+        "arc_gate"
+      ]
+    },
+    {
+      "id": "assertion_ivo_and_the_charter",
+      "statement": "Ivo's signature is the landing the charter describes.",
+      "entity_ids": [
+        "entity_ivo",
+        "entity_bram"
+      ],
+      "event_ids": [
+        "event_ivo_signs"
+      ],
+      "arc_ids": [
+        "arc_landing"
+      ],
+      "caused_by": "event_ivo_signs"
+    },
+    {
+      "id": "assertion_missing_barrel",
+      "statement": "The missing barrel is the count Holm would not round.",
+      "entity_ids": [
+        "entity_holm",
+        "entity_warehouse"
+      ],
+      "event_ids": [
+        "event_barrel_missing",
+        "event_holm_counts"
+      ],
+      "caused_by": "event_holm_counts"
+    },
+    {
+      "id": "assertion_tax_touches_salt",
+      "statement": "The landing tax is an argument about salt.",
+      "entity_ids": [
+        "entity_bram",
+        "entity_holm",
+        "entity_mara"
+      ],
+      "event_ids": [
+        "event_tax_argued"
+      ],
+      "arc_ids": [
+        "arc_charter",
+        "arc_market"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_tax_argued",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_tax_argued"
+    },
+    {
+      "id": "assertion_dive_and_the_road",
+      "statement": "The road closes because of what the dive found.",
+      "entity_ids": [
+        "entity_ani",
+        "entity_pell"
+      ],
+      "event_ids": [
+        "event_ani_dives",
+        "event_road_closed"
+      ],
+      "arc_ids": [
+        "arc_sounding"
+      ],
+      "caused_by": "event_ani_dives"
+    },
+    {
+      "id": "assertion_sable_reaches_council",
+      "statement": "The Sable reaches the council as a name, not a hull.",
+      "entity_ids": [
+        "entity_sable",
+        "entity_bram"
+      ],
+      "event_ids": [
+        "event_divers_report",
+        "event_stern_name"
+      ]
+    },
+    {
+      "id": "assertion_oil_and_the_bell",
+      "statement": "Refusing the oil is how the council answers the bell.",
+      "entity_ids": [
+        "entity_bram",
+        "entity_mara"
+      ],
+      "event_ids": [
+        "event_oil_refused",
+        "event_oil_withheld"
+      ],
+      "arc_ids": [
+        "arc_storm"
+      ],
+      "caused_by": "event_oil_withheld"
+    },
+    {
+      "id": "assertion_sounding_in_two_books",
+      "statement": "One sounding is written in the ledger and the archive.",
+      "entity_ids": [
+        "entity_jun",
+        "entity_holm",
+        "entity_pell"
+      ],
+      "event_ids": [
+        "event_sounding_ledger",
+        "event_soundings_copied"
+      ],
+      "arc_ids": [
+        "arc_sounding",
+        "arc_archive"
+      ]
+    },
+    {
+      "id": "assertion_ness_before_ivo",
+      "statement": "Ness writes the landing before Ivo will sign it.",
+      "entity_ids": [
+        "entity_ness",
+        "entity_ivo"
+      ],
+      "event_ids": [
+        "event_landing_filed",
+        "event_ivo_signs"
+      ],
+      "caused_by": "event_landing_filed"
+    },
+    {
+      "id": "assertion_charter_at_the_gate",
+      "statement": "The charter is carried to the gate it governs.",
+      "entity_ids": [
+        "entity_charter",
+        "entity_tide_gate"
+      ],
+      "event_ids": [
+        "event_charter_to_gate"
+      ],
+      "arc_ids": [
+        "arc_charter"
+      ],
+      "caused_by": "event_charter_to_gate"
+    },
+    {
+      "id": "assertion_skiff_and_warehouse",
+      "statement": "The skiff and the salt end in the same warehouse.",
+      "entity_ids": [
+        "entity_skiff",
+        "entity_warehouse"
+      ],
+      "event_ids": [
+        "event_skiff_hauled",
+        "event_salt_landed"
+      ]
+    },
+    {
+      "id": "assertion_sera_and_the_shift",
+      "statement": "The night shift eats because Holm's count runs long.",
+      "entity_ids": [
+        "entity_sera",
+        "entity_holm"
+      ],
+      "event_ids": [
+        "event_night_shift"
+      ],
+      "arc_ids": [
+        "arc_market"
+      ],
+      "caused_by": "event_holm_counts"
+    },
+    {
+      "id": "assertion_pell_and_jun",
+      "statement": "Pell warns Jun off the road Jun sounded from.",
+      "entity_ids": [
+        "entity_pell",
+        "entity_jun"
+      ],
+      "event_ids": [
+        "event_pell_warns",
+        "event_jun_sounds"
+      ],
+      "arc_ids": [
+        "arc_archive"
+      ]
+    },
+    {
+      "id": "assertion_kestrel_needs_the_gate",
+      "statement": "The Kestrel gets in only when the gate decides to lift.",
+      "entity_ids": [
+        "entity_kestrel",
+        "entity_tide_gate"
+      ],
+      "event_ids": [
+        "event_kestrel_asks",
+        "event_gate_opens"
+      ],
+      "arc_ids": [
+        "arc_gate"
+      ],
+      "caused_by": "event_gate_opens"
+    },
+    {
+      "id": "assertion_price_and_the_tax",
+      "statement": "The posted price and the argued tax are the same salt.",
+      "entity_ids": [
+        "entity_salt_market"
+      ],
+      "event_ids": [
+        "event_price_posted",
+        "event_tax_argued"
+      ],
+      "arc_ids": [
+        "arc_market"
+      ]
+    },
+    {
+      "id": "assertion_copy_of_the_charter",
+      "statement": "The copy Ness files is the charter Bram read.",
+      "entity_ids": [
+        "entity_ness",
+        "entity_charter"
+      ],
+      "event_ids": [
+        "event_charter_filed",
+        "event_charter_read"
+      ],
+      "caused_by": "event_charter_read"
+    },
+    {
+      "id": "assertion_ani_reports_up",
+      "statement": "The diver's report is how the wreck enters the charter's week.",
+      "entity_ids": [
+        "entity_ani",
+        "entity_bram"
+      ],
+      "event_ids": [
+        "event_divers_report"
+      ],
+      "arc_ids": [
+        "arc_sounding",
+        "arc_charter"
+      ],
+      "when": [
+        {
+          "kind": "at",
+          "at": {
+            "event_id": "event_divers_report",
+            "edge": "start"
+          }
+        }
+      ],
+      "caused_by": "event_divers_report"
+    },
+    {
+      "id": "assertion_gate_logged_by_ness",
+      "statement": "The shut gate is a landing fact because Ness wrote it.",
+      "entity_ids": [
+        "entity_ness",
+        "entity_mara"
+      ],
+      "event_ids": [
+        "event_gate_logged"
+      ],
+      "arc_ids": [
+        "arc_landing",
+        "arc_gate"
+      ],
+      "caused_by": "event_gate_logged"
+    },
+    {
+      "id": "assertion_bell_reaches_ovens",
+      "statement": "The bell reaches Oven Row, and the ovens answer.",
+      "entity_ids": [
+        "entity_storm_bell",
+        "entity_oven_row"
+      ],
+      "event_ids": [
+        "event_sera_hears",
+        "event_bell_and_ovens"
+      ],
+      "caused_by": "event_bell_rings"
+    },
+    {
+      "id": "assertion_archive_keeps_the_dive",
+      "statement": "The archive keeps the depths the dive was made in.",
+      "entity_ids": [
+        "entity_archive",
+        "entity_sable"
+      ],
+      "event_ids": [
+        "event_soundings_copied"
+      ],
+      "arc_ids": [
+        "arc_archive"
+      ]
+    },
+    {
+      "id": "assertion_ivo_refuses_and_signs",
+      "statement": "Ivo refuses the tide and still signs the landing.",
+      "entity_ids": [
+        "entity_ivo"
+      ],
+      "event_ids": [
+        "event_ivo_refuses",
+        "event_ivo_signs"
+      ],
+      "arc_ids": [
+        "arc_gate",
+        "arc_landing"
+      ]
+    },
+    {
+      "id": "assertion_holm_pays_from_salt",
+      "statement": "Jun is paid out of the salt he did not carry.",
+      "entity_ids": [
+        "entity_holm",
+        "entity_jun",
+        "entity_ledger"
+      ],
+      "event_ids": [
+        "event_holm_pays",
+        "event_salt_landed"
+      ],
+      "caused_by": "event_salt_landed"
+    },
+    {
+      "id": "assertion_road_after_the_walk",
+      "statement": "The road is closed after the one walk Bram takes.",
+      "entity_ids": [
+        "entity_bram",
+        "entity_pell",
+        "entity_reef_road"
+      ],
+      "event_ids": [
+        "event_bram_walks",
+        "event_road_closed"
+      ],
+      "caused_by": "event_bram_walks"
+    },
+    {
+      "id": "assertion_custom_house_holds_both",
+      "statement": "The custom house holds the landing and the charter's copy.",
+      "entity_ids": [
+        "entity_custom_house",
+        "entity_charter"
+      ],
+      "event_ids": [
+        "event_landing_filed",
+        "event_charter_filed"
+      ],
+      "arc_ids": [
+        "arc_landing"
+      ]
+    },
+    {
+      "id": "assertion_skiff_returns_to_ani",
+      "statement": "The light skiff is the end of Ani's dive.",
+      "entity_ids": [
+        "entity_ani",
+        "entity_jun",
+        "entity_skiff"
+      ],
+      "event_ids": [
+        "event_skiff_returns",
+        "event_ani_dives"
+      ],
+      "arc_ids": [
+        "arc_sounding"
+      ],
+      "caused_by": "event_ani_dives"
+    },
+    {
+      "id": "assertion_market_hears_the_tax",
+      "statement": "The market hears the tax in the afternoon price.",
+      "entity_ids": [
+        "entity_salt_market",
+        "entity_sera"
+      ],
+      "event_ids": [
+        "event_tax_argued",
+        "event_price_posted"
+      ]
+    },
+    {
+      "id": "assertion_pell_copies_what_jun_did",
+      "statement": "Pell copies a sounding he did not take.",
+      "entity_ids": [
+        "entity_pell",
+        "entity_jun"
+      ],
+      "event_ids": [
+        "event_soundings_copied",
+        "event_jun_sounds"
+      ],
+      "arc_ids": [
+        "arc_archive",
+        "arc_sounding"
+      ],
+      "caused_by": "event_jun_sounds"
+    }
+  ],
+  "units": [
+    {
+      "id": "unit_salt_book",
+      "title": "The Salt Market",
+      "summary": "One harbor week, told in four parts.",
+      "child_ids": [
+        "unit_part_harbor",
+        "unit_part_market",
+        "unit_part_council",
+        "unit_part_wreck"
+      ],
+      "subject_ids": [
+        "arc_gate",
+        "entity_salt_market"
+      ]
+    },
+    {
+      "id": "unit_part_harbor",
+      "title": "The gate",
+      "summary": "The tide gate, the Kestrel, and the bell.",
+      "child_ids": [
+        "unit_ch_watch",
+        "unit_ch_kestrel"
+      ],
+      "subject_ids": [
+        "arc_gate",
+        "entity_mara"
+      ]
+    },
+    {
+      "id": "unit_ch_watch",
+      "title": "The watch",
+      "summary": "Dawn at the gate.",
+      "child_ids": [
+        "unit_sc_dawn",
+        "unit_sc_bell"
+      ],
+      "subject_ids": [
+        "entity_mara",
+        "event_gate_sticks"
+      ]
+    },
+    {
+      "id": "unit_sc_dawn",
+      "title": "Dawn at the gate",
+      "summary": "The gate will not lift.",
+      "subject_ids": [
+        "event_gate_sticks",
+        "entity_tide_gate"
+      ]
+    },
+    {
+      "id": "unit_sc_bell",
+      "title": "Two rings",
+      "summary": "The bell tells the harbor to stay.",
+      "subject_ids": [
+        "event_bell_rings",
+        "arc_storm"
+      ]
+    },
+    {
+      "id": "unit_ch_kestrel",
+      "title": "The Kestrel",
+      "summary": "Ivo asks, refuses, and comes in.",
+      "child_ids": [
+        "unit_sc_channel",
+        "unit_sc_night_tide"
+      ],
+      "subject_ids": [
+        "entity_ivo",
+        "entity_kestrel"
+      ]
+    },
+    {
+      "id": "unit_sc_channel",
+      "title": "The channel",
+      "summary": "Ivo asks for the gap.",
+      "subject_ids": [
+        "event_kestrel_asks",
+        "event_gate_opens"
+      ]
+    },
+    {
+      "id": "unit_sc_night_tide",
+      "title": "The night tide",
+      "summary": "Ivo refuses the dark water.",
+      "subject_ids": [
+        "event_ivo_refuses"
+      ]
+    },
+    {
+      "id": "unit_part_market",
+      "title": "The market",
+      "summary": "Ovens, barrels, and a price.",
+      "child_ids": [
+        "unit_ch_ovens",
+        "unit_ch_ledger"
+      ],
+      "subject_ids": [
+        "arc_market",
+        "entity_holm"
+      ]
+    },
+    {
+      "id": "unit_ch_ovens",
+      "title": "The ovens",
+      "summary": "Sera's morning.",
+      "child_ids": [
+        "unit_sc_early"
+      ],
+      "subject_ids": [
+        "entity_sera",
+        "event_ovens_light"
+      ]
+    },
+    {
+      "id": "unit_sc_early",
+      "title": "Before the bell",
+      "summary": "The ovens are lit first.",
+      "subject_ids": [
+        "event_ovens_light",
+        "event_night_shift"
+      ]
+    },
+    {
+      "id": "unit_ch_ledger",
+      "title": "The ledger",
+      "summary": "Holm's count.",
+      "child_ids": [
+        "unit_sc_barrels",
+        "unit_sc_price"
+      ],
+      "subject_ids": [
+        "entity_ledger",
+        "entity_holm"
+      ]
+    },
+    {
+      "id": "unit_sc_barrels",
+      "title": "The barrels",
+      "summary": "The count comes up short.",
+      "subject_ids": [
+        "event_holm_counts",
+        "event_barrel_missing"
+      ]
+    },
+    {
+      "id": "unit_sc_price",
+      "title": "The posted price",
+      "summary": "Noon on the market board.",
+      "subject_ids": [
+        "event_price_posted",
+        "event_tax_argued"
+      ]
+    },
+    {
+      "id": "unit_part_council",
+      "title": "The council",
+      "summary": "The charter and the oil.",
+      "child_ids": [
+        "unit_ch_charter"
+      ],
+      "subject_ids": [
+        "arc_charter",
+        "entity_bram"
+      ]
+    },
+    {
+      "id": "unit_ch_charter",
+      "title": "The charter",
+      "summary": "Bram reads, and the oil stays locked.",
+      "child_ids": [
+        "unit_sc_reading",
+        "unit_sc_oil"
+      ],
+      "subject_ids": [
+        "entity_charter",
+        "event_charter_read"
+      ]
+    },
+    {
+      "id": "unit_sc_reading",
+      "title": "The reading",
+      "summary": "The landing clause, to an empty room.",
+      "subject_ids": [
+        "event_charter_read",
+        "event_charter_to_gate"
+      ]
+    },
+    {
+      "id": "unit_sc_oil",
+      "title": "The lamp oil",
+      "summary": "The council will not spend it.",
+      "subject_ids": [
+        "event_oil_withheld",
+        "event_oil_refused"
+      ]
+    },
+    {
+      "id": "unit_part_wreck",
+      "title": "The wreck",
+      "summary": "A sounding, a dive, a closed road.",
+      "child_ids": [
+        "unit_ch_dive"
+      ],
+      "subject_ids": [
+        "arc_sounding",
+        "entity_ani"
+      ]
+    },
+    {
+      "id": "unit_ch_dive",
+      "title": "The dive",
+      "summary": "Jun sounds and Ani goes down.",
+      "child_ids": [
+        "unit_sc_sable",
+        "unit_sc_return"
+      ],
+      "subject_ids": [
+        "entity_jun",
+        "entity_sable"
+      ]
+    },
+    {
+      "id": "unit_sc_sable",
+      "title": "The Sable",
+      "summary": "A name on a stern.",
+      "subject_ids": [
+        "event_ani_dives",
+        "event_stern_name",
+        "arc_sounding"
+      ]
+    },
+    {
+      "id": "unit_sc_return",
+      "title": "The light skiff",
+      "summary": "Jun comes back light.",
+      "subject_ids": [
+        "event_skiff_returns",
+        "event_jun_sounds"
+      ]
+    }
+  ]
+}

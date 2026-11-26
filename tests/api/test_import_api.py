@@ -6,17 +6,23 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 from fastapi.testclient import TestClient
 
-SAMPLE_PATH = Path(__file__).resolve().parents[2] / "samples" / "sample_story.json"
+SAMPLES_DIR = Path(__file__).resolve().parents[2] / "samples"
+SAMPLE_PATH = SAMPLES_DIR / "sample_story.json"
+SAMPLE_PATHS = sorted(SAMPLES_DIR.glob("*.json"))
 
 
 def _load_sample() -> dict[str, Any]:
     return cast(dict[str, Any], json.loads(SAMPLE_PATH.read_text(encoding="utf-8")))
 
 
-def test_import_sample_story_201(client: TestClient) -> None:
-    sample = _load_sample()
+@pytest.mark.parametrize(
+    "sample_path", SAMPLE_PATHS, ids=[path.name for path in SAMPLE_PATHS]
+)
+def test_import_sample_201(client: TestClient, sample_path: Path) -> None:
+    sample = cast(dict[str, Any], json.loads(sample_path.read_text(encoding="utf-8")))
     r = client.post("/api/stories/import", json=sample)
     assert r.status_code == 201
     body = r.json()

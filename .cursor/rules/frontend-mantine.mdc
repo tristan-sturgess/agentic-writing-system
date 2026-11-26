@@ -1,0 +1,21 @@
+---
+description: Look up Mantine v9 through the Mantine MCP server when changing the frontend
+globs: frontend/**
+alwaysApply: false
+---
+
+# Frontend: Mantine
+
+`frontend/` is React, TypeScript, and Vite, with Mantine v9 (`@mantine/core`, `@mantine/hooks`). What a screen must do is in `docs/ui.md`, the view's doc under `docs/ui/`, `docs/architecture/application.md`, and `docs/build-sequence.md`. How a Mantine component, hook, or style is written comes from Mantine's docs.
+
+Before using a Mantine API you are not certain of, look it up with the `mantine` MCP server from `.cursor/mcp.json`. Read the tool schema, then:
+
+1. `search_docs` or `list_items` to find the page.
+2. `get_item_props` or `get_api` for the signature.
+3. `get_item_doc` for one section. Request the whole page only when one section is not enough.
+
+If that server is not connected, fetch `https://mantine.dev/llms.txt` and then the single page it links. Leave `https://mantine.dev/llms-full.txt` alone; it is the entire docs site in one file.
+
+For a form, read `frontend/.agents/skills/mantine-form/SKILL.md`. For a custom select, autocomplete, or multiselect, read `frontend/.agents/skills/mantine-combobox/SKILL.md`. For a component built with Mantine's factory and Styles API, read `frontend/.agents/skills/mantine-custom-components/SKILL.md`. Read the skill's reference files when the skill says to.
+
+Stay on `@mantine/core` and `@mantine/hooks`. A form adds `@mantine/form` when that form is built. Add any other Mantine package only when the task asks for it.

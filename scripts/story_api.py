@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 API_PREFIX = "/api"
@@ -69,6 +70,41 @@ def main(argv: list[str] | None = None) -> int:
     get_p = sub.add_parser("get", help="Get one story")
     get_p.add_argument("story_id")
 
+    times_p = sub.add_parser(
+        "event-times",
+        help="Print a story's Events resolved to story time",
+    )
+    times_p.add_argument("story_id")
+
+    statements_p = sub.add_parser(
+        "statement-times",
+        help="Print each Property and Assertion span resolved to story time",
+    )
+    statements_p.add_argument("story_id")
+
+    in_force_p = sub.add_parser(
+        "in-force",
+        help="Print the statements in force at a story time",
+    )
+    in_force_p.add_argument("story_id")
+    in_force_p.add_argument("--timestamp", default=None, help="A story-time timestamp")
+    in_force_p.add_argument(
+        "--event-id", default=None, help="An Event to read as the time"
+    )
+    in_force_p.add_argument(
+        "--edge",
+        choices=("start", "end"),
+        default=None,
+        help="Which end of --event-id. Required with --event-id",
+    )
+
+    stretches_p = sub.add_parser(
+        "in-force-stretches",
+        help="Print the stretches where one Entity's in-force set stays the same",
+    )
+    stretches_p.add_argument("story_id")
+    stretches_p.add_argument("entity_id")
+
     delete_p = sub.add_parser("delete", help="Delete a story")
     delete_p.add_argument("story_id")
 
@@ -91,6 +127,37 @@ def main(argv: list[str] | None = None) -> int:
         status, raw = _http("POST", base, f"{API_PREFIX}/stories")
     elif args.command == "get":
         status, raw = _http("GET", base, f"{API_PREFIX}/stories/{args.story_id}")
+    elif args.command == "event-times":
+        status, raw = _http(
+            "GET", base, f"{API_PREFIX}/stories/{args.story_id}/event-times"
+        )
+    elif args.command == "statement-times":
+        status, raw = _http(
+            "GET", base, f"{API_PREFIX}/stories/{args.story_id}/statement-times"
+        )
+    elif args.command == "in-force":
+        query = urlencode(
+            [
+                (key, value)
+                for key, value in (
+                    ("timestamp", args.timestamp),
+                    ("event_id", args.event_id),
+                    ("edge", args.edge),
+                )
+                if value is not None
+            ]
+        )
+        path = f"{API_PREFIX}/stories/{args.story_id}/in-force"
+        if query:
+            path = f"{path}?{query}"
+        status, raw = _http("GET", base, path)
+    elif args.command == "in-force-stretches":
+        query = urlencode([("entity_id", args.entity_id)])
+        status, raw = _http(
+            "GET",
+            base,
+            f"{API_PREFIX}/stories/{args.story_id}/in-force-stretches?{query}",
+        )
     elif args.command == "delete":
         status, raw = _http("DELETE", base, f"{API_PREFIX}/stories/{args.story_id}")
     elif args.command == "commit":

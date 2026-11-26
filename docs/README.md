@@ -1,6 +1,6 @@
 # Creative Writing System
 
-This repository is the version 3 build of a creative writing system for fiction. Slice 1 of [build-sequence.md](build-sequence.md) is built; the later slices are not. The documents below are the design the build follows.
+This repository is the version 3 build of a creative writing system for fiction. Slice 1 of [build-sequence.md](build-sequence.md) is built. Of slice 2, the records view, a route per built view, the read-only detail panel, the edge on a time point, Event times from the service, the timeline, including the Entities and Arcs on it, the entities view, and the graph are built; the rest is not. The documents below are the design the build follows.
 
 The Story Bible is the shared object. The user can inspect and edit it directly. Agents do most of the work, with revision loops. Measuring whether a prompt or workflow change actually helped is a requirement, not a follow-up.
 
@@ -24,6 +24,10 @@ Paths are relative to `docs/`.
 | [architecture/agents.md](architecture/agents.md) | How agents read and write the Story Bible, and what the arc-planning workflow is responsible for. |
 | [architecture/evaluations.md](architecture/evaluations.md) | What is scored, what an evaluation run stores, and how cost and latency sit on that same run. |
 | [architecture/application.md](architecture/application.md) | What the Python API does: how a request becomes a user, how a turn is started, streamed, and stopped, which endpoints each slice adds, and where the background routines run. The frontend is a client of it. |
+| [ui.md](ui.md) | Which screens exist, how they are reached, what they share, and the questions each view must answer. |
+| [ui/timeline.md](ui/timeline.md) | How the timeline draws Events in story time, and the questions it must answer. |
+| [ui/entities.md](ui/entities.md) | How the entities view draws one Entity's Properties and Assertions, and the questions it must answer. |
+| [ui/graph.md](ui/graph.md) | How the graph draws every record and the references between them, and the questions it must answer. |
 | [build-sequence.md](build-sequence.md) | The order to implement the system, and which docs each slice depends on. |
 | [open-questions.md](open-questions.md) | Decisions still deferred, each one naming the doc that will close it, and the decisions already settled. |
 

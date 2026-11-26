@@ -12,6 +12,8 @@ class Settings:
     """Paths and install mode for the local or hosted application."""
 
     data_dir: Path
+    frontend_dir: Path
+    """Where the frontend's build is. It may not exist; the API runs without it."""
     install: str | None
 
     @property
@@ -23,5 +25,6 @@ class Settings:
         data_dir = Path(os.environ.get("WRITING_DATA_DIR", "data"))
         if not data_dir.is_absolute():
             data_dir = Path.cwd() / data_dir
+        frontend_dir = Path.cwd() / "frontend" / "dist"
         install = os.environ.get("WRITING_INSTALL")
-        return cls(data_dir=data_dir, install=install)
+        return cls(data_dir=data_dir, frontend_dir=frontend_dir, install=install)

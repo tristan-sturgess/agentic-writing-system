@@ -83,7 +83,8 @@
             "event_id": "event_the_long_watch"
           },
           "end": {
-            "event_id": "event_the_impossible_flash"
+            "event_id": "event_the_impossible_flash",
+            "edge": "end"
           }
         }
       ]
@@ -100,8 +101,7 @@
           }
         }
       ],
-      "caused_by": "event_the_impossible_flash",
-      "supersedes": "prop_elin_treats_every_visitor_as_a_liability"
+      "caused_by": "event_the_impossible_flash"
     },
     {
       "id": "prop_fog_shore_keeps_what_the_sea_rejects",
@@ -305,7 +305,8 @@
         {
           "kind": "at",
           "at": {
-            "event_id": "event_the_impossible_flash"
+            "event_id": "event_the_impossible_flash",
+            "edge": "start"
           }
         }
       ]

@@ -223,7 +223,7 @@ class Applied(BaseModel):
 
 # The fields that hold an id, by name. A text field never has one of these
 # names, so text that starts with "@" is left alone.
-_ID_FIELDS = frozenset({"entity_id", "caused_by", "supersedes"})
+_ID_FIELDS = frozenset({"entity_id", "caused_by"})
 _ID_LIST_FIELDS = frozenset(
     {"entity_ids", "event_ids", "arc_ids", "child_ids", "subject_ids", "unit_ids"}
 )

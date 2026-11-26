@@ -4,7 +4,7 @@ This is what the Python API does and what the frontend gets from it. The API is 
 
 This doc owns the contract and the service. It does not own the subsystems it calls. The Story Bible doc owns the rules a commit checks; the persistence doc owns the commit and the stores; the agents doc owns the tools and what a cancelled turn leaves in the thread; the model-configuration doc owns configs and the agent builder; the logging doc owns the call record; the evaluations doc owns the run. Where this doc names one of their rules, it is saying where the API calls it, not restating it.
 
-Settled items 34 and 39–41 in [open-questions.md](../open-questions.md) fix the shape: a Python API with a separate frontend, a turn as a job with a durable row and a row-based stop, a stream of typed events over SSE, and the background routines in the service process. This doc states them. Question 33, how a hosted request authenticates, is placed here and not closed.
+Settled items 34 and 39–41 in [open-questions.md](../open-questions.md) fix the shape: a Python API with a separate frontend, a turn as a job with a durable row and a row-based stop, a stream of typed events over SSE, and the background routines in the service process. This doc states them. Settled item 21 fixes what the frontend is built with, and [The frontend](#the-frontend) states it. Question 33, how a hosted request authenticates, is placed here and not closed.
 
 ## The service
 
@@ -49,7 +49,7 @@ The `400` body is `{ "detail": [...] }`, one entry per rejected value: where it 
 
 ### Slices 1 and 2
 
-The first endpoints. Slice 1 builds the story endpoints, the commit, and import; slice 2 adds history, revert, and export, and the frontend that calls them. [build-sequence.md](../build-sequence.md) places each one. In these slices every commit is a hand edit, an import, or a revert.
+The first endpoints. Slice 1 builds the story endpoints, the commit, and import; slice 2 adds the Event times, the statement times, the in-force view, the in-force stretches, history, revert, and export, and the frontend that calls them. [build-sequence.md](../build-sequence.md) places each one. In these slices every commit is a hand edit, an import, or a revert.
 
 | Method and path | What it does |
 | --- | --- |
@@ -57,6 +57,10 @@ The first endpoints. Slice 1 builds the story endpoints, the commit, and import;
 | `POST /stories` | A new empty story. The store's `create`. Returns the story as `GET /stories/{story_id}` would. |
 | `GET /stories/{story_id}` | The whole story document, every record with its revision, from one `load`. This is what the frontend draws from. The revisions are what its next commit carries. |
 | `DELETE /stories/{story_id}` | Removes the story, its records, its history, and its conversations. The store's `delete`. |
+| `GET /stories/{story_id}/event-times` | The story's Events in story time: for each span of each Event, the timestamp each point and bound resolves to, or the reason it does not. [The Event times](#the-event-times) below. |
+| `GET /stories/{story_id}/statement-times` | Each Property and each Assertion in story time, in the same point shape as the Event times. [Statement times](#statement-times) below. |
+| `GET /stories/{story_id}/in-force` | The Properties and Assertions in force at one query point, with each comparison that did not resolve marked. [The in-force view](#the-in-force-view) below. |
+| `GET /stories/{story_id}/in-force-stretches` | The stretches of story time in which one Entity's in-force set stays the same, and the statements in each. [The in-force stretches](#the-in-force-stretches) below. |
 | `POST /stories/{story_id}/commits` | One commit, source `user`. The body is an ordered list of writes: create, update, or delete of one record, or a change to the framing fields or `unit_ids`, each update and delete carrying the revision the frontend loaded. A later write may name what an earlier one created. The three outcomes above. |
 | `GET /stories/{story_id}/history` | The commit records, newest first, with the persistence doc's filters: source, `thread_id`, `run_id`, a time range. Each record carries its changes with the before and after. Grouping by turn is grouping by `thread_id` and `run_id`. |
 | `POST /stories/{story_id}/revert` | A revert commit. The body names commit ids, or a `thread_id` and `run_id` for a whole turn. One commit; it lands whole or not at all, with the three outcomes above. |
@@ -79,6 +83,78 @@ The story read, the import, the export, and an evaluation's bible copies use one
 A Property is in `properties` and carries its `entity_id`. It is not nested under its Entity. The lists match the store's row per record, and a record read from the document has the same fields as one sent in a write. Within a list, records are in the order they were created.
 
 `GET /stories/{story_id}` returns that document plus the story's `id`, its `revision`, its created and updated times, and a `revision` on each record. The import and export document has none of those: no story id, no revisions, no times.
+
+#### The Event times
+
+Settled item 43 puts the resolving of story time in the service. The Story Bible layer computes it from one `load`, by the rules in [story-bible.md](../story-bible.md), and `GET /stories/{story_id}/event-times` returns it. The timeline in [ui/timeline.md](../ui/timeline.md) draws from it, and the slice 3 read tool that tells an agent when Events happen returns the same result. The frontend does not resolve a time point itself.
+
+The body is `{ "events": [...] }`, one entry for each Event, in the order the story document lists them. An entry has the Event's `id` and its `spans`, one for each span in the Event's `when` list, in the stored order. An Event with an empty `when` has an empty `spans`.
+
+A span has its `kind` and one entry for each point it stores: `at` on an `at` span, and `start` and `end` on a `range`. A bound the span does not store is absent here too. Each point has:
+
+| Field | Contents |
+| --- | --- |
+| `point` | The time point as stored: `{ timestamp }`, `{ event_id }`, or `{ event_id, edge }`. |
+| `edge` | For a point that names an Event, the end of that Event the point was read as: `start` or `end`. It is the stored `edge`, or the one its place in the span gives when none is stored. Absent for a timestamp. |
+| `timestamp` | The value the point resolves to, as `YYYY-MM-DDTHH:MM:SS`, so two values compare as text. Null when it does not resolve. A point stored as a timestamp always resolves, to that value. |
+| `unresolved` | Null when the point resolves. Otherwise a reason code, and the ids of the Events followed to reach the one that stopped the chain. |
+
+A `range` whose two bounds resolve with the start after the end carries `ends_before_start` as true. A save does not refuse that range when a bound is an Event, which the Story Bible doc lists as a known issue, and this is where it is reported.
+
+The reason codes follow the Story Bible doc's rule for a time point that names an Event, settled item 42:
+
+| Code | The chain stopped at an Event that |
+| --- | --- |
+| `no_time` | Has an empty `when`. |
+| `several_spans` | Has more than one span, so it has no single start or end. |
+| `bound_absent` | Is a period whose `start` or `end`, whichever the point means, is not recorded. |
+
+The result is computed on each request and is not stored. It has no revision. The frontend loads it with the story and loads both again after a commit. An unknown story is `404`.
+
+#### Statement times
+
+The same resolving covers a Property or an Assertion. `GET /stories/{story_id}/statement-times` returns it, from one `load`. The entities view in [ui/entities.md](../ui/entities.md) draws each span from it. A slice 3 read that needs a statement's time returns the same result. The frontend does not resolve a time point itself.
+
+The body is `{ "properties": [...], "assertions": [...] }`. Each list is in the story document's order. An entry has the record's `id` and its `spans`, one for each span in its `when`, in the stored order. An empty `when` has an empty `spans`.
+
+A span has the same shape as a span in [The Event times](#the-event-times): its `kind`, one entry for each point it stores, and `ends_before_start` on a `range` whose two bounds resolve with the start after the end. The point fields, the normalised timestamp, and the reason codes are the ones that section states. A bound the span does not store is absent here too.
+
+The result is computed on each request and is not stored. An unknown story is `404`.
+
+#### The in-force view
+
+[story-bible.md](../story-bible.md) owns which Properties and Assertions are in force at a query point. The service computes that reading from one `load`, by those rules and by the resolving above, and `GET /stories/{story_id}/in-force` returns it. The entities view lists the part that belongs to the Entity on screen. The slice 3 read tool that asks what holds at a time returns the same result. The frontend does not decide what is in force.
+
+The query point is one of these, and not both:
+
+| Query | Meaning |
+| --- | --- |
+| `timestamp` | A story-time timestamp, in the same forms as a stored timestamp. A date alone is the start of that day. |
+| `event_id` and `edge` | An Event, and which end of it. `edge` is `start` or `end`. A query sits in no span, so no edge is implied by where it stands. |
+
+Giving neither, or both a timestamp and an event id, or an event id with no edge, or a timestamp or an edge the schema rejects, is `400` in the schema-error shape. An `event_id` that is not an Event in the story is the same `400`. An unknown story is `404`.
+
+The body has `query` and `statements`. `query` is the point as given, read like a point in the Event times: the point itself, the edge it was read as (null for a timestamp), the normalised timestamp, and the unresolved reason when it does not resolve.
+
+`statements` lists the Properties and Assertions the reading includes, the Properties in document order and then the Assertions in document order. An entry has the record's `id`, its `kind` (`property` or `assertion`), and `unresolved`: the comparisons on that statement that did not resolve. Each of those names the span by its position in `when`, the bound (`start` or `end`), and the reason a point carries, a code and the Event ids followed. `unresolved` is empty when every comparison that the reading used had resolved.
+
+A statement the reading includes only because a comparison did not resolve is in the list, with that comparison in `unresolved`. A range that also covers the point does not remove those marks: the statement is in force, and the comparison that did not resolve is still reported. A range whose resolved bound places the point outside it contributes nothing. The statement is not included on that range's account, and the range's other bound is not marked when it fails to resolve. That is the Story Bible doc's rule for an unresolved comparison.
+
+When the query point itself does not resolve, there is no timestamp to compare against. `statements` then lists only the statements that hold with no comparison to make: an empty `when`, and a `range` with neither bound. The reason is on `query`.
+
+The result is computed on each request and is not stored. It has no revision.
+
+#### The in-force stretches
+
+The entities view asks where one Entity's in-force set changes. `GET /stories/{story_id}/in-force-stretches` takes `entity_id` and returns those stretches, from one `load`, by the same rules as [the in-force view](#the-in-force-view). The view lists them. It does not decide the stretches, and it does not offer a timestamp that is not one of their bounds. A caller that names a single time still uses `in-force`.
+
+A stretch is the time before the first resolved bound, the time from each bound until the next, and the time from the last bound onward. The bounds are the resolved starts and ends of the ranges on this Entity's Properties and on the Assertions that name it. An `at` span is not a bound. A bound that does not resolve is not a bound. A range with a start and an end therefore contributes the stretch before the start, the stretch from the start until the end, and the stretch from the end onward, unless another bound falls inside one of those and the statements there differ. Two successive stretches whose statements are the same, unresolved marks included, are returned as one.
+
+The body is `{ "entity_id": "...", "stretches": [...] }`. `stretches` has at least one entry. Each stretch has `start`, `end`, and `statements`. `start` and `end` are each a normalised timestamp or null. A null `start` means the stretch begins before every bound. A null `end` means it runs on with no further bound. Both null means the Entity has no resolved bound, so the one stretch covers the whole story. `statements` has the same shape and order as in the in-force view, and it is already limited to this Entity.
+
+A missing `entity_id`, or one that is not an Entity in the story, is `400` in the schema-error shape. An unknown story is `404`.
+
+The result is computed on each request and is not stored. It has no revision.
 
 #### The commit body
 
@@ -233,6 +309,16 @@ A task dies with its process. The row says so: the turn or run stays `running` i
 
 A separate worker, with a queue such as Celery and the stream served from the database, was considered in item 41 and set aside. Nothing the early slices run is heavy, and the robustness a worker buys is not what they need. The condition for revisiting it is question 29: when a workflow must resume after a restart, a durable task owner is worth having, and the buffer moves out of process with it. The turn row is the row that resume would be built on.
 
+## The frontend
+
+The frontend is React and TypeScript, built by Vite, with Mantine for its components. Settled item 21 in [open-questions.md](../open-questions.md) holds the reasons. Its source is in `frontend/` at the repository root, with its own `package.json`, managed with npm. Building it and running its dev server need Node 22.12 or later. The Python service does not need Node to run.
+
+The build writes static files to `frontend/dist`, which is not checked in. The service serves that directory from the same port as the API. A request whose path is not under `/api` gets the file at that path, and a path that is not a file gets `index.html`, so a frontend route such as one story's page survives a reload. A path under `/api` that matches no endpoint is still the API's `404`. When `frontend/dist` does not exist, the service still starts and serves the API, and a path outside `/api` returns `404` with one sentence that names the build command.
+
+In development the frontend runs from the Vite dev server on its own port, and that server proxies `/api` to the service. The browser sees one origin in both setups, so the service sends no CORS headers and the frontend calls the API by path. Development is two processes. The local app is one.
+
+The frontend's request and response types are generated from the service's OpenAPI document. The generated file is checked in, and it is regenerated when an endpoint or a schema changes. The frontend does not restate the contract by hand.
+
 ## What the frontend may never do
 
 - Open a store, a database file, or the data directory. Every read and write is a request to the API.
@@ -242,8 +328,8 @@ A separate worker, with a queue such as Celery and the stream served from the da
 - Render a message it did not receive as a typed event. The stream's types are the whole vocabulary of the transcript.
 - Write `cancelled`, or any turn status. It requests a stop and reads the row.
 
-The frontend does own rendering: the two pictures, the structured editors, the history view with its diff and revert, the turn status, the call list, and the comparison. Which framework draws them is question 21, and this doc does not choose it. Whatever is chosen is built separately and speaks only the contract above.
+The frontend does own rendering: the views in [ui.md](../ui.md), the structured editors, the history view with its diff and revert, the turn status, the call list, and the comparison. It is built separately, as [The frontend](#the-frontend) says, and speaks only the contract above.
 
 ## What stays open
 
-Question 21, the frontend framework, is closed in slice 2. Question 33, the hosted authentication mechanism, is an adapter behind the edge described above and is closed when hosting is built. Question 24, how many conversations the workspace lists, is a frontend choice over `GET /stories/{story_id}/conversations`. Question 29, a workflow that survives a restart, is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting.
+Question 22, how each screen in [ui.md](../ui.md) is drawn, is closed in slice 2. Question 33, the hosted authentication mechanism, is an adapter behind the edge described above and is closed when hosting is built. Question 24, how many conversations the workspace lists, is a frontend choice over `GET /stories/{story_id}/conversations`. Question 29, a workflow that survives a restart, is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting.

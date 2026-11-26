@@ -10,7 +10,6 @@ from agentic_writing_system.story_bible.records import (
     Entity,
     EventPoint,
     NarrativeUnit,
-    Property,
     RangeSpan,
     TimestampPoint,
 )
@@ -116,28 +115,6 @@ def test_assertion_needs_two() -> None:
     )
     p = next(x for x in check_document(doc) if x.code == "assertion_needs_two")
     assert p.record_id == "assertion_lonely"
-
-
-def test_supersedes_self() -> None:
-    doc = valid_document()
-    doc.properties[1].supersedes = doc.properties[1].id
-    p = next(x for x in check_document(doc) if x.code == "supersedes_self")
-    assert p.record_id == "prop_mara_cautious"
-    assert p.field == "supersedes"
-
-
-def test_supersedes_other_entity() -> None:
-    doc = valid_document()
-    other = Property(
-        id="prop_john_trait",
-        entity_id="entity_john",
-        statement="John is calm.",
-    )
-    doc.properties.append(other)
-    doc.properties[0].supersedes = "prop_john_trait"
-    p = next(x for x in check_document(doc) if x.code == "supersedes_other_entity")
-    assert p.record_id == "prop_mara_distrustful"
-    assert p.ids == ["prop_john_trait"]
 
 
 def test_unit_not_placed() -> None:
@@ -274,13 +251,42 @@ def test_a_range_with_an_event_bound_is_not_checked() -> None:
     assert check_document(doc) == []
 
 
+@pytest.mark.parametrize(
+    ("records", "record_id"),
+    [
+        ("properties", "prop_mara_distrustful"),
+        ("assertions", "assertion_mara_john"),
+        ("events", "event_the_letter"),
+    ],
+)
+def test_an_at_span_that_names_an_event_without_an_edge_is_refused(
+    records: str, record_id: str
+) -> None:
+    doc = valid_document()
+    record = next(r for r in getattr(doc, records) if r.id == record_id)
+    record.when = [
+        AtSpan(at=TimestampPoint(timestamp="1847-03-02")),
+        AtSpan(at=EventPoint(event_id="event_the_market")),
+    ]
+    problems = check_document(doc)
+    assert [p.code for p in problems] == ["at_needs_edge"]
+    problem = problems[0]
+    assert problem.record_id == record_id
+    assert problem.field == "when"
+    assert problem.ids == ["event_the_market"]
+    assert "position 1" in problem.message
+    assert "edge must be start or end" in problem.message
+
+
 def test_span_cycle_self() -> None:
     doc = valid_document()
     arrival = doc.events[0]
     doc.events[0] = arrival.model_copy(
-        update={"when": [AtSpan(at=EventPoint(event_id="event_arrival"))]}
+        update={"when": [AtSpan(at=EventPoint(event_id="event_arrival", edge="start"))]}
     )
-    p = next(x for x in check_document(doc) if x.code == "span_cycle")
+    problems = check_document(doc)
+    assert [p.code for p in problems] == ["span_cycle"]
+    p = problems[0]
     assert p.record_id == "event_arrival"
     assert p.field == "when"
     assert p.ids == ["event_arrival", "event_arrival"]
@@ -289,11 +295,14 @@ def test_span_cycle_self() -> None:
 def test_span_cycle_chain() -> None:
     doc = valid_document()
     doc.events[0] = doc.events[0].model_copy(
-        update={"when": [AtSpan(at=EventPoint(event_id="event_the_market"))]}
+        update={
+            "when": [AtSpan(at=EventPoint(event_id="event_the_market", edge="end"))]
+        }
     )
     doc.events[1] = doc.events[1].model_copy(
-        update={"when": [AtSpan(at=EventPoint(event_id="event_arrival"))]}
+        update={"when": [AtSpan(at=EventPoint(event_id="event_arrival", edge="start"))]}
     )
-    p = next(x for x in check_document(doc) if x.code == "span_cycle")
-    assert p.record_id == "event_arrival"
+    problems = check_document(doc)
+    assert [p.code for p in problems] == ["span_cycle", "span_cycle"]
+    p = next(x for x in problems if x.record_id == "event_arrival")
     assert "event_the_market" in p.ids

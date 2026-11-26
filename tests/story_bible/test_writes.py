@@ -104,7 +104,7 @@ def test_ref_in_time_point() -> None:
                     "when": [
                         {
                             "kind": "at",
-                            "at": {"event_id": "@arrival"},
+                            "at": {"event_id": "@arrival", "edge": "end"},
                         }
                     ],
                 }
@@ -118,6 +118,7 @@ def test_ref_in_time_point() -> None:
     point = when0.at
     assert isinstance(point, EventPoint)
     assert point.event_id == arrival_id
+    assert point.edge == "end"
 
 
 def test_update_changes_only_supplied_fields() -> None:

@@ -70,6 +70,8 @@ class EventPoint(BaseModel):
     model_config = _FORBID
 
     event_id: str
+    # Left out is stored and returned as null. The rules say what that means.
+    edge: Literal["start", "end"] | None = None
 
 
 def _time_point_shape(value: Any) -> str | None:
@@ -166,7 +168,6 @@ class PropertyFields(_RecordBase):
     statement: str
     when: list[Span] = Field(default_factory=list)
     caused_by: str | None = None
-    supersedes: str | None = None
 
 
 class Property(PropertyFields):
@@ -178,7 +179,6 @@ class PropertyPatch(_RecordBase):
     statement: str = ""
     when: list[Span] = Field(default_factory=list)
     caused_by: str | None = None
-    supersedes: str | None = None
 
 
 # --- Assertion --------------------------------------------------------------
@@ -191,7 +191,6 @@ class AssertionFields(_RecordBase):
     statement: str
     when: list[Span] = Field(default_factory=list)
     caused_by: str | None = None
-    supersedes: str | None = None
 
 
 class Assertion(AssertionFields):
@@ -205,7 +204,6 @@ class AssertionPatch(_RecordBase):
     statement: str = ""
     when: list[Span] = Field(default_factory=list)
     caused_by: str | None = None
-    supersedes: str | None = None
 
 
 # --- Event ------------------------------------------------------------------

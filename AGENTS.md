@@ -8,7 +8,7 @@ A workspace for writing long-form fiction. The writer describes the story they w
 
 Measuring whether a prompt, model, or workflow change actually helped is part of the product, not a follow-up.
 
-Slice 1 of `docs/build-sequence.md` is built: the Story Bible records and rules, the story store on SQLite, the commit, the story endpoints, and import. There is no UI and no agent yet. The design lives in `docs/`.
+Slice 1 of `docs/build-sequence.md` is built: the Story Bible records and rules, the story store on SQLite, the commit, the story endpoints, and import. Slice 2 has the records view, a route per built view, the read-only detail panel, the edge on a time point that names an Event, Event times from the service, the timeline, including the Entities and Arcs on it, the entities view, and the graph. Nothing can be edited on screen yet, and there is no agent. The design lives in `docs/`.
 
 ## What the project is for
 
@@ -52,15 +52,17 @@ Use these. Changing one is an architecture change: update the docs first.
 - **SQLAlchemy 2.1** (async) for the stores, with **Alembic** for migrations. **SQLite** locally through `aiosqlite`, **Postgres** when hosted through `psycopg`. LangGraph's SQLite and Postgres checkpointers hold conversation threads.
 - **pytest** for tests, **Ruff** for linting and formatting, **mypy** for type checking.
 - **Railway** as the eventual hosted target. The local app comes first.
-- The UI is a **separate frontend** that talks only to the Python API.
+- **Playwright** for Python, with Chromium, as a development-only tool in a Poetry dev group. It drives the screenshot command for the graph, so a layout can be judged and compared from images. It is not part of the app and does not test screens: a screenshot goes with the report of a check in the browser.
+- The UI is a **separate frontend** that talks only to the Python API. It lives in `frontend/`: **React** and **TypeScript**, built by **Vite**, with **Mantine** for components, managed with **npm** on Node 22.12 or later. **Vitest** for its tests, **ESLint** for linting. Its API types are generated from the service's OpenAPI document. `docs/architecture/application.md` says how it is built and served. `docs/ui.md` says which screens exist and the questions each view must answer, and each view has its own doc under `docs/ui/`. Before changing `frontend/`, read `.cursor/rules/frontend-mantine.mdc` and use the Mantine MCP server in `.cursor/mcp.json`. Forms, comboboxes, and custom components have skills under `frontend/.agents/skills/`.
 
-Not yet decided: the frontend framework (question 21 in `docs/open-questions.md`, closed before slice 2 builds a view) and the LangChain integration used to reach OpenRouter (decided in slice 3). Update this section when they are.
+Not yet decided: the LangChain integration used to reach OpenRouter (decided in slice 3). Update this section when it is.
 
 ## Testing
 
 Test enough to show the step works as intended. At this stage that is not exhaustive coverage. Prefer a few tests that would catch a real break over many that restate the code.
 
 - A step is done when `pytest`, `ruff check`, `ruff format --check`, and `mypy` all pass.
+- A step that touches `frontend/` is done when `npm --prefix frontend run check` also passes: the generated API types are current, and the lint, the tests, the type check, and the build pass. Frontend tests cover logic that does not render, such as laying spans out in story time. A screen is not tested by rendering it in a test; it is checked by using it in a browser against a service on a scratch data directory, and the report says what was done and what was seen.
 - A Story Bible rule gets a test for the case it refuses, and that test asserts what the refusal carries (the field or record, the legal ids, the referring records), because an agent corrects itself from that payload.
 - Store tests use a real SQLite file in a temporary directory, with the schema from the real migration. Do not mock the store or the engine.
 - Endpoint tests call the app in-process and test the mapping from outcome to response. They do not test the rules a second time.
@@ -78,6 +80,18 @@ poetry run ruff format .    # format
 poetry run mypy             # type check
 poetry run python -m agentic_writing_system serve    # the API on http://127.0.0.1:8000, docs at /api/docs
 poetry run python scripts/story_api.py --help        # command-line client for the story endpoints
+poetry run playwright install chromium               # once, the browser the screenshot command drives
+poetry run python scripts/graph_screenshot.py --help # a PNG of a story's graph from a running service (slice 2, step 8)
+
+npm --prefix frontend install        # install the frontend's dependencies (Node 22.12 or later)
+npm --prefix frontend run build      # build the frontend into frontend/dist, which `serve` then serves at /
+npm --prefix frontend run dev        # the frontend with live reload on http://localhost:5173, forwarding /api to the service
+npm --prefix frontend run check      # API types current, lint, tests, type check, and build
+npm --prefix frontend run api-types  # regenerate frontend/src/api/schema.d.ts after an endpoint or a schema changes
 ```
+
+On Windows, run the frontend commands from a path with an uppercase drive letter (`E:\dev\...` or `/e/dev/...` in Git Bash), or from inside `frontend/`. From a lowercase `e:\...` path Vitest loads twice and every test file fails with "Vitest failed to find the current suite".
+
+`serve` runs without a frontend build; the API works and `/` says how to build. The dev server forwards `/api` to `http://127.0.0.1:8000`, or to the address in `WRITING_API_URL` when the service is on another port.
 
 The service keeps its data in `data/`, or in the directory named by `WRITING_DATA_DIR`. `samples/sample_story.json` is a small story to import: `poetry run python scripts/story_api.py import samples/sample_story.json`.

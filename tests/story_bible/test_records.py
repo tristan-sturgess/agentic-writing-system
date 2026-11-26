@@ -5,6 +5,7 @@ from agentic_writing_system.story_bible.records import (
     AtSpan,
     Entity,
     EntityPatch,
+    EventPoint,
     Property,
     PropertyPatch,
     StoryDocument,
@@ -108,6 +109,30 @@ def test_a_bad_timestamp_is_one_error() -> None:
     errors = caught.value.errors()
     assert len(errors) == 1
     assert errors[0]["loc"][-1] == "timestamp"
+
+
+@pytest.mark.parametrize("edge", ["start", "end"])
+def test_an_event_point_accepts_an_edge(edge: str) -> None:
+    point = EventPoint.model_validate({"event_id": "event_x", "edge": edge})
+    assert point.edge == edge
+    assert point.model_dump(mode="json") == {"event_id": "event_x", "edge": edge}
+
+
+def test_an_event_point_with_no_edge_is_stored_as_null() -> None:
+    omitted = EventPoint.model_validate({"event_id": "event_x"})
+    explicit = EventPoint.model_validate({"event_id": "event_x", "edge": None})
+    assert omitted.edge is None
+    assert explicit.edge is None
+    assert omitted.model_dump(mode="json") == {"event_id": "event_x", "edge": None}
+    assert explicit.model_dump(mode="json") == omitted.model_dump(mode="json")
+
+
+def test_a_bad_edge_is_one_error() -> None:
+    with pytest.raises(ValidationError) as caught:
+        AtSpan.model_validate({"at": {"event_id": "event_x", "edge": "middle"}})
+    errors = caught.value.errors()
+    assert len(errors) == 1
+    assert errors[0]["loc"][-1] == "edge"
 
 
 def test_timestamp_value_reads_a_date_as_the_start_of_that_day() -> None:
