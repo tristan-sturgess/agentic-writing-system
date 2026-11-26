@@ -32,9 +32,11 @@ Every record is a node: each Entity, Property, Assertion, Event, Narrative Unit,
 
 The story itself is one more node, because its `unit_ids` name the top-level Narrative Units. It is labelled with the story's title. It cannot be selected, as the detail panel shows the story as a badge and not as a record.
 
+An Entity that owns Properties is drawn in a box with them. The box holds the Entity's node and one node per Property, and the layout keeps them together, so a character and what is true of it read as one place on the graph. The box is not a record. It has no label, it cannot be selected, it is never in the list of records that connect to nothing, and it has no filter toggle. An Entity with no Properties has no box. The box shows while any node in it shows, so hiding Entities leaves their Properties in their boxes, and hiding Properties leaves each Entity in its box.
+
 ## Edges
 
-Each reference is an arrow from the record that holds the id to the record it names. An Event that names an Entity in `entity_ids` is an arrow from the Event to the Entity. A Property is an arrow to the Entity that owns it.
+Each reference is an arrow from the record that holds the id to the record it names. An Event that names an Entity in `entity_ids` is an arrow from the Event to the Entity. A Property is an arrow to the Entity that owns it, drawn inside their box.
 
 When one record names another through more than one field, such as an Assertion that names an Event in `event_ids` and as `caused_by`, the two references are one edge, and the edge lists both fields. Two records that each name the other are two edges.
 
@@ -56,15 +58,23 @@ The hidden kinds are in the address, as `?hide=` with the kinds separated by com
 
 ## Selecting
 
-Selecting a node sets `?record=` and opens the detail panel. The selected node and its edges are emphasised, and the edges show their fields. Arriving with `?record=` already set, from a reload or from another view, emphasises that record. Selecting a record through a link in the panel selects it on the graph in the same way.
+Selecting a node sets `?record=` and opens the detail panel. Selecting the story node or an Entity's box does nothing. The selected node and its edges are emphasised, and the edges show their fields. Arriving with `?record=` already set, from a reload or from another view, emphasises that record. Selecting a record through a link in the panel selects it on the graph in the same way.
 
 A selected record whose kind is hidden stays selected, and the panel stays open. It is not shown on the graph until its kind is shown again.
 
 ## Layout, zoom, and pan
 
-The layout places the nodes once, when the view opens. It is a force layout: records that reference each other are pulled together, and the rest are pushed apart, so groups that hang together read as clusters. Changing the filter or the selection does not run it again, so a node stays where the writer last saw it. A hidden kind leaves its space empty.
+The layout places the nodes once, when the view opens, and again only when the layout panel below asks it to. It is a force layout: records that reference each other are pulled together, and the rest are pushed apart, so groups that hang together read as clusters. Changing the filter or the selection does not run it again, so a node stays where the writer last saw it. A hidden kind leaves its space empty.
 
-Step 8 makes the layout repeatable: one story is placed the same way on every load, so a reload, a screenshot, and the writer's memory of where a record sits agree. Two screenshots of one story differ only where the story or the layout changed.
+Step 8 makes the layout repeatable: one story is placed the same way on every load, so a reload, a screenshot, and the writer's memory of where a record sits agree. Two screenshots of one story differ only where the story or the layout changed. The start positions and the layout's random numbers are drawn from the story id and a seed, so the same story with the same settings lands in the same place.
+
+The forces are set by kind. Each kind of record has its own repulsion, and a line takes its length and elasticity from the kind of the record that holds the reference. The line from a Property to its Entity has its own, shorter length, which with the box keeps the Properties close to their Entity. The boxes have their own repulsion. The view opens with a baseline the owner chose from the layout panel on `large_story`, kept in the frontend as the default settings. A new baseline is chosen the same way, from screenshots, and replaces the default.
+
+### The layout panel
+
+The layout panel is a development tool. It answers none of the questions above. It is how the baseline is chosen, and the baseline is what makes questions 1 and 2 answerable on a large story. It is on the screen because tuning the layout is current work, and it will move behind a setting when that work settles.
+
+The panel sits beside the graph, under the detail panel and the list of records that connect to nothing. It edits the layout's settings: the seed, the forces for each kind, the line from a Property to its Entity, the boxes' repulsion, and fcose's other options. An edit does nothing until Regenerate, which runs the layout again with the edited settings. Defaults puts the baseline back in the panel. Copy settings puts the settings of the layout on screen on the clipboard as JSON, which is how a chosen layout becomes the next baseline. The settings are not in the address and are not saved, so a reload opens on the baseline.
 
 The graph can be zoomed and panned, and it opens fitted to the window. On a story of hundreds of records a force layout with no zoom is not legible, which is why this view has both and the timeline has neither.
 
@@ -94,7 +104,7 @@ Step 7 is checked by answering questions 1 and 2 for that story from the screen,
 
 The graph draws from the one `GET /stories/{story_id}` load every view shares. It needs nothing from the service.
 
-The nodes, the merged edges, the records that connect to nothing, and the count for each kind are a function of the story and the hidden kinds. That is logic that does not render, with Vitest tests. The edges come from the same function the detail panel uses for its references.
+The nodes, the merged edges, the records that connect to nothing, and the count for each kind are a function of the story and the hidden kinds. So are the Entity boxes, the seeded start positions, and the layout options built from the settings. That is logic that does not render, with Vitest tests. The edges come from the same function the detail panel uses for its references.
 
 The screen is drawn with [Cytoscape.js](https://js.cytoscape.org/) and its `cytoscape-fcose` layout, wrapped in one React component, with Mantine for the toggles and the list. Cytoscape draws to a canvas and gives zoom, pan, selection, hover, and showing or hiding elements without a new layout. fcose is a fast force layout that suits a general network of a few hundred nodes.
 
@@ -115,18 +125,17 @@ The steps:
 | Step | What it builds | Questions it answers |
 | --- | --- | --- |
 | 7 | The nodes and edges, what connects to nothing, the filter by kind, selecting a record, and the larger sample. | 1 and 2, on the small samples. |
-| 8 | The screenshot command, a repeatable layout, an isolated group in the large sample, and the layout changes the owner chooses. | 1 and 2, on the large sample. |
+| 8 | The screenshot command, a repeatable layout, an isolated group in the large sample, and the layout changes the owner chooses: the Entity boxes, the forces by kind, the baseline, and the layout panel that chooses it. | 1 and 2, on the large sample. |
 | 9 | Search by a record's text, and focus on one record or one Arc. | 3 to 6. |
 
 ## What stays open
 
-- **What makes the large sample readable.** Checked in the browser after step 7, the large sample is not readable. It has about 180 records and 460 references. The largest groups of references are Events naming their Entities (about 100), Properties naming their Entity (about 60), and Assertions naming Entities (about 60), and the lines pile into a few main characters. Step 8 is where the owner chooses what changes, from screenshots of `large_story` and `sample_story`, each beside the current layout. The candidates:
-    - **Tuning the force layout.** A shorter line from a Property to its Entity than for other references, stronger repulsion between nodes, and separate groups laid out apart from each other.
-    - **Properties drawn inside their Entity.** The Entity becomes a box holding its Properties, which removes a line per Property. A Property is still a node that can be selected.
+- **What makes the large sample readable.** Checked in the browser after step 7, the large sample is not readable. It has about 180 records and 460 references. The largest groups of references are Events naming their Entities (about 100), Properties naming their Entity (about 60), and Assertions naming Entities (about 60), and the lines pile into a few main characters. Step 8 is where the owner chooses what changes, from screenshots of `large_story` and `sample_story`, each beside the current layout. Chosen so far, and written into "Nodes" and "Layout, zoom, and pan" above: tuning the force layout by kind, with a shorter line from a Property to its Entity, and Properties drawn in a box with their Entity. The candidates still open:
     - **Narrative Units drawn inside their parent unit.** This removes the lines for `child_ids` and the story node's lines.
     - **Quieter lines.** Lines are faint until a node is selected or the pointer is over it, so the clusters read through the pile of lines.
 
-  The chosen changes are written into "Nodes", "Edges", and "Layout, zoom, and pan" above before they are built. Drawing Properties or Narrative Units inside another node changes what this doc says a node is, which is why the choice comes before any code.
+  A change chosen from these is written into "Nodes", "Edges", and "Layout, zoom, and pan" above before it is built. Drawing Narrative Units inside another node changes what this doc says a node is, which is why the choice comes before any code.
+- **Where the layout panel goes.** It is on the graph's screen while the layout is being tuned. It moves behind a setting when that work settles. Which setting, and where it lives, is decided then.
 - **Showing only the connections between two Entities.** An idea for question 7: the records that connect two chosen Entities, with the rest out of the way. Not built in steps 7 to 9.
 - **Measures of an Entity's reach.** An idea for question 8: how many records depend on an Entity, or how central it is to the story. Not built in steps 7 to 9.
-- **Laying out again.** The layout runs once. A control to run it again after the filter changes is added if the empty space a hidden kind leaves turns out to get in the way.
+- **Laying out again.** For the writer, the layout runs once. Regenerate in the layout panel runs it again, but that is the development tool. A control for the writer to run it again after the filter changes is added if the empty space a hidden kind leaves turns out to get in the way.

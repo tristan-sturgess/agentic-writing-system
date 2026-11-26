@@ -90,6 +90,8 @@ npm --prefix frontend run check      # API types current, lint, tests, type chec
 npm --prefix frontend run api-types  # regenerate frontend/src/api/schema.d.ts after an endpoint or a schema changes
 ```
 
+On Windows, run the frontend commands from a path with an uppercase drive letter (`E:\dev\...` or `/e/dev/...` in Git Bash), or from inside `frontend/`. From a lowercase `e:\...` path Vitest loads twice and every test file fails with "Vitest failed to find the current suite".
+
 `serve` runs without a frontend build; the API works and `/` says how to build. The dev server forwards `/api` to `http://127.0.0.1:8000`, or to the address in `WRITING_API_URL` when the service is on another port.
 
 The service keeps its data in `data/`, or in the directory named by `WRITING_DATA_DIR`. `samples/sample_story.json` is a small story to import: `poetry run python scripts/story_api.py import samples/sample_story.json`.

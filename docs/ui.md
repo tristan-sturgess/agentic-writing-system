@@ -12,6 +12,8 @@ A view is specified by the questions it answers, not by its layout. The question
 
 A view answers every question in its doc unless the doc says otherwise. When it does not answer them all, its doc says which questions it answers, which it helps with only partly, for example by letting the writer open records in the detail panel, and which wait for a later step. The view is done when a person can answer each question it claims to answer from the screen, on the sample stories, without opening the records view or the stored document. A feature that serves none of the questions waits until a question is added to the view's doc.
 
+A development tool is the exception. It helps build or tune a view, such as the layout panel on the graph, and it answers none of the view's questions itself. A view may show one when its doc names it as a development tool and says what it is for and when it moves out of the writer's way.
+
 The layout in a view doc is the first attempt at answering the questions. It can change once the view has been used. The questions change only when the owner changes them.
 
 ## Where the screens are
