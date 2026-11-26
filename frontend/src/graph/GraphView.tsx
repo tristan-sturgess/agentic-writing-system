@@ -3,8 +3,9 @@
 // Regenerate in the layout panel, so a filter or a new selection does not move
 // the nodes.
 
-import { Box, Chip, Group, Stack, Text, useMantineTheme, type MantineTheme } from '@mantine/core'
+import { Box, Chip, Group, Paper, Stack, Text, useMantineTheme, type MantineTheme } from '@mantine/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router'
 import cytoscape from 'cytoscape'
 import fcose from 'cytoscape-fcose'
@@ -179,6 +180,30 @@ export function GraphView() {
     })
   }
 
+  // In the story's right-hand column when there is one, else under the graph.
+  const sideSlot = outlet?.sideSlot ?? null
+  const sidePaper = { withBorder: true, p: 'md', w: sideSlot ? 340 : undefined, ml: sideSlot ? 'lg' : 0 }
+  const side = (
+    <>
+      <Paper {...sidePaper}>
+        <UnconnectedList
+          ids={full.unconnected}
+          index={index}
+          selectedId={selectedId}
+          onSelect={selectRecord}
+        />
+      </Paper>
+      <Paper {...sidePaper}>
+        <LayoutControls
+          value={draft}
+          applied={applied}
+          onChange={setDraft}
+          onRegenerate={() => setApplied({ ...draft })}
+        />
+      </Paper>
+    </>
+  )
+
   return (
     <Stack gap="sm">
       <Group gap="xs" align="center">
@@ -197,34 +222,17 @@ export function GraphView() {
           <Text size="sm">Story</Text>
         </Group>
       </Group>
-      <Group align="stretch" wrap="nowrap" gap="md">
-        <Box
-          ref={containerRef}
-          aria-label="Record graph"
-          style={{
-            flex: '1 1 28rem',
-            minWidth: 0,
-            height: '70vh',
-            minHeight: 420,
-            border: '1px solid var(--mantine-color-default-border)',
-            borderRadius: 'var(--mantine-radius-sm)',
-          }}
-        />
-        <Stack gap="md" style={{ flex: '0 0 300px', maxHeight: '70vh', overflow: 'auto', paddingRight: 8 }}>
-          <LayoutControls
-            value={draft}
-            applied={applied}
-            onChange={setDraft}
-            onRegenerate={() => setApplied({ ...draft })}
-          />
-          <UnconnectedList
-            ids={full.unconnected}
-            index={index}
-            selectedId={selectedId}
-            onSelect={selectRecord}
-          />
-        </Stack>
-      </Group>
+      <Box
+        ref={containerRef}
+        aria-label="Record graph"
+        style={{
+          height: '70vh',
+          minHeight: 420,
+          border: '1px solid var(--mantine-color-default-border)',
+          borderRadius: 'var(--mantine-radius-sm)',
+        }}
+      />
+      {sideSlot ? createPortal(side, sideSlot) : side}
     </Stack>
   )
 }

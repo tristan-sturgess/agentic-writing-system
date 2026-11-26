@@ -11,7 +11,7 @@ import {
   useMantineTheme,
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation, useMatch, useParams, useSearchParams } from 'react-router'
 
 import { ApiError, describeFailure, getStory } from '../api/client'
@@ -66,10 +66,21 @@ export function StoryLayout() {
     })
   }, [setParams])
 
+  const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null)
+
   const loaded = story.status === 'loaded' ? story.data : null
   const index = useMemo(() => (loaded ? indexRecords(loaded) : null), [loaded])
   const outlet = loaded ? (
-    <Outlet context={{ story: loaded, selectedId, selectRecord } satisfies StoryOutlet} />
+    <Outlet
+      context={
+        {
+          story: loaded,
+          selectedId,
+          selectRecord,
+          sideSlot: wide ? sideSlot : null,
+        } satisfies StoryOutlet
+      }
+    />
   ) : (
     <Outlet context={null} />
   )
@@ -95,13 +106,13 @@ export function StoryLayout() {
         <>
           <Title order={2}>{loaded.title || 'Untitled story'}</Title>
           <ViewLinks storyId={loaded.id} search={location.search} />
-          <Group align="flex-start" wrap="nowrap" gap="lg">
+          <Group align="flex-start" wrap="nowrap" gap={0}>
             <Box style={{ flex: '1 1 auto', minWidth: 0 }}>{outlet}</Box>
-            {wide && selectedId && (
-              <Paper
-                withBorder
-                p="md"
-                w={340}
+            {wide && (
+              // Each part of this column carries its own left margin, so the
+              // column takes no room while it is empty.
+              <Stack
+                gap="md"
                 style={{
                   flex: 'none',
                   position: 'sticky',
@@ -110,14 +121,19 @@ export function StoryLayout() {
                   overflow: 'auto',
                 }}
               >
-                <DetailPanel
-                  story={loaded}
-                  index={index}
-                  recordId={selectedId}
-                  onSelect={selectRecord}
-                  onClose={clearRecord}
-                />
-              </Paper>
+                {selectedId && (
+                  <Paper withBorder p="md" w={340} ml="lg">
+                    <DetailPanel
+                      story={loaded}
+                      index={index}
+                      recordId={selectedId}
+                      onSelect={selectRecord}
+                      onClose={clearRecord}
+                    />
+                  </Paper>
+                )}
+                <Stack gap="md" ref={setSideSlot} />
+              </Stack>
             )}
           </Group>
           {!wide && (

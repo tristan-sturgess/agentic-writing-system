@@ -59,7 +59,7 @@ export function DetailPanel({
   return (
     <Stack gap="sm">
       <Group justify="space-between" align="flex-start" wrap="nowrap">
-        <div>
+        <div style={{ minWidth: 0 }}>
           {found ? (
             <>
               <Text size="xs" c="dimmed">

@@ -51,7 +51,7 @@ export function RecordLink({
 /** A record's id, shown small beside its name. Refusals and agents speak in ids. */
 export function RecordId({ id }: { id: string }) {
   return (
-    <Text span size="xs" c="dimmed" ff="monospace">
+    <Text span size="xs" c="dimmed" ff="monospace" style={{ overflowWrap: 'anywhere' }}>
       {id}
     </Text>
   )
