@@ -192,7 +192,7 @@ This is one rule for every reader of story time: the in-force view below, the ti
 
 ### What is in force
 
-This reading is for Properties and Assertions. It is the reading the in-force view uses. The service computes that view, the entities view shows it read-only, and the agent's read tool uses the same code. A stricter overlap rule can replace the view later. It must not add a new record type or a new field beside `when`. That replacement is still open. See [open-questions.md](open-questions.md).
+This reading is for Properties and Assertions. It is the reading the in-force view uses. The service computes that view, the entities view shows it read-only, and the agent's read tool uses the same code. A stricter overlap rule can replace the view later. It must not add a new record type or a new field beside `when`. No such rule is planned. [future-work.md](future-work.md) holds it.
 
 - A statement whose `when` is empty is included at every query point.
 - A statement is in force at a query point when any `range` covers that point: the point is at or after `start` (or `start` is absent) and before `end` (or `end` is absent). An absent `end` on a statement means the claim still applies after it starts. Ranges do not fill the gaps between them.
@@ -202,7 +202,7 @@ This reading is for Properties and Assertions. It is the reading the in-force vi
 - An Assertion that names Events is a claim about them. It is not a substitute for their spans.
 - Two statements may contradict. A save keeps both. Nothing in the model detects a contradiction between two sentences, and nothing blocks the writer or the agent over one.
 
-A Property or Assertion means what its `statement` says. The sentence does not change meaning as story time moves. An in-world change is a new record. The older record keeps its sentence, and its spans can be adjusted. `caused_by` is optional. No Event is required for every new statement. Nothing on the new record points at the old one. How one statement replaces another is open; see [open-questions.md](open-questions.md).
+A Property or Assertion means what its `statement` says. The sentence does not change meaning as story time moves. An in-world change is a new record. The older record keeps its sentence, and its spans can be adjusted. `caused_by` is optional. No Event is required for every new statement. Nothing on the new record points at the old one. A link from a statement to the one it replaces is not part of the model, and [future-work.md](future-work.md) holds it.
 
 When a new statement starts at an Event with no `edge`, it starts at that Event's end. An older statement that should hold until that same moment ends on the same Event with `edge: end`. With no `edge` the older statement would end when the Event begins, and neither would be in force while the Event lasts. A range left open stays in force, and two statements that overlap are both in force. That is allowed.
 
@@ -328,7 +328,7 @@ Version 2 drew a graph of typed edges between Events and offered connect actions
 
 ## Locations
 
-A place is an Entity. An Event can name it. Routes, travel times, character whereabouts, and a scrubber for moving through a place belong to the Story Space & Timeline project. They are not records in this model. Which fields that project would own, if it is brought in later, stays open.
+A place is an Entity. An Event can name it. Routes, travel times, character whereabouts, and a scrubber for moving through a place belong to the Story Space & Timeline project. They are not records in this model. Which fields that project would own is decided if it is brought in, as [future-work.md](future-work.md) says.
 
 ## Where version 2's mechanisms went
 
@@ -340,11 +340,15 @@ Version 2's character identity fields (traits, appearance, background, voice), i
 
 ## Open modeling questions
 
-These stay open on purpose. [open-questions.md](open-questions.md) is the list.
+One question about the model is open, and it is answered before the arc-planning agent's prompt and tools are designed. It is question 1 in [open-questions.md](open-questions.md):
+
+- Whether an Event can be recorded as coming before or after another Event, with no time given. It would be a new kind of span.
+
+The rest are revisions a story may need later. None is planned, and [future-work.md](future-work.md) holds them:
 
 - Whether a stricter overlap rule replaces the in-force view above.
 - Whether statements gain a marker for objective fact, belief, or plan. The model has no such marker. Adding one later must not block a writer's edit.
 - Whether an Assertion's references need roles.
-- Whether Properties should ever link to other Properties, or whether a change should propagate on its own. They do not. `supersedes`, which named the statement a new one replaced, was removed. Question 4.
+- Whether Properties should ever link to other Properties, or whether a change should propagate on its own. They do not. `supersedes`, which named the statement a new one replaced, was removed.
 - Whether a story-specific calendar is ever added as a new kind of time point. The model uses the ISO 8601 timestamp above.
-- Whether an Event's time can be recorded more loosely: once at an unknown moment inside a window, or only as before or after another Event. Each would be a new kind of span. Question 9.
+- Whether an Event can be recorded as happening once at an unknown moment inside a window. It would be a new kind of span.

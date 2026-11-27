@@ -29,8 +29,8 @@ Paths are relative to `docs/`.
 | [ui/entities.md](ui/entities.md) | How the entities view draws one Entity's Properties and Assertions, and the questions it must answer. |
 | [ui/graph.md](ui/graph.md) | How the graph draws every record and the references between them, and the questions it must answer. |
 | [build-sequence.md](build-sequence.md) | The order the proof of concept is built in, what is built so far, and which docs each part depends on. |
-| [future-work.md](future-work.md) | What waits until after the proof of concept. |
-| [open-questions.md](open-questions.md) | Decisions still deferred, each one naming the doc that will close it. A decision that has been made is stated in the doc that owns its area. |
+| [future-work.md](future-work.md) | What waits until after the proof of concept, and the decisions that wait with it. |
+| [open-questions.md](open-questions.md) | Decisions the proof of concept still has to make, each one naming the doc that will close it. A decision that has been made is stated in the doc that owns its area. |
 
 ### Background research
 

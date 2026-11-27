@@ -85,6 +85,12 @@ A create of an Entity, a Property, an Assertion, an Event, or an Arc is in the s
 
 A note about the page or record the user currently has open is a content block on the user message for that turn. The thread stores it, so a later turn can see what the user was pointing at. The next turn carries its own note when the user has moved. The note is not part of the system prompt. The assistant's visible reply is still only assistant text, as the prompt-assembly doc says.
 
+### Conversations on a story
+
+The workspace shows one conversation on a story: the latest. The writer can start a new one, and it becomes the one shown. The store keeps the earlier conversations, and the agent runs on the conversation it was given. A list of the earlier ones, with a way to reopen one, waits in [future-work.md](../future-work.md).
+
+A new conversation is how the writer resets what the agent carries from earlier turns. Nothing trims or summarizes a thread, and each turn reads whatever the commits have stored. The bible holds the story's state, so a new conversation loses the dialogue and not the work. Whether a long thread needs more than that is question 4 in [open-questions.md](../open-questions.md).
+
 ## Cancellation
 
 The user can stop an arc run while it is going. The stop takes effect at the next superstep boundary. A model call or a tool batch already running finishes. Version 2 stored a `cancel_requested` flag on the job and never consulted it. This check is the requirement. A flag that nothing reads is not a cancel.
@@ -123,10 +129,10 @@ Exploring several candidate arc directions, and asking what a character would th
 
 When exploration is added, a candidate is not a Story Bible record. It stays off to the side until the writer, or an explicit step the writer asked for, adopts it. Adopting it writes records through the same tools and the same commit. Nothing in the exploration becomes canon by being generated.
 
-When a character query is added, it is a read. The input is a character and a story point. The answer uses only what that character could know there, from stored records, and it is not written into the bible. Persisting an answer would be a separate decision. The query does not decide the plot. The open choices for both additions, including how many candidates, how they are ranked, and the exact knowledge boundary, stay in [open-questions.md](../open-questions.md).
+When a character query is added, it is a read. The input is a character and a story point. The answer uses only what that character could know there, from stored records, and it is not written into the bible. Persisting an answer would be a separate decision. The query does not decide the plot. The choices still to make for both additions, including how many candidates, how they are ranked, and the exact knowledge boundary, wait with them in [future-work.md](../future-work.md).
 
-How many conversations the workspace lists stays open with the UI. The store already allows more than one conversation per story. The agent runs on the conversation it was given. The turn stream carries the assistant text and the tool calls and results as typed events, as [application.md](application.md) defines them. The reply the frontend renders is the assistant text. Whether it also shows the calls is a rendering choice made when the chat panel is designed in [ui.md](../ui.md).
+The turn stream carries the assistant text and the tool calls and results as typed events, as [application.md](application.md) defines them. The reply the frontend renders is the assistant text. Whether it also shows the calls is a rendering choice made when the chat panel is designed in [ui.md](../ui.md).
 
 ## What stays open
 
-[open-questions.md](../open-questions.md) holds the choices this doc does not close: how many conversations the workspace shows, and the shape of later exploration and character queries. Review before a commit is not one of them. There is none, and the history view with its revert is the writer's review, as [A draft, when a batch must land together](#a-draft-when-a-batch-must-land-together) says.
+[open-questions.md](../open-questions.md) holds the choices this doc has to close for the arc chat: whether a model call retries and with what settings, how long a conversation thread may grow, and, with the Story Bible doc, how the agent places an Event that comes after another when no time is given. The shape of later exploration and character queries waits in [future-work.md](../future-work.md). Review before a commit is not an open choice. There is none, and the history view with its revert is the writer's review, as [A draft, when a batch must land together](#a-draft-when-a-batch-must-land-together) says.

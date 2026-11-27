@@ -36,7 +36,7 @@ This is what the model stores, and so what the view draws. Each row is one case 
 
 An Event can mix these. Each of its spans is drawn by its own row of the table.
 
-The model cannot record that an Event happens once at some unknown moment inside a window, or that it comes after another Event with no time given for either. The timeline draws only what is stored. Question 9 in [open-questions.md](../open-questions.md) holds those cases for the Story Bible.
+The model cannot record that an Event happens once at some unknown moment inside a window, or that it comes after another Event with no time given for either. The timeline draws only what is stored. The first case waits in [future-work.md](../future-work.md). The second is question 1 in [open-questions.md](../open-questions.md), and it is answered before the arc-planning agent is designed.
 
 ## The axis
 
@@ -133,4 +133,4 @@ The layout is rows and lanes, so it is drawn with a grid, plain SVG where a mark
 
 ## What stays open
 
-- **Times the model cannot store.** Question 9 in [open-questions.md](../open-questions.md). Later.
+- **Times the model cannot store.** An Event placed only as before or after another is question 1 in [open-questions.md](../open-questions.md). An Event at an unknown moment inside a window is in [future-work.md](../future-work.md).

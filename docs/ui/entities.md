@@ -95,6 +95,6 @@ The screen is a select for the Entity, a select for the stretch, and the lists. 
 
 ## What stays open
 
-- **A stricter overlap rule.** Question 2 in [open-questions.md](../open-questions.md). It would replace this reading.
+- **A stricter overlap rule.** It would replace this reading. None is planned, and [future-work.md](../future-work.md) holds it.
 - **Several Entities at once.** One Entity is the first version. A second is added when a question here needs it.
 - **A timestamp that is not a bound.** The stretches are the choices. A field for any other timestamp is deferred.

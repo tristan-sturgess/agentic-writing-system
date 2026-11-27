@@ -4,7 +4,7 @@ This is what the Python API does and what the frontend gets from it. The API is 
 
 This doc owns the contract and the service. It does not own the subsystems it calls. The Story Bible doc owns the rules a commit checks; the persistence doc owns the commit and the stores; the agents doc owns the tools and what a cancelled turn leaves in the thread; the model-configuration doc owns configs and the agent builder; the logging doc owns the call record; the evaluations doc owns the run. Where this doc names one of their rules, it is saying where the API calls it, not restating it.
 
-The shape is a Python API with a separate frontend, a turn as a job with a durable row and a row-based stop, a stream of typed events over SSE, and the background routines in the service process. [The frontend](#the-frontend) says what the frontend is built with. Question 10 in [open-questions.md](../open-questions.md), how a hosted request authenticates, is placed here and not closed.
+The shape is a Python API with a separate frontend, a turn as a job with a durable row and a row-based stop, a stream of typed events over SSE, and the background routines in the service process. [The frontend](#the-frontend) says what the frontend is built with. How a hosted request authenticates is placed here and not chosen. It waits with hosting, in [future-work.md](../future-work.md).
 
 ## The service
 
@@ -23,7 +23,7 @@ Every request is resolved to a `user_id` at the edge, before any handler, store,
 The resolver is an adapter chosen when the service starts:
 
 - The local resolver returns the one implicit user, created on first run. Every request is that user. There is no login screen.
-- The hosted resolver turns a credential on the request into a `user_id`, or rejects the request with `401`. Which credential, and which provider issues it, is question 10. The adapter's output is the same `user_id` the local resolver returns, and nothing below the edge knows which resolver ran.
+- The hosted resolver turns a credential on the request into a `user_id`, or rejects the request with `401`. Which credential, and which provider issues it, is decided when hosting is built. The adapter's output is the same `user_id` the local resolver returns, and nothing below the edge knows which resolver ran.
 
 The service refuses to start with the local resolver unless it is configured as a local install. A hosted deployment that forgot to configure authentication fails at startup rather than serving every request as the implicit user.
 
@@ -185,8 +185,8 @@ The arc chat is the first endpoint that streams and the first that has to carry 
 
 | Method and path | What it does |
 | --- | --- |
-| `GET /stories/{story_id}/conversations` | The conversation rows for a story: id, created time, and the latest turn's id and status. |
-| `POST /stories/{story_id}/conversations` | A new conversation row on this story for the acting user. The thread is created when the first turn runs. |
+| `GET /stories/{story_id}/conversations` | The conversation rows for a story, newest first: id, created time, and the latest turn's id and status. The chat panel shows the first. |
+| `POST /stories/{story_id}/conversations` | A new conversation row on this story for the acting user. The thread is created when the first turn runs. This is the panel's "start a new conversation", and the new row is then the latest. |
 | `GET /conversations/{conversation_id}` | The row and the transcript: the thread's messages, projected to the same types the stream carries. User messages, assistant text, tool calls, tool results. There is no system message in the thread, and none is projected. |
 | `DELETE /conversations/{conversation_id}` | Removes the row and the thread. A conversation with a running turn is refused with `409`. |
 | `POST /conversations/{conversation_id}/turns` | Starts a turn. [A turn](#a-turn) below. |
@@ -311,7 +311,7 @@ The routines run as tasks on the service's event loop, locally and hosted. There
 
 A task dies with its process. The row says so: the turn or run stays `running` in the store and is read as `interrupted`. The story is consistent because every change was a commit, and the agents doc's thread rules mean the next prompt on that conversation is valid once the stale turn is no longer counted as running. On shutdown the service sets `stop_requested_at` on its own running turns and gives them a short grace to reach a boundary; whatever is still running when the process exits is interrupted, and nothing is lost that a commit had not already kept.
 
-A separate worker, with a queue such as Celery and the stream served from the database, was considered and set aside. Nothing the proof of concept runs is heavy: model calls are I/O, and the checks and the bible copies are small. The robustness a worker buys, retries and a durable task owner, is not what the proof of concept needs, and a task is already allowed to die with its process while the row says so. A worker would also move the stream buffer out of process at once, which is hosting work that waits. Keeping one process is also what keeps the local install one command. The condition for revisiting it is question 6: when a workflow must resume after a restart, a durable task owner is worth having, and the buffer moves out of process with it. The turn row is the row that resume would be built on.
+A separate worker, with a queue such as Celery and the stream served from the database, was considered and set aside. Nothing the proof of concept runs is heavy: model calls are I/O, and the checks and the bible copies are small. The robustness a worker buys, retries and a durable task owner, is not what the proof of concept needs, and a task is already allowed to die with its process while the row says so. A worker would also move the stream buffer out of process at once, which is hosting work that waits. Keeping one process is also what keeps the local install one command. The condition for revisiting it is in [future-work.md](../future-work.md): when a workflow must resume after a restart, a durable task owner is worth having, and the buffer moves out of process with it. The turn row is the row that resume would be built on.
 
 ## The frontend
 
@@ -340,4 +340,6 @@ The frontend does own rendering: the views in [ui.md](../ui.md), the structured 
 
 ## What stays open
 
-Question 10 in [open-questions.md](../open-questions.md), the hosted authentication mechanism, is an adapter behind the edge described above and is closed when hosting is built. Question 1, how many conversations the workspace lists, is a frontend choice over `GET /stories/{story_id}/conversations`. Question 6, a workflow that survives a restart, is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting.
+These wait until after the proof of concept, and [future-work.md](../future-work.md) holds them. The hosted authentication mechanism is an adapter behind the edge described above and is chosen when hosting is built. A workflow that survives a restart is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting. A list of a story's earlier conversations is a frontend addition over `GET /stories/{story_id}/conversations`.
+
+Whether a model call retries is question 3 in [open-questions.md](../open-questions.md). A retry middleware, if there is one, joins the builder's list in [Starting a turn](#starting-a-turn).

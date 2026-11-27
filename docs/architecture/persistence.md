@@ -18,7 +18,7 @@ Nothing above a store opens its engine. Swapping SQLite for Postgres changes the
 
 A story is the isolation boundary. Every Story Bible record belongs to one story. A story has one owner, a user. Locally there is one user, created on first run. That user id is still passed into every store call. A second user is an authorization check, not a new shape for a story.
 
-A request acts as one user. A read or a write of a story succeeds only for that story's owner. There is no sharing. The API in [application.md](application.md) resolves every request to a user id before it calls a store; locally that is the one implicit user. How a hosted request proves who it is from is authentication, which waits in [open-questions.md](../open-questions.md). Every store call takes the user id either way.
+A request acts as one user. A read or a write of a story succeeds only for that story's owner. There is no sharing. The API in [application.md](application.md) resolves every request to a user id before it calls a store; locally that is the one implicit user. How a hosted request proves who it is from is authentication, which waits with hosting in [future-work.md](../future-work.md). Every store call takes the user id either way.
 
 The same boundary covers the data that is not a story. Model configs, the API key, call logs, and conversations belong to the user. A conversation also belongs to one story. One user's rows are never returned to another user.
 
@@ -114,7 +114,7 @@ Independent reads of a story run together. Writes to two stories run together. A
 
 A multi-step agent draft is the same commit with a longer-lived snapshot. The draft holds the writes until one commit. That changeset carries the snapshot revisions for every record the draft writes, and a `guard` for every record the draft read while planning, so the commit lands only if nothing it saw has moved. If anything has, the commit conflicts, returns the rows that moved, and writes nothing. The story is still the one the user has. The agents doc says the caller reports that conflict and does not reapply the draft onto the new state. The plot-draft commit in version 2 is the pattern. The process-wide story-bible claim it also required is not.
 
-If the process dies before that commit, the draft is gone. The draft is in-process state; it is not in the conversation thread's checkpoints. The story stays at the last successful commit. Call records already written stay in the log. Resuming a workflow after a restart, and checkpointing a run that must survive the process, stay open in [open-questions.md](../open-questions.md).
+If the process dies before that commit, the draft is gone. The draft is in-process state; it is not in the conversation thread's checkpoints. The story stays at the last successful commit. Call records already written stay in the log. Resuming a workflow after a restart, and checkpointing a run that must survive the process, wait in [future-work.md](../future-work.md).
 
 A busy flag in the UI can tell the user a run is in progress. It is not what keeps the story consistent. Version 2's in-memory job claims died on restart and were not a transaction. They are not ported.
 
@@ -172,13 +172,13 @@ The key is not a field on the config document. It is not written into a story ex
 
 A conversation is a LangGraph thread. The chat agent from `create_agent` is compiled with a checkpointer, and the conversation's id is the `thread_id` it is invoked with. The transcript the workspace shows is that thread's state. There is no second message table. The logging doc's `thread_id` is this id.
 
-The app keeps a conversation row in `app.sqlite`: the conversation id, the owner, the story, and a created time. The checkpointer's tables carry no user or story, so that row is the scope. A request resolves a conversation through its row, and the owner check happens there, before the agent is invoked with that `thread_id`. A thread has one invoke in flight. A second prompt on that conversation waits until the run has ended, as the agents doc says. A turn whose process died is reported as interrupted under the heartbeat rule below and no longer counts as running; the application doc states that. Story edits during the run are commits, and they do not start a second invoke. The store allows more than one conversation per story. The agent runs on the conversation it was given. Whether the workspace lists more than one stays open in the agents doc.
+The app keeps a conversation row in `app.sqlite`: the conversation id, the owner, the story, and a created time. The checkpointer's tables carry no user or story, so that row is the scope. A request resolves a conversation through its row, and the owner check happens there, before the agent is invoked with that `thread_id`. A thread has one invoke in flight. A second prompt on that conversation waits until the run has ended, as the agents doc says. A turn whose process died is reported as interrupted under the heartbeat rule below and no longer counts as running; the application doc states that. Story edits during the run are commits, and they do not start a second invoke. The store allows more than one conversation per story. The agent runs on the conversation it was given. The workspace shows the story's latest conversation and lets the writer start a new one, as the agents doc says.
 
 Locally the checkpointer is the SQLite checkpointer on `data/checkpoints.sqlite`. On Railway it is the Postgres checkpointer. Each is its async form for the streaming chat path and its sync form for a sync caller. The sync saver does not implement the async methods, so the chat loop, which streams, needs the async one. This is the same rule as the middleware hooks. The library's setup creates its tables; the app does not define them.
 
 Deleting a conversation deletes its row and its thread. Deleting a story deletes its conversations. A conversation is not a Story Bible record. The story export does not include it. Version 2 kept chat in a side file and left it out of the ZIP. The side file had no owner and no story. The exclusion from the export stays.
 
-This checkpointer is conversation memory. It gives the chat agent its history between turns. Using it to resume a workflow after a process restart is a separate decision, open in [open-questions.md](../open-questions.md), and the draft commit above does not depend on it.
+This checkpointer is conversation memory. It gives the chat agent its history between turns. Using it to resume a workflow after a process restart is a separate decision that waits in [future-work.md](../future-work.md), and the draft commit above does not depend on it.
 
 ## Call-log store
 
@@ -222,6 +222,6 @@ Import checks the schema version and fails with a clear error when it does not m
 
 ## What stays open
 
-Workflows that must survive a process restart stay open in [open-questions.md](../open-questions.md). Until that is decided, a run lives in the process. The story does not hold a half-applied draft.
+Workflows that must survive a process restart wait in [future-work.md](../future-work.md). Until one is needed, a run lives in the process. The story does not hold a half-applied draft.
 
-These stores are called from the Python API in [application.md](application.md), and from nothing else; the frontend never opens one. How a hosted request authenticates is still open there. It does not change the ownership model.
+These stores are called from the Python API in [application.md](application.md), and from nothing else; the frontend never opens one. How a hosted request authenticates is chosen when hosting is built. It does not change the ownership model.

@@ -19,8 +19,8 @@ This is the map of the system: what the parts are, and which document is the aut
 | Call logging | One `wrap_model_call` middleware, last in the list, records the request the provider receives and the response. A `tool_call` record for each tool invocation. Debug data, scoped by user, never in a story export. | [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md) |
 | Evaluations | A fixture, a run, deterministic checks, a three-dimension judge scored 1 to 5, and a comparison of runs on one fixture. Cost and latency are read from the cited call records. No budget, no CI. | [architecture/evaluations.md](architecture/evaluations.md) |
 | Build sequence | The order the proof of concept is built in: the Story Bible, the views, editing, the arc chat with the model-call subsystems, evaluations, prose. It says what is built so far, and its prose note carries the deferred version 2 salvage. | [build-sequence.md](build-sequence.md) |
-| Future work | What waits until after the proof of concept: the rest of the graph's work, hosting, and the other things the docs say wait. | [future-work.md](future-work.md) |
-| Open questions | Every decision still deferred, each naming the doc that closes it. A decision that has been made is stated in the doc that owns its area, not there. | [open-questions.md](open-questions.md) |
+| Future work | What waits until after the proof of concept: the rest of the graph's work, hosting, and the other things the docs say wait, each with the decisions that wait with it. | [future-work.md](future-work.md) |
+| Open questions | The decisions the proof of concept still has to make, each naming the doc that closes it. A decision that has been made is stated in the doc that owns its area, not there. | [open-questions.md](open-questions.md) |
 
 ## How they fit
 
@@ -66,13 +66,15 @@ An evaluation run is that same agent, driven by a runner against a fixture, with
 
 ## What is not decided
 
-[open-questions.md](open-questions.md) is the list of what is open, and the questions named here are numbered there. The rest of this section says where the decided parts end and the open ones begin.
+[open-questions.md](open-questions.md) is the list of what the proof of concept still has to decide. [future-work.md](future-work.md) holds the decisions that wait until after it. The rest of this section says where the decided parts end.
 
 The frontend framework is decided: React and TypeScript, built by Vite, with Mantine components, as [architecture/application.md](architecture/application.md) says. Which views exist is decided, [ui.md](ui.md) lists them, and they are built read-only. The service resolves story time and the frontend lays the result out. How each screen is drawn is what [ui.md](ui.md) and the view docs say, and a screen that is not built is designed there before it is built.
 
-The application layer is decided as the Python API, and the application doc states it and the frontend build. The subsystem docs already say what that API must call and must not touch, and the application doc gives its own shape: a chat turn is a job with a durable turn row and a stop the running turn reads at each superstep boundary; the stream is typed events over SSE with an in-process replay buffer; and the heartbeat, retention, turn task, and evaluation runner all run in the service process, locally and hosted. Authentication (question 10) is placed at the API edge, with the hosted mechanism left as an adapter behind that step. The story endpoints are built from that doc.
+The application layer is decided as the Python API, and the application doc states it and the frontend build. The subsystem docs already say what that API must call and must not touch, and the application doc gives its own shape: a chat turn is a job with a durable turn row and a stop the running turn reads at each superstep boundary; the stream is typed events over SSE with an in-process replay buffer; and the heartbeat, retention, turn task, and evaluation runner all run in the service process, locally and hosted. Authentication is placed at the API edge, with the hosted mechanism left as an adapter behind that step, to be chosen when hosting is built. The story endpoints are built from that doc.
 
-Restart durability for a workflow (question 6) and the later candidate exploration and character queries (question 8) are open and are not needed by anything up to and including the evaluations. There is no review gate before a commit: the writer's review is the history view and its revert, as [architecture/agents.md](architecture/agents.md) says.
+Four decisions are open, and the arc-planning agent needs each of them: whether an Event can be placed after another with no time given, which LangChain integration reaches OpenRouter, whether a model call retries, and how long a conversation thread may grow.
+
+Restart durability for a workflow and the later candidate exploration and character queries wait in the future work doc. Nothing in the proof of concept needs them. There is no review gate before a commit: the writer's review is the history view and its revert, as [architecture/agents.md](architecture/agents.md) says.
 
 ## Where the version 3 concept's workstreams landed
 
@@ -81,12 +83,12 @@ The Linear project listed nine workstreams. Each one has a home.
 | Workstream | Home |
 | --- | --- |
 | Overall V3 design and migration model | This page. |
-| Local-first and deployment-ready storage, multi-tenancy | [architecture/persistence.md](architecture/persistence.md). The frontend split is the Python API, owned by [architecture/application.md](architecture/application.md). The authentication mechanism stays open, question 10 in [open-questions.md](open-questions.md). |
-| Durable long-running workflow orchestration | Open, question 6. The early durable artifact is the last successful commit. |
+| Local-first and deployment-ready storage, multi-tenancy | [architecture/persistence.md](architecture/persistence.md). The frontend split is the Python API, owned by [architecture/application.md](architecture/application.md). The authentication mechanism waits with hosting, in [future-work.md](future-work.md). |
+| Durable long-running workflow orchestration | Waits, in [future-work.md](future-work.md). The early durable artifact is the last successful commit. |
 | Eval-first evaluation | [architecture/evaluations.md](architecture/evaluations.md). |
 | Event graph and signal model | [story-bible.md](story-bible.md). Events with spans, relationships as Assertions, no signals. |
 | Plot planning around narrative intent | [architecture/agents.md](architecture/agents.md). Direct writes on the arc chat. |
-| Plot exploration and character queries | [architecture/agents.md](architecture/agents.md), as later additions. Open, question 8. |
+| Plot exploration and character queries | [architecture/agents.md](architecture/agents.md), as later additions. They wait in [future-work.md](future-work.md). |
 | Context assembly | [architecture/prompt-assembly.md](architecture/prompt-assembly.md). Read tools. |
 | Cost, latency, and observability | [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md) for the record, [architecture/evaluations.md](architecture/evaluations.md) for cost per run. No budget. |
 

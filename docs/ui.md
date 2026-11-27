@@ -91,7 +91,7 @@ These are required by other docs, and none is built. Each gets a section or a do
 | The Arc editor | [story-bible.md](story-bible.md) | Editing |
 | The history, with what each commit changed and a revert | [architecture/persistence.md](architecture/persistence.md), and [architecture/agents.md](architecture/agents.md), where it is the writer's review of what an agent's turn did | Editing. The arc-planning agent adds the turn. |
 | Model configs and the API key | [architecture/model-configuration.md](architecture/model-configuration.md) | The arc-planning agent |
-| The chat panel and the turn's status | [architecture/application.md](architecture/application.md) | The arc-planning agent |
+| The chat panel, on the story's latest conversation with an action that starts a new one, and the turn's status | [architecture/application.md](architecture/application.md), and [architecture/agents.md](architecture/agents.md) for which conversation is shown | The arc-planning agent |
 | The call list | [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md) | The arc-planning agent |
 | Fixtures, runs, and the comparison | [architecture/evaluations.md](architecture/evaluations.md) | Evaluations |
 

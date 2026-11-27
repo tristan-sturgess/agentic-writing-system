@@ -77,7 +77,7 @@ A cached agent includes the prefix, the model id, the sampling options, and the 
 
 ## The prefixed agent
 
-Resolution returns a binding: a chat model with the config's model id, temperature, max tokens, and reasoning effort set, plus the prefix string. Code outside the factory does not build a chat model from a config, and the binding does not hand out its model. The binding builds agents.
+Resolution returns a binding: a chat model with the config's model id, temperature, max tokens, and reasoning effort set, plus the prefix string. Code outside the factory does not build a chat model from a config, and the binding does not hand out its model. The binding builds agents. Which LangChain integration that chat model comes from is not chosen yet: question 2 in [open-questions.md](../open-questions.md).
 
 Every model call is an agent from `create_agent`. The chat loop is one. A one-shot call is a tool-less agent, with `response_format` set when the output is structured, placed in the workflow graph as a node. LangChain's middleware runs inside the compiled graph that `create_agent` returns, so a one-shot agent nested in a larger `StateGraph` keeps its middleware. The workflow node invokes that agent with its own input, the user message for the step, and reads the result or `structured_response` from the return value. The agent's message list is its own; it is not the workflow's state. There is no second call path for one-shot calls, so there is no second place the prefix could be missed. A caller cannot use the config's model and skip the prefix.
 
