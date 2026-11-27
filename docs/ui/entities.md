@@ -1,6 +1,6 @@
 # Entities
 
-The entities view shows one Entity: what is true of it, when that holds, and how it is tied to other Entities. It is built read-only. [ui.md](../ui.md) says what it shares with the other views.
+The entities view shows one Entity: what is true of it, when that holds, and how it is tied to other Entities. It does not edit a record in place. Editing is the detail panel. [ui.md](../ui.md) says what it shares with the other views.
 
 Story time and what is in force come from the service, as [architecture/application.md](../architecture/application.md) says. The Story Bible doc owns what a span means, how a time point that names an Event resolves, and which statements are in force at a query point. This doc says how the view draws the service's result. It does not restate those rules, and it does not add to them.
 
@@ -59,7 +59,7 @@ A statement with an unresolved comparison shows each one: which span, which boun
 
 ## What the view does not do
 
-- It does not edit. Editing is planned, in the detail panel.
+- It does not edit a record in place. An Entity and a Property are edited in the detail panel. A Property is created from its Entity's panel. The other kinds of record are edited in that same panel.
 - It does not draw Events on an axis. That is the timeline. A `caused_by` link selects the Event, and the writer opens the timeline on that selection.
 - It does not resolve a time point, and it does not decide what is in force. The service does both.
 - It does not detect that two statements contradict. Both are shown when both are in force.

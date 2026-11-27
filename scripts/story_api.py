@@ -105,6 +105,17 @@ def main(argv: list[str] | None = None) -> int:
     stretches_p.add_argument("story_id")
     stretches_p.add_argument("entity_id")
 
+    history_p = sub.add_parser("history", help="Print a story's commits, newest first")
+    history_p.add_argument("story_id")
+
+    export_p = sub.add_parser("export", help="Write the export document to a file")
+    export_p.add_argument("story_id")
+    export_p.add_argument("file", help="Path to write")
+
+    revert_p = sub.add_parser("revert", help="Undo one or more commits, newest first")
+    revert_p.add_argument("story_id")
+    revert_p.add_argument("commit_ids", nargs="+", help="Commit ids to undo")
+
     delete_p = sub.add_parser("delete", help="Delete a story")
     delete_p.add_argument("story_id")
 
@@ -157,6 +168,28 @@ def main(argv: list[str] | None = None) -> int:
             "GET",
             base,
             f"{API_PREFIX}/stories/{args.story_id}/in-force-stretches?{query}",
+        )
+    elif args.command == "history":
+        status, raw = _http(
+            "GET", base, f"{API_PREFIX}/stories/{args.story_id}/history"
+        )
+    elif args.command == "export":
+        status, raw = _http("GET", base, f"{API_PREFIX}/stories/{args.story_id}/export")
+        if not 200 <= status < 300:
+            return _emit(status, raw)
+        document = json.loads(raw)
+        Path(args.file).write_text(
+            json.dumps(document, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        print(status)
+        return 0
+    elif args.command == "revert":
+        status, raw = _http(
+            "POST",
+            base,
+            f"{API_PREFIX}/stories/{args.story_id}/revert",
+            {"commit_ids": args.commit_ids},
         )
     elif args.command == "delete":
         status, raw = _http("DELETE", base, f"{API_PREFIX}/stories/{args.story_id}")

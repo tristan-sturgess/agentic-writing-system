@@ -1,4 +1,4 @@
-"""Story list, create, read, delete, and the story-time reads."""
+"""Story list, create, read, delete, history, revert, export, and story time."""
 
 from __future__ import annotations
 
@@ -17,9 +17,12 @@ from agentic_writing_system.api.errors import (
 )
 from agentic_writing_system.api.schemas import (
     CommitRequest,
+    CommitView,
     ConflictResponse,
+    RevertRequest,
     StorySummary,
     StoryView,
+    commit_view,
     conflict_response,
     story_summary,
     story_view,
@@ -40,6 +43,7 @@ from agentic_writing_system.story_bible.records import (
     TimePoint,
     TimestampPoint,
 )
+from agentic_writing_system.story_bible.revert import revert
 from agentic_writing_system.story_bible.rules import Refusal
 from agentic_writing_system.story_bible.story_time import (
     EventTimes,
@@ -72,6 +76,34 @@ async def create_story(
     created = await store.create(user_id)
     stored = await store.load(user_id, created.story_id)
     return story_view(stored)
+
+
+@router.get(
+    "/{story_id}/history",
+    response_model=list[CommitView],
+    responses=NOT_FOUND,
+)
+async def get_history(
+    story_id: str,
+    user_id: Annotated[str, Depends(current_user_id)],
+    store: Annotated[StoryStore, Depends(get_story_store)],
+) -> list[CommitView]:
+    records = await store.history(user_id, story_id)
+    return [commit_view(record) for record in records]
+
+
+@router.get(
+    "/{story_id}/export",
+    response_model=StoryDocument,
+    responses=NOT_FOUND,
+)
+async def get_export(
+    story_id: str,
+    user_id: Annotated[str, Depends(current_user_id)],
+    store: Annotated[StoryStore, Depends(get_story_store)],
+) -> StoryDocument:
+    stored = await store.load(user_id, story_id)
+    return document_from_stored(stored)
 
 
 @router.get("/{story_id}", response_model=StoryView, responses=NOT_FOUND)
@@ -248,6 +280,41 @@ async def post_commit(
         body.writes,
         CommitSource(source="user"),
     )
+    if isinstance(outcome, Refusal):
+        return JSONResponse(status_code=422, content=outcome.model_dump())
+    if isinstance(outcome, Conflict):
+        return JSONResponse(
+            status_code=409,
+            content=conflict_response(outcome).model_dump(),
+        )
+    return outcome
+
+
+@router.post(
+    "/{story_id}/revert",
+    response_model=Committed,
+    responses={
+        **BAD_REQUEST,
+        **NOT_FOUND,
+        status.HTTP_409_CONFLICT: {
+            "model": ConflictResponse,
+            "description": "The story no longer matches the commits being undone",
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "model": Refusal,
+            "description": (
+                "A rule refused the revert, or a commit id is not in this story"
+            ),
+        },
+    },
+)
+async def post_revert(
+    story_id: str,
+    body: RevertRequest,
+    user_id: Annotated[str, Depends(current_user_id)],
+    store: Annotated[StoryStore, Depends(get_story_store)],
+) -> Committed | JSONResponse:
+    outcome = await revert(store, user_id, story_id, body.commit_ids)
     if isinstance(outcome, Refusal):
         return JSONResponse(status_code=422, content=outcome.model_dump())
     if isinstance(outcome, Conflict):

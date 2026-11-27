@@ -2,52 +2,113 @@ import {
   Alert,
   Anchor,
   Box,
+  Button,
   Drawer,
   Group,
   Loader,
+  Modal,
   Paper,
   Stack,
+  Text,
   Title,
   useMantineTheme,
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { useCallback, useMemo, useState } from 'react'
-import { Link, Navigate, Outlet, useLocation, useMatch, useParams, useSearchParams } from 'react-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  Link,
+  Navigate,
+  Outlet,
+  useBlocker,
+  useLocation,
+  useMatch,
+  useParams,
+  useSearchParams,
+  type BlockerFunction,
+} from 'react-router'
 
-import { ApiError, describeFailure, getStory } from '../api/client'
+import { ApiError, describeFailure, getExport, getStory } from '../api/client'
+import { CreatePanel, type CreateRequest } from '../story/CreatePanel'
 import { DetailPanel } from '../story/DetailPanel'
 import { indexRecords } from '../story/records'
-import { useLoad } from '../useLoad'
+import { useReloadableLoad } from '../useLoad'
 import type { StoryOutlet } from './storyContext'
 
 // A view is added here when its screen exists. This page does not link to a
 // view that has no screen.
+/** A download name: the title when the story has one, otherwise its id. */
+function exportFilename(title: string, storyId: string): string {
+  const cleaned = title
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return `${cleaned || storyId}.json`
+}
+
 const VIEWS = [
   { path: 'records', label: 'Records' },
   { path: 'timeline', label: 'Timeline' },
   { path: 'entities', label: 'Entities' },
   { path: 'graph', label: 'Graph' },
+  { path: 'history', label: 'History' },
 ] as const
+
+type Pending =
+  | { kind: 'select'; id: string }
+  | { kind: 'close' }
+  | { kind: 'create'; request: CreateRequest }
 
 /**
  * One story, loaded once for every view under it.
  *
  * `/stories/{id}` redirects to the records view. The selected record is
  * `?record=`, and the view links keep it, so it survives a reload and a
- * change of view.
+ * change of view. The detail panel lives here, so an edit survives a change
+ * of view too.
  */
 export function StoryLayout() {
   const { storyId = '' } = useParams()
   const location = useLocation()
   const [params, setParams] = useSearchParams()
   const load = useCallback(() => getStory(storyId), [storyId])
-  const story = useLoad(load)
+  const [story, reloadStory] = useReloadableLoad(load)
+  const [reloadError, setReloadError] = useState<{ id: string; error: Error } | null>(null)
+  const [exportState, setExportState] = useState<{
+    storyId: string
+    pending: boolean
+    error: Error | null
+  } | null>(null)
+  const [createState, setCreateState] = useState<{
+    storyId: string
+    request: CreateRequest
+  } | null>(null)
+  const [dirty, setDirty] = useState(false)
+  const [pending, setPending] = useState<{ id: string; action: Pending } | null>(null)
+  const dirtyRef = useRef(false)
+  const dirtySources = useRef(new Set<string>())
   const theme = useMantineTheme()
   const wide = useMediaQuery(`(min-width: ${theme.breakpoints.md})`, true, {
     getInitialValueInEffect: false,
   })
 
   const selectedId = params.get('record')
+  const creating = createState?.storyId === storyId ? createState.request : null
+  const action = pending?.id === storyId ? pending.action : null
+  const reloadFailure = reloadError?.id === storyId ? reloadError.error : null
+
+  // A failed reload is reported here and leaves the story already on screen.
+  const reload = useCallback(async () => {
+    try {
+      await reloadStory()
+      setReloadError(null)
+    } catch (reason) {
+      const error = reason instanceof Error ? reason : new Error(String(reason))
+      setReloadError({ id: storyId, error })
+    }
+  }, [reloadStory, storyId])
+  const stopCreating = useCallback(() => setCreateState(null), [])
+
   const selectRecord = useCallback(
     (id: string) => {
       setParams((prev) => {
@@ -66,24 +127,187 @@ export function StoryLayout() {
     })
   }, [setParams])
 
+  const setDirtySource = useCallback((source: string, next: boolean) => {
+    const sources = dirtySources.current
+    if (next) sources.add(source)
+    else sources.delete(source)
+    const isDirty = sources.size > 0
+    dirtyRef.current = isDirty
+    setDirty(isDirty)
+  }, [])
+  const onPanelDirty = useCallback(
+    (next: boolean) => setDirtySource('panel', next),
+    [setDirtySource],
+  )
+
+  // Leaving the story drops every edit. Leaving the records view drops a
+  // framing edit, which lives on that view. The panel stays mounted, so a
+  // change of view keeps its edit.
+  const shouldBlock = useCallback<BlockerFunction>(
+    ({ nextLocation }) => {
+      if (!dirtyRef.current) return false
+      const path = nextLocation.pathname
+      const base = `/stories/${storyId}`
+      const inStory = path === base || path.startsWith(`${base}/`)
+      if (!inStory) return true
+      return dirtySources.current.has('framing') && !path.endsWith('/records')
+    },
+    [storyId],
+  )
+  const blocker = useBlocker(shouldBlock)
+
+  const requestSelect = useCallback(
+    (id: string) => {
+      if (dirtyRef.current && (creating || id !== selectedId)) {
+        setPending({ id: storyId, action: { kind: 'select', id } })
+        return
+      }
+      stopCreating()
+      selectRecord(id)
+    },
+    [creating, selectedId, selectRecord, stopCreating, storyId],
+  )
+  const requestClose = useCallback(() => {
+    if (dirtyRef.current) {
+      setPending({ id: storyId, action: { kind: 'close' } })
+      return
+    }
+    stopCreating()
+    clearRecord()
+  }, [clearRecord, stopCreating, storyId])
+  const beginCreate = useCallback(
+    (request: CreateRequest) => {
+      if (creating && createKey(creating) === createKey(request)) return
+      if (dirtyRef.current) {
+        setPending({ id: storyId, action: { kind: 'create', request } })
+        return
+      }
+      setCreateState({ storyId, request })
+    },
+    [creating, storyId],
+  )
+
+  useEffect(() => {
+    if (!dirty) return
+    const onLeave = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+    }
+    window.addEventListener('beforeunload', onLeave)
+    return () => window.removeEventListener('beforeunload', onLeave)
+  }, [dirty])
+
+  function keepEditing() {
+    setPending(null)
+    if (blocker.state === 'blocked') blocker.reset()
+  }
+
+  function discardEdit() {
+    const nextPath = blocker.state === 'blocked' ? blocker.location.pathname : null
+    const base = `/stories/${storyId}`
+    const inStory = nextPath != null && (nextPath === base || nextPath.startsWith(`${base}/`))
+    // A view change only drops the framing edit. The panel stays where it is.
+    // Leaving the story drops both. A panel action drops the panel's edit.
+    if (inStory && !nextPath.endsWith('/records')) dirtySources.current.delete('framing')
+    else if (blocker.state === 'blocked') dirtySources.current.clear()
+    else dirtySources.current.delete('panel')
+    const still = dirtySources.current.size > 0
+    dirtyRef.current = still
+    setDirty(still)
+    const chosen = action
+    setPending(null)
+    if (blocker.state === 'blocked') {
+      if (!inStory) stopCreating()
+      blocker.proceed()
+      return
+    }
+    if (chosen?.kind === 'select') {
+      stopCreating()
+      selectRecord(chosen.id)
+    } else if (chosen?.kind === 'close') {
+      stopCreating()
+      clearRecord()
+    } else if (chosen?.kind === 'create') {
+      setCreateState({ storyId, request: chosen.request })
+    }
+  }
+
   const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null)
 
   const loaded = story.status === 'loaded' ? story.data : null
-  const index = useMemo(() => (loaded ? indexRecords(loaded) : null), [loaded])
+  const exporting = exportState?.storyId === storyId && exportState.pending
+  const exportError = exportState?.storyId === storyId ? exportState.error : null
+  const downloadExport = useCallback(async () => {
+    if (!loaded) return
+    const title = loaded.title
+    setExportState({ storyId, pending: true, error: null })
+    try {
+      const document = await getExport(storyId)
+      const blob = new Blob([`${JSON.stringify(document, null, 2)}\n`], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const link = window.document.createElement('a')
+      link.href = url
+      link.download = exportFilename(title, storyId)
+      link.click()
+      URL.revokeObjectURL(url)
+      setExportState({ storyId, pending: false, error: null })
+    } catch (reason) {
+      const error = reason instanceof Error ? reason : new Error(String(reason))
+      setExportState({ storyId, pending: false, error })
+    }
+  }, [loaded, storyId])
+  const index = loaded ? indexRecords(loaded) : null
   const outlet = loaded ? (
     <Outlet
       context={
         {
           story: loaded,
           selectedId,
-          selectRecord,
+          selectRecord: requestSelect,
           sideSlot: wide ? sideSlot : null,
+          reload,
+          beginCreate,
+          setDirtySource,
         } satisfies StoryOutlet
       }
     />
   ) : (
     <Outlet context={null} />
   )
+
+  const panel =
+    loaded && index && creating ? (
+      <CreatePanel
+        key={createKey(creating)}
+        request={creating}
+        story={loaded}
+        index={index}
+        onSelect={requestSelect}
+        onClose={requestClose}
+        onDirtyChange={onPanelDirty}
+        onCancel={stopCreating}
+        onReload={reload}
+        onCreated={(id) => {
+          stopCreating()
+          if (id) selectRecord(id)
+        }}
+      />
+    ) : loaded && index && selectedId ? (
+      <DetailPanel
+        story={loaded}
+        index={index}
+        recordId={selectedId}
+        onSelect={requestSelect}
+        onClose={requestClose}
+        onRemoved={clearRecord}
+        onReload={reload}
+        onDirtyChange={onPanelDirty}
+        onBeginCreate={beginCreate}
+      />
+    ) : null
+
+  const asking = action !== null || blocker.state === 'blocked'
 
   return (
     <Stack gap="md">
@@ -104,7 +328,27 @@ export function StoryLayout() {
       )}
       {loaded && index && (
         <>
-          <Title order={2}>{loaded.title || 'Untitled story'}</Title>
+          <Group justify="space-between" align="center" wrap="nowrap">
+            <Title order={2}>{loaded.title || 'Untitled story'}</Title>
+            <Button
+              size="sm"
+              variant="default"
+              loading={exporting}
+              onClick={() => void downloadExport()}
+            >
+              Export
+            </Button>
+          </Group>
+          {exportError && (
+            <Alert color="red" title="The story could not be exported">
+              {describeFailure(exportError)}
+            </Alert>
+          )}
+          {reloadFailure && (
+            <Alert color="red" title="The story could not be loaded again">
+              {describeFailure(reloadFailure)}
+            </Alert>
+          )}
           <ViewLinks storyId={loaded.id} search={location.search} />
           <Group align="flex-start" wrap="nowrap" gap={0}>
             <Box style={{ flex: '1 1 auto', minWidth: 0 }}>{outlet}</Box>
@@ -121,15 +365,9 @@ export function StoryLayout() {
                   overflow: 'auto',
                 }}
               >
-                {selectedId && (
+                {panel && (
                   <Paper withBorder p="md" w={340} ml="lg">
-                    <DetailPanel
-                      story={loaded}
-                      index={index}
-                      recordId={selectedId}
-                      onSelect={selectRecord}
-                      onClose={clearRecord}
-                    />
+                    {panel}
                   </Paper>
                 )}
                 <Stack gap="md" ref={setSideSlot} />
@@ -140,25 +378,35 @@ export function StoryLayout() {
             <Drawer
               position="right"
               size="md"
-              opened={selectedId !== null}
-              onClose={clearRecord}
+              opened={panel !== null}
+              onClose={requestClose}
               withCloseButton={false}
             >
-              {selectedId && (
-                <DetailPanel
-                  story={loaded}
-                  index={index}
-                  recordId={selectedId}
-                  onSelect={selectRecord}
-                  onClose={clearRecord}
-                />
-              )}
+              {panel}
             </Drawer>
           )}
         </>
       )}
+      <Modal opened={asking} onClose={keepEditing} title="Discard this edit?">
+        <Stack gap="md">
+          <Text size="sm">This edit has not been saved.</Text>
+          <Group gap="xs" wrap="wrap">
+            <Button type="button" color="red" onClick={discardEdit}>
+              Discard
+            </Button>
+            <Button type="button" variant="default" onClick={keepEditing}>
+              Keep editing
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   )
+}
+
+/** Two requests for the same create are one create, so a second click does not reset the form. */
+function createKey(request: CreateRequest): string {
+  return JSON.stringify(request)
 }
 
 /** `/stories/{id}` opens on the records view, at that view's own address. */

@@ -52,7 +52,7 @@ A story is a story row and a row per record. The story row holds the story id, t
 | `create(user_id)` | A new empty story owned by the acting user. The story row is at revision 1. |
 | `load(user_id, story_id)` | Every row of a story the acting user owns, each with its revision, read in one transaction so the snapshot is consistent. |
 | `save(user_id, story_id, changeset, source)` | Apply a set of row operations, each guarded by a revision, as one transaction, and write the commit record in [Commit history](#commit-history) in that same transaction. Returns the new revisions and the commit id, or a conflict naming the rows that did not match and their current state. |
-| `history(user_id, story_id, filters)` | The story's commit records, newest first. Filters are the source fields below and a time range. |
+| `history(user_id, story_id)` | The story's commit records, newest first. It returns every record. Filters on the source fields below and a time range are planned with the turns. |
 | `list(user_id)` | The acting user's stories. |
 | `delete(user_id, story_id)` | Remove the story, its rows, and its commit records, for its owner. Removes that story's conversation rows and their threads. Call records keep their `story_id`; they are debug data, not story data. |
 
@@ -140,13 +140,38 @@ A turn's changes are the `tool` commits with that `thread_id` and `run_id`. The 
 
 ### Revert
 
-A revert is a commit. It takes one commit record, or every commit of one turn, and applies the inverse of each change in reverse order: a created record is deleted, a deleted record is created again with its original id and its before-image, an updated record gets its before-image back. Those writes go through the same load, apply, check, and save as any other commit, guarded by the current revisions of the records they touch. The result is a new commit with source `revert` naming the commits it undid. The reverted commits stay in the history. Nothing is erased.
+A revert is a commit. It takes one commit record, or every commit of one turn, and applies the inverse of each change in reverse order: a created record is deleted, a deleted record is created again with its original id and its before-image, and an updated record gets back the before values of the fields that update changed. Its other fields keep what they hold now. A list of ids the update changed is merged back rather than replaced, as [Lists of ids](#lists-of-ids) below says. The inverse is applied to a copy of the loaded document and checked by the same rules as any commit, and the changeset is the one any commit saves, guarded by the current revisions of the records it touches. A create write is not used, because that write mints a new id. When the revert names several commits, they are undone newest first, each against the document the previous inverse left. The result is a new commit with source `revert` naming the commits it undid. The reverted commits stay in the history. Nothing is erased. Reverting a revert reapplies the original commit.
 
-The same rules apply. If the writer has since built on a record the revert would delete, the delete is refused with the referring records. If a record the revert would restore has been edited since, that is a conflict on its revision, and the revert returns the current record. A turn-level revert is one commit, so it lands whole or not at all. The screen shows what is in the way, and the writer edits that or reverts a smaller set. The revert does not force the story back.
+A commit record keeps fields, not revisions, so "edited since" is a comparison of fields, and what is compared depends on the change:
+
+- **An update.** The fields the update changed are the fields whose before and after differ. Each of them must still hold the value in the after-image, except a list of ids, which is checked as [Lists of ids](#lists-of-ids) says. A field the update did not change is not compared, so a later edit of another field does not block the revert. The story row is an update like any other: undoing a change to the tone compares the tone, not `unit_ids`.
+- **A create.** The record must still hold the whole after-image. Undoing a create deletes the record, and a record edited since it was created would lose those edits.
+- **A delete.** The id must be free.
+
+When a comparison fails, the revert is a conflict and returns the record's current fields, or marks the record gone when it is no longer there. A record the revert would recreate, but whose id exists again, is a conflict.
+
+Comparing the changed fields is why one record can be reverted past an unrelated edit. The framing and the top-level `unit_ids` share the story row, and comparing the whole row made any unit created at the top level block reverting any earlier framing edit.
+
+The same rules apply. If the writer has since built on a record the revert would delete, the delete is refused with the referring records. A turn-level revert is one commit, so it lands whole or not at all. The screen shows what is in the way, and the writer edits that or reverts a smaller set. The revert does not force the story back.
 
 A recreated record keeps the id it had. The identity rules in [story-bible.md](../story-bible.md) mint an id when a record is first created. A revert is not a first creation, and an import already keeps the ids from its file. The revert is the only path besides import that creates a record with an id it did not mint.
 
 The agent does not revert. A revert is an action the writer takes on the history view. The agents doc keeps it off the toolset.
+
+#### Lists of ids
+
+A list of ids is the story's `unit_ids`, a unit's `child_ids` and `subject_ids`, an Arc's `event_ids`, an Event's `entity_ids`, and an Assertion's `entity_ids`, `event_ids`, and `arc_ids`. An update to one is undone against the list as it is now, so a later change to other members of the same list does not block the revert. This matters most for an agent's turn, which creates units and adds Events to Arcs in lists the writer and later turns also change.
+
+The update's before and after give the ids it added, the ids it removed, and whether it reordered the ids in both. Reordered means those common ids are not in the same order relative to each other in before and after.
+
+- **An update that only added and removed ids.** Each added id must still be in the list, and each removed id must still be out of it. When both hold, each added id is taken out, and each removed id is put back. A restored id goes after its nearest earlier neighbor in the before list that is in the list now. When there is none, it goes before its nearest later neighbor that is. When neither is there, it goes at the start. The rest of the list keeps its order.
+- **An update that reordered.** The whole list must still equal the after list, and the before list is restored whole. An update that reordered and also added or removed is one of these.
+
+An added id that is no longer in the list, or a removed id that is back, is a conflict on the record that holds the list. It is not skipped as already undone. A unit that was moved since, for example, would otherwise be put back in its old list while it sits in a new one, and the rules would refuse a unit in two lists with a message that does not name the move.
+
+When the revert names several commits, each list is merged against the list the previous inverse left. Reverting a revert merges that revert's own change, so it puts the original change back the same way.
+
+Restoring a reorder against a list that changed since would have to decide an order no one chose, so a reorder keeps the whole-list check. A writer's reorder is usually the newest change to its list, and an agent's turn adds and removes ids rather than reordering them.
 
 ### What the history is not
 

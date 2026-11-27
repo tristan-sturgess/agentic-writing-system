@@ -49,7 +49,7 @@ The `400` body is `{ "detail": [...] }`, one entry per rejected value: where it 
 
 ### Stories
 
-The first endpoints. The story endpoints, the commit, import, the Event times, the statement times, the in-force view, and the in-force stretches are built, with the frontend that calls them. History, revert, and export are planned, and [build-sequence.md](../build-sequence.md) places them. Until the agent exists, every commit is a hand edit, an import, or a revert.
+The first endpoints. The story endpoints, the commit, import, the Event times, the statement times, the in-force view, the in-force stretches, the history, the revert, and the export are built, with the frontend that calls them. Until the agent exists, every commit is a hand edit, an import, or a revert.
 
 | Method and path | What it does |
 | --- | --- |
@@ -62,8 +62,8 @@ The first endpoints. The story endpoints, the commit, import, the Event times, t
 | `GET /stories/{story_id}/in-force` | The Properties and Assertions in force at one query point, with each comparison that did not resolve marked. [The in-force view](#the-in-force-view) below. |
 | `GET /stories/{story_id}/in-force-stretches` | The stretches of story time in which one Entity's in-force set stays the same, and the statements in each. [The in-force stretches](#the-in-force-stretches) below. |
 | `POST /stories/{story_id}/commits` | One commit, source `user`. The body is an ordered list of writes: create, update, or delete of one record, or a change to the framing fields or `unit_ids`, each update and delete carrying the revision the frontend loaded. A later write may name what an earlier one created. The three outcomes above. |
-| `GET /stories/{story_id}/history` | The commit records, newest first, with the persistence doc's filters: source, `thread_id`, `run_id`, a time range. Each record carries its changes with the before and after. Grouping by turn is grouping by `thread_id` and `run_id`. |
-| `POST /stories/{story_id}/revert` | A revert commit. The body names commit ids, or a `thread_id` and `run_id` for a whole turn. One commit; it lands whole or not at all, with the three outcomes above. |
+| `GET /stories/{story_id}/history` | The commit records, newest first. Each is the commit record without `user_id` and `story_id`, and each change carries its before and after. No filters. Filters, and grouping by turn, are planned with the turns. [The history](#the-history) below. |
+| `POST /stories/{story_id}/revert` | A revert commit. The body is `{ "commit_ids": [...] }`, with at least one id. The `thread_id` and `run_id` form, for a whole turn, arrives with the turns. One commit; it lands whole or not at all. [The revert](#the-revert) below. |
 | `GET /stories/{story_id}/export` | The story's export document, as the persistence doc defines it. No revisions, no history, no conversations, no application data. |
 | `POST /stories/import` | A new story from an export document. The import is a commit; a refusal is `422` and nothing is created. A schema version that does not match is that refusal. Returns the new story. |
 
@@ -178,6 +178,20 @@ The `200` body has the `commit_id`, the new `revision` of each record the commit
 The `422` body has a message and a list of problems. Each problem has a code, a message, and what applies of: the record and the field, the position of the write, the ids at fault, the legal ids for that kind, and the referring records. The `409` body lists the rows that moved, each with its current fields and revision, or marked as gone.
 
 The import does not use refs. Its ids come from the file.
+
+#### The history
+
+`GET /stories/{story_id}/history` returns a list of the story's commit records, newest first. Each entry is the commit record in the persistence doc without `user_id` and `story_id`: `commit_id`, `committed_at`, `source`, `thread_id`, `run_id`, `tool_call_id`, `reverts`, and `changes`. A change has the record id, the kind, the operation, and the fields before and after, as that doc says. A change on the story row has a null record id and kind `story`.
+
+There are no filters on this read. Filters on source, `thread_id`, `run_id`, and a time range, and grouping by `thread_id` and `run_id`, are planned with the turns. An unknown story is `404`.
+
+#### The revert
+
+The body of `POST /stories/{story_id}/revert` is `{ "commit_ids": [...] }`, with at least one id. An empty list is `400`. A body that names a `thread_id` and a `run_id`, for every commit of one turn, arrives with the turns.
+
+The named commits are undone newest first, as the persistence doc says, whatever order the ids are given in. The `200` body is the commit body. `created` lists the records the revert recreated, each with its `kind`, its original `id`, and `ref` null.
+
+A commit id that is not a commit of this story is `422` in the refusal shape: one problem, code `unknown_commit`, and the ids that are not. Nothing was written. A refusal from the rules is the commit's `422`, and a conflict is the commit's `409`. An unknown story is `404`. A busy error is `503`.
 
 ### Conversations, turns, configs, the key, and calls
 

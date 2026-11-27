@@ -324,7 +324,7 @@ Two pictures are part of the model, whatever widget draws them:
 
 Version 2 drew a graph of typed edges between Events and offered connect actions for those edges. This model arranges Events from their spans and shows Arcs over them. The widget is the one [ui/timeline.md](ui/timeline.md) chooses.
 
-[ui.md](ui.md) lists the views that are built and what each must answer. The service resolves the spans to timestamps and computes the in-force view, and a view draws the result, so the agent's read tools and the screens read story time by one implementation of the rules above. The views are built read-only, before editing, and one of them is a graph of every record and the references between them. That graph shows the id fields in [How the records connect](#how-the-records-connect). It is not version 2's graph of typed edges, and it adds no edge record to the model.
+[ui.md](ui.md) lists the views that are built and what each must answer. The service resolves the spans to timestamps and computes the in-force view, and a view draws the result, so the agent's read tools and the screens read story time by one implementation of the rules above. Records are edited in the detail panel, and the framing on the records view, as [ui.md](ui.md) says. One of the views is a graph of every record and the references between them. That graph shows the id fields in [How the records connect](#how-the-records-connect). It is not version 2's graph of typed edges, and it adds no edge record to the model.
 
 ## Locations
 

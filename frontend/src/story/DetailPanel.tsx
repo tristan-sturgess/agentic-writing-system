@@ -1,6 +1,24 @@
-import { Badge, CloseButton, Group, List, Stack, Text } from '@mantine/core'
+import { Badge, Button, CloseButton, Group, List, Stack, Text } from '@mantine/core'
+import { useState } from 'react'
 
-import type { Story } from '../api/client'
+import type {
+  Arc,
+  Assertion,
+  Entity,
+  NarrativeUnit,
+  Property,
+  Story,
+  StoryEvent,
+  Write,
+} from '../api/client'
+import { ArcForm } from './ArcForm'
+import { AssertionForm } from './AssertionForm'
+import { DeleteRecord } from './DeleteRecord'
+import { EntityForm } from './EntityForm'
+import { EventForm } from './EventForm'
+import { fieldLabel } from './fieldLabels'
+import { PropertyForm } from './PropertyForm'
+import { UnitForm } from './UnitForm'
 import { labelOf, type RecordIndex } from './records'
 import {
   byKind,
@@ -11,18 +29,9 @@ import {
 } from './referenceGroups'
 import { references } from './references'
 import { Empty, Prose, RecordId, RecordLink, When, type SelectRecord } from './parts'
-
-const FIELD_LABEL: Record<string, string> = {
-  entity_id: 'Entity',
-  entity_ids: 'Entities',
-  event_ids: 'Events',
-  arc_ids: 'Arcs',
-  caused_by: 'Caused by',
-  when: 'When',
-  child_ids: 'Units inside',
-  subject_ids: 'Depicts',
-  unit_ids: 'In the story',
-}
+import type { CreateRequest } from './CreatePanel'
+import { deleteUnitWrites, unitOwner } from './units'
+import { recordDelete, recordUpdate } from './writes'
 
 const KIND_LABEL = {
   entity: 'Entity',
@@ -33,29 +42,88 @@ const KIND_LABEL = {
   arc: 'Arc',
 } as const
 
-type Found = {
-  kind: keyof typeof KIND_LABEL
-  label: string
-}
+const DELETE_PROMPT = {
+  entity: 'Delete this Entity? Its Properties are deleted with it.',
+  property: 'Delete this Property?',
+  assertion: 'Delete this Assertion?',
+  event: 'Delete this Event?',
+  arc: 'Delete this Arc?',
+  unit: 'Delete this Narrative Unit? It is taken out of the list that holds it. A unit that still has units inside it cannot be deleted.',
+} as const
+
+type Held =
+  | { kind: 'entity'; record: Entity }
+  | { kind: 'property'; record: Property }
+  | { kind: 'assertion'; record: Assertion }
+  | { kind: 'event'; record: StoryEvent }
+  | { kind: 'unit'; record: NarrativeUnit }
+  | { kind: 'arc'; record: Arc }
 
 /**
  * The record named in `?record=`: its fields as stored, what it names, and
- * what names it. Read-only until editing lands.
+ * what names it. Edit and delete work for every kind. The write is built from
+ * the copy taken when Edit or Delete was pressed.
+ *
+ * Keyed by the record id, so opening another record starts from its stored fields.
  */
-export function DetailPanel({
+export function DetailPanel(props: {
+  story: Story
+  index: RecordIndex
+  recordId: string
+  onSelect: SelectRecord
+  onClose: () => void
+  /** Close the panel after a delete, without asking about an edit. */
+  onRemoved: () => void
+  onReload: () => Promise<void>
+  onDirtyChange: (dirty: boolean) => void
+  onBeginCreate: (request: CreateRequest) => void
+}) {
+  return <PanelBody key={props.recordId} {...props} />
+}
+
+function PanelBody({
   story,
   index,
   recordId,
   onSelect,
   onClose,
+  onRemoved,
+  onReload,
+  onDirtyChange,
+  onBeginCreate,
 }: {
   story: Story
   index: RecordIndex
   recordId: string
   onSelect: SelectRecord
   onClose: () => void
+  onRemoved: () => void
+  onReload: () => Promise<void>
+  onDirtyChange: (dirty: boolean) => void
+  onBeginCreate: (request: CreateRequest) => void
 }) {
-  const found = findRecord(story, recordId)
+  const found = hold(story, recordId)
+  // The record as it was when Edit or Delete was pressed. The write is built
+  // against this copy, not the one a later reload brings, so a record that
+  // moved under the form is a conflict rather than a silent overwrite.
+  const [editing, setEditing] = useState<Held | null>(null)
+  const [confirming, setConfirming] = useState<Held | null>(null)
+  const formProps = {
+    story,
+    storyId: story.id,
+    index,
+    onSelect,
+    onDirtyChange,
+    onCancel: () => setEditing(null),
+    onDiscard: () => {
+      setEditing(null)
+      void onReload()
+    },
+    onLanded: async () => {
+      await onReload()
+      setEditing(null)
+    },
+  }
   return (
     <Stack gap="sm">
       <Group justify="space-between" align="flex-start" wrap="nowrap">
@@ -65,7 +133,7 @@ export function DetailPanel({
               <Text size="xs" c="dimmed">
                 {KIND_LABEL[found.kind]}
               </Text>
-              <Text fw={700}>{found.label}</Text>
+              <Text fw={700}>{heldLabel(found)}</Text>
             </>
           ) : (
             <Text fw={700}>Unknown record</Text>
@@ -74,16 +142,147 @@ export function DetailPanel({
         </div>
         <CloseButton aria-label="Close the record" onClick={onClose} />
       </Group>
-      {found ? (
-        <RecordBody story={story} index={index} recordId={recordId} onSelect={onSelect} />
+      {found && !editing && !confirming && (
+        <Group gap="xs" wrap="wrap">
+          <Button type="button" onClick={() => setEditing(found)}>
+            Edit
+          </Button>
+          <Button type="button" color="red" variant="light" onClick={() => setConfirming(found)}>
+            Delete
+          </Button>
+          {found.kind === 'entity' && (
+            <Button
+              type="button"
+              variant="default"
+              onClick={() => onBeginCreate({ kind: 'property', entityId: found.record.id })}
+            >
+              Add Property
+            </Button>
+          )}
+          {found.kind === 'unit' && (
+            <Button
+              type="button"
+              variant="default"
+              onClick={() => onBeginCreate({ kind: 'unit', parentId: found.record.id })}
+            >
+              Add a unit inside
+            </Button>
+          )}
+        </Group>
+      )}
+      {editing ? (
+        <RecordEditor held={editing} {...formProps} />
+      ) : confirming ? (
+        <DeleteRecord
+          writes={deleteWrites(confirming, story)}
+          recordId={confirming.record.id}
+          prompt={DELETE_PROMPT[confirming.kind]}
+          storyId={story.id}
+          index={index}
+          onSelect={onSelect}
+          onCancel={() => setConfirming(null)}
+          onReload={onReload}
+          onDeleted={async () => {
+            await onReload()
+            onRemoved()
+          }}
+        />
+      ) : found ? (
+        <StoredFields story={story} recordId={recordId} index={index} />
       ) : (
         <Empty>There is no record with this id in the story.</Empty>
+      )}
+      {found && (
+        <RecordLinks story={story} index={index} recordId={recordId} onSelect={onSelect} />
       )}
     </Stack>
   )
 }
 
-function RecordBody({
+function RecordEditor({
+  held,
+  story,
+  storyId,
+  index,
+  onSelect,
+  onDirtyChange,
+  onCancel,
+  onDiscard,
+  onLanded,
+}: {
+  held: Held
+  story: Story
+  storyId: string
+  index: RecordIndex
+  onSelect: SelectRecord
+  onDirtyChange: (dirty: boolean) => void
+  onCancel: () => void
+  onDiscard: () => void
+  onLanded: () => Promise<void>
+}) {
+  const shared = { storyId, index, onSelect, onDirtyChange, onCancel, onDiscard, onLanded }
+  switch (held.kind) {
+    case 'entity':
+      return (
+        <EntityForm
+          {...shared}
+          recordId={held.record.id}
+          initialValues={{ name: held.record.name, notes: held.record.notes }}
+          buildWrites={(draft) => {
+            const write = recordUpdate('entity', held.record, draft)
+            return write ? [write] : null
+          }}
+        />
+      )
+    case 'property':
+      return <PropertyForm {...shared} story={story} property={held.record} />
+    case 'event':
+      return <EventForm {...shared} story={story} event={held.record} />
+    case 'arc':
+      return <ArcForm {...shared} story={story} arc={held.record} />
+    case 'assertion':
+      return <AssertionForm {...shared} story={story} assertion={held.record} />
+    case 'unit':
+      return <UnitForm {...shared} story={story} unit={held.record} prose={held.record.prose} />
+  }
+}
+
+function deleteWrites(held: Held, story: Story): Write[] {
+  if (held.kind === 'unit') return deleteUnitWrites(held.record, unitOwner(story, held.record.id))
+  return [recordDelete(held.record)]
+}
+
+function heldLabel(held: Held): string {
+  switch (held.kind) {
+    case 'entity':
+      return held.record.name
+    case 'property':
+    case 'assertion':
+      return held.record.statement
+    case 'event':
+    case 'unit':
+    case 'arc':
+      return held.record.title
+  }
+}
+
+function hold(story: Story, id: string): Held | null {
+  const entity = story.entities.find((item) => item.id === id)
+  if (entity) return { kind: 'entity', record: entity }
+  const property = story.properties.find((item) => item.id === id)
+  if (property) return { kind: 'property', record: property }
+  const assertion = story.assertions.find((item) => item.id === id)
+  if (assertion) return { kind: 'assertion', record: assertion }
+  const event = story.events.find((item) => item.id === id)
+  if (event) return { kind: 'event', record: event }
+  const unit = story.units.find((item) => item.id === id)
+  if (unit) return { kind: 'unit', record: unit }
+  const arc = story.arcs.find((item) => item.id === id)
+  if (arc) return { kind: 'arc', record: arc }
+  return null
+}
+
+function RecordLinks({
   story,
   index,
   recordId,
@@ -100,11 +299,10 @@ function RecordBody({
   const arc = story.arcs.some((item) => item.id === recordId)
   return (
     <>
-      <StoredFields story={story} index={index} recordId={recordId} />
       <ReferenceGroups
         title="Names"
         groups={groupReferences(outgoing, (ref) => ref.to, (ref) => ref.field)}
-        labelOfGroup={(key) => FIELD_LABEL[key] ?? key}
+        labelOfGroup={(key) => fieldLabel(key)}
         ordered={(key) => arc && key === 'event_ids'}
         story={story}
         index={index}
@@ -210,11 +408,7 @@ function ReferenceGroups({
               <Text size="xs" c="dimmed">
                 {labelOfGroup(group.key)}
               </Text>
-              <List
-                size="sm"
-                spacing={4}
-                type={ordered?.(group.key) ? 'ordered' : 'unordered'}
-              >
+              <List size="sm" spacing={4} type={ordered?.(group.key) ? 'ordered' : 'unordered'}>
                 {group.ids.map((id) => (
                   <List.Item key={id}>
                     {id === story.id ? (
@@ -235,20 +429,4 @@ function ReferenceGroups({
       )}
     </div>
   )
-}
-
-function findRecord(story: Story, id: string): Found | null {
-  const entity = story.entities.find((item) => item.id === id)
-  if (entity) return { kind: 'entity', label: entity.name }
-  const property = story.properties.find((item) => item.id === id)
-  if (property) return { kind: 'property', label: property.statement }
-  const assertion = story.assertions.find((item) => item.id === id)
-  if (assertion) return { kind: 'assertion', label: assertion.statement }
-  const event = story.events.find((item) => item.id === id)
-  if (event) return { kind: 'event', label: event.title }
-  const unit = story.units.find((item) => item.id === id)
-  if (unit) return { kind: 'unit', label: unit.title }
-  const arc = story.arcs.find((item) => item.id === id)
-  if (arc) return { kind: 'arc', label: arc.title }
-  return null
 }

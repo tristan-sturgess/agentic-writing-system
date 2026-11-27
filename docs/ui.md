@@ -26,8 +26,9 @@ The layout in a view doc is the first attempt at answering the questions. It can
 | `/stories/{story_id}/timeline` | The timeline. |
 | `/stories/{story_id}/entities` | The entities view. |
 | `/stories/{story_id}/graph` | The graph. |
+| `/stories/{story_id}/history` | The history. |
 
-A story's page shows the story's title and a link to each view that is built, in a row under the title. The view on screen is marked. A view is linked once it has a screen, so the page does not offer a view that is not built yet. Each view has its own address, so a view can be added, replaced, or dropped without touching the others, and the view on screen survives a reload. The links keep the query string, so `?record=` carries from one view to the next.
+A story's page shows the story's title and a link to each view that is built, in a row under the title. The view on screen is marked. A view is linked once it has a screen, so the page does not offer a view that is not built yet. Each view has its own address, so a view can be added, replaced, or dropped without touching the others, and the view on screen survives a reload. The links keep the query string, so `?record=` carries from one view to the next. An **Export** action sits beside the story title and downloads the story's export document as JSON.
 
 The selected record is part of the address, as `?record={record_id}`. It survives a reload, and it carries from one view to the next: an Entity selected on the graph is still selected when the writer opens the entities view. A view that does not show the selected record ignores it.
 
@@ -47,7 +48,7 @@ Selecting a record in any view opens the detail panel beside the view. The panel
 
 On a wide window, the `md` breakpoint and wider, the panel is a column to the right of the view. On a narrower window it is a drawer over the view, open while a record is selected. Closing the panel clears `?record=`.
 
-The panel is read-only today. When editing is built it becomes the editor. Every view opens the same panel, so a view does not need an editor of its own, and a new view gets editing by letting the writer select a record.
+The panel edits every kind of record, as [Saving](#saving) says. Every view opens the same panel, so a view does not need an editor of its own, and a new view gets editing by letting the writer select a record.
 
 The references the panel lists are the ones in "How the records connect" in [story-bible.md](story-bible.md). The graph draws the same list as its edges. There is one definition of a reference in the frontend, and both use it.
 
@@ -61,7 +62,26 @@ A view that is loading says so. A story the acting user cannot see is reported a
 
 ### Saving
 
-No screen saves anything yet. The application doc already fixes what a save may return and that the writer's edit stays on screen through a refusal, a conflict, or a busy error. How the panel shows each of those is specified here before editing is built.
+The detail panel edits every kind of record. The story's framing is not a record in the panel: it is edited on the records view's Framing tab, as a `set_story` commit, and that save shows the same outcomes as a save in the panel. The application doc fixes what a save may return. This section says what the writer sees.
+
+A save is a commit, the same commit an import or an agent makes. A failed save writes nothing: the stored story stays as it was, and the unsaved edit stays in the panel so the writer can correct it, retry, or discard it. A refusal has no override. The Story Bible rules hold for the writer as they do for the agent, and a save is refused only for structure, never for the quality of what was written, as [story-bible.md](story-bible.md) says.
+
+#### Editing a record
+
+- The panel shows the record read-only, with an **Edit** button. Edit turns the panel into a form with **Save** and **Cancel**. Cancel drops the unsaved edit and shows the record read-only again. An Entity's form edits its name and its notes. A Property's form edits its statement, its `when`, and `caused_by`, and a Property is created from its Entity's panel. An Event's form edits its title, its description, the Entities that take part, and its `when`. An Assertion's form edits its statement, the Entities, Events, and Arcs it names, its `when`, and `caused_by`. The "at least two records" rule is the service's refusal. An Arc's form and a Narrative Unit's form are described below. A unit's prose is shown and stays empty.
+- **Delete** is its own button, and it asks for confirmation first. Deleting an Entity says that its Properties are deleted with it. Deleting a Narrative Unit also takes it out of the list that holds it. A unit that still has units inside it is refused.
+- A record is created from a **New** action for its kind. An Entity's is on the records view's Entities tab. A Property's is on its Entity's panel. An Event's is on the Events tab, and on the timeline from a selected moment or stretch, which fills that time in. An Arc's is on the Arcs tab. An Assertion's is on the Assertions tab. A Narrative Unit's is on the Narrative Units tab, and on a unit's panel, which places the new unit inside that one. The form collects the primary text before the record exists, as the identity rules in [story-bible.md](story-bible.md) require, so a blank create never mints an id.
+- An update sends only the fields that changed, with the revision the panel loaded. Creating a Narrative Unit, moving it between lists, and deleting it each go out as one commit, because a unit has to stay in exactly one list.
+- The panel belongs to the story's page and survives a switch between views. Selecting another record, closing the panel, or leaving the story while an edit is unsaved asks before discarding it. A switch between views keeps the edit.
+
+#### What each outcome shows
+
+- **Committed (`200`).** The story is loaded again, along with what the view loaded about story time, and the panel shows the record read-only. A create selects the new record. A delete closes the panel.
+- **Refused (`422`).** The refusal's message is shown. Each problem is shown on the field it names, with the legal ids it lists. Referring records are shown as links, so the writer can open them and fix them first.
+- **Conflict (`409`).** The response lists every row that moved. The panel lists each moved row by its primary text, with its current fields, or marked as gone. A row other than the edited record can be in that list. A delete of an Entity also deletes the Properties the commit's snapshot shows it owning. A Property created on that Entity after that snapshot still names it, so the store turns the delete into a conflict, and the panel lists that Property. A Property committed before the delete is sent is in the snapshot and is deleted with the Entity.
+  - Beside an unsaved edit, **Save mine anyway** sends the same writes against the current revisions. **Discard mine** drops the edit and shows the stored record. A record that was deleted in the meantime offers only Discard mine.
+  - A conflict on a delete has no form to keep. The panel shows the moved rows, with **Delete anyway** and **Cancel**. When the record being deleted is already gone, only Cancel is offered.
+- **Busy (`503`).** The message is shown with a **Retry** button that sends the same commit again.
 
 ## The views
 
@@ -80,7 +100,31 @@ The timeline draws both of the pictures the Story Bible doc requires. Events in 
 
 The records view is the story as stored. It has a tab for the framing and one for each kind of record, with a count. Every field of every record is shown, with the record's id. A `when` list is written out as text, one span at a time, as the spans are stored, including which end of an Event a time point names. It does not decide what is in force.
 
-This is the view that does not interpret. The other views each answer their questions by leaving things out. This one leaves nothing out, so it is where the writer checks what a record actually holds, and it is where every field can be reached once editing exists.
+This is the view that does not interpret. The other views each answer their questions by leaving things out. This one leaves nothing out, so it is where the writer checks what a record actually holds, and it is where every field can be reached. Editing a record opens the detail panel. Editing the framing stays on this view's Framing tab.
+
+### The Arc editor
+
+The Arc editor is the detail panel's form for an Arc. It edits the title, the description, and the Arc's Events. An Event is added from a select, moved up or down, and removed. That order is the Arc's own order, which may differ from story time. Creating and deleting an Arc use the same panel. The timeline, with that Arc highlighted, is where the order is seen against story time.
+
+### Narrative Units
+
+A Narrative Unit is edited in the detail panel as structure. The form edits the title, the summary, the notes, and the Entities, Events, and Arcs it depicts. The prose is shown and stays empty. Where the unit sits is a parent, the story or another unit, and a position in that parent's list. The units inside it are reordered with up and down buttons.
+
+Creating a unit, moving it, and deleting it are each one commit. A create is the new unit plus an update of the parent list that names it. A move updates the list it leaves and the list it joins. A delete takes it out of its parent list and deletes it. A unit that still has units inside it is refused, because those units would be left in no list.
+
+## History
+
+Built. The history lists the story's commits. It answers:
+
+- What changed in this story, when, and from where (a hand edit, an import, or a revert)?
+- What did one commit change, field by field?
+- Can this commit be undone, and if not, what is in the way?
+
+Commits are listed newest first. Each shows its time, its source, and one line per change, such as "Created Entity Mara". A record that still exists is a link that opens the detail panel. A change can be expanded to show the fields it changed, before and after. A commit that a later revert undid is marked.
+
+**Revert** asks for confirmation first. On success, the story and the history are loaded again. A refusal shows its referring records as links. A conflict lists the rows in the way with their current fields. There is no "anyway" option, because the revert does not force the story back. Busy shows **Retry**.
+
+Grouping an agent's commits by turn, and reverting a whole turn, arrive with the arc-planning agent. Until then the view lists every commit.
 
 ## Screens that are planned
 
@@ -88,8 +132,6 @@ These are required by other docs, and none is built. Each gets a section or a do
 
 | Screen | Required by | Built with |
 | --- | --- | --- |
-| The Arc editor | [story-bible.md](story-bible.md) | Editing |
-| The history, with what each commit changed and a revert | [architecture/persistence.md](architecture/persistence.md), and [architecture/agents.md](architecture/agents.md), where it is the writer's review of what an agent's turn did | Editing. The arc-planning agent adds the turn. |
 | Model configs and the API key | [architecture/model-configuration.md](architecture/model-configuration.md) | The arc-planning agent |
 | The chat panel, on the story's latest conversation with an action that starts a new one, and the turn's status | [architecture/application.md](architecture/application.md), and [architecture/agents.md](architecture/agents.md) for which conversation is shown | The arc-planning agent |
 | The call list | [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md) | The arc-planning agent |
@@ -105,8 +147,8 @@ A view answers its own questions. These are the tasks that take more than one vi
 | Decide where a new Event belongs. | The timeline, with the Entities the Event would involve highlighted, and the detail panel for the Events around the place being considered. |
 | Find out why something is true of a character at a point in the story. | The entities view for the Property, then the Event that caused it on the timeline. |
 | Find what is thin or disconnected. | The graph. |
-
-Building a bible by hand and reviewing what an agent's turn changed are added to this table when editing and the history view are built.
+| Build a bible by hand. | The records view and the detail panel, for creating and editing every kind of record. The timeline, the entities view, and the graph show the result. |
+| Review what changed. | The history, for each commit and the fields it changed. A record that still exists opens in the detail panel. |
 
 ## Sample stories
 

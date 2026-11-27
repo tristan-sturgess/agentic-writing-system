@@ -1,4 +1,4 @@
-import { Group, Paper, Stack, Text, Title } from '@mantine/core'
+import { Button, Group, Paper, Stack, Text, Title } from '@mantine/core'
 
 import type { Story } from '../api/client'
 import { Empty, Prose, RecordId, RecordLink, StatementLinks, When, type SelectRecord } from './parts'
@@ -8,18 +8,25 @@ export function EntitiesSection({
   story,
   index,
   onSelect,
+  onNew,
 }: {
   story: Story
   index: RecordIndex
   onSelect: SelectRecord
+  onNew: () => void
 }) {
-  if (story.entities.length === 0) {
-    return <Empty>This story has no Entities.</Empty>
-  }
   const byEntity = propertiesByEntity(story)
   return (
     <Stack gap="md">
-      {story.entities.map((entity) => {
+      <div>
+        <Button type="button" onClick={onNew}>
+          New Entity
+        </Button>
+      </div>
+      {story.entities.length === 0 ? (
+        <Empty>This story has no Entities.</Empty>
+      ) : (
+        story.entities.map((entity) => {
         const properties = byEntity.get(entity.id) ?? []
         return (
           <Paper key={entity.id} withBorder p="md">
@@ -60,7 +67,8 @@ export function EntitiesSection({
             )}
           </Paper>
         )
-      })}
+      })
+      )}
     </Stack>
   )
 }

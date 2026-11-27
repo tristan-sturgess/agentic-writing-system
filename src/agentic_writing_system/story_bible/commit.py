@@ -119,7 +119,7 @@ def _check_write_revisions(
     return Conflict(rows=list(rows.values()))
 
 
-def _build_changeset(
+def build_changeset(
     stored: StoredStory,
     snapshot_doc: StoryDocument,
     applied: Applied,
@@ -207,7 +207,7 @@ def plan_commit(
     applied = apply_and_check(snapshot_doc, writes)
     if isinstance(applied, Refusal):
         return applied
-    built = _build_changeset(stored, snapshot_doc, applied)
+    built = build_changeset(stored, snapshot_doc, applied)
     if isinstance(built, Refusal):
         return built
     changeset, deleted = built

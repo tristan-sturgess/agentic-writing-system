@@ -1,6 +1,6 @@
 # Timeline
 
-The timeline arranges a story's Events in story time. A highlight draws the Events of one Entity or one Arc. It draws both of the pictures [story-bible.md](../story-bible.md) requires: Events in story time, and Arcs laid over them. It is built read-only, and editing from it is planned. [ui.md](../ui.md) says what it shares with the other views.
+The timeline arranges a story's Events in story time. A highlight draws the Events of one Entity or one Arc. It draws both of the pictures [story-bible.md](../story-bible.md) requires: Events in story time, and Arcs laid over them. Selecting an Event opens the detail panel, where the Event is edited. A new Event can be started from a selected moment or stretch, with that time filled in. [ui.md](../ui.md) says what it shares with the other views.
 
 Story time comes from the spans in each Event's `when`. The Story Bible doc owns what a span means and how a time point that names an Event resolves to a timestamp. The service does the resolving, as [architecture/application.md](../architecture/application.md) says, and this view draws what the service returns. This doc says how. It does not restate the rules, and it does not add to them.
 
@@ -96,7 +96,7 @@ These Events are selectable like any other, and they take part in the highlight 
 
 ## What the timeline does not do
 
-- It does not edit. Editing is planned: selecting an Event opens the editor, and a new Event can be started from a selected moment or stretch with that time filled in. The Arc editor is planned with it.
+- It does not edit a record in place. Selecting an Event opens the detail panel, where it is edited. A selected moment or stretch can start a new Event with that time filled in: a moment becomes one `at` span at that timestamp, and a stretch becomes one `range` from the earlier moment to the later one. An Arc is edited in the same panel, and highlighting that Arc here shows the result.
 - It does not show Properties or Assertions in time. That is the entities view.
 - It does not show reading order. Narrative Units present Events in an order of their own, and that order is not story time.
 - It does not read an Assertion as an order. "The letter follows the arrival" is a claim the detail panel shows. It does not move either Event.

@@ -51,8 +51,8 @@ ApplyProblemCode = Literal[
     "kind_mismatch",
 ]
 
-# Found by the commit and the import, which read more than one document.
-CommitProblemCode = Literal["schema_version", "kind_changed"]
+# Found by the commit, the import, and the revert, which read more than one document.
+CommitProblemCode = Literal["schema_version", "kind_changed", "unknown_commit"]
 
 ProblemCode = RuleProblemCode | ApplyProblemCode | CommitProblemCode
 

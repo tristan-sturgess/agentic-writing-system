@@ -80,7 +80,7 @@ The graph can be zoomed and panned, and it opens fitted to the window. On a stor
 
 ## What the view does not do
 
-- It does not edit. Editing is planned, in the detail panel.
+- It does not edit a record in place. Selecting a record opens the detail panel, which edits it.
 - It does not show story time or reading order. Those are the timeline and, later, the prose.
 - It does not add an edge to the model, type an edge, or offer a connect action.
 - It does not search or focus. Both are in [future-work.md](../future-work.md).

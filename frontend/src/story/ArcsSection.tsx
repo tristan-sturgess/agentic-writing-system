@@ -1,4 +1,4 @@
-import { Group, List, Paper, Stack, Text, Title } from '@mantine/core'
+import { Button, Group, List, Paper, Stack, Text, Title } from '@mantine/core'
 
 import type { Story } from '../api/client'
 import { Empty, Prose, RecordId, RecordLink, type SelectRecord } from './parts'
@@ -12,17 +12,24 @@ export function ArcsSection({
   story,
   index,
   onSelect,
+  onNew,
 }: {
   story: Story
   index: RecordIndex
   onSelect: SelectRecord
+  onNew: () => void
 }) {
-  if (story.arcs.length === 0) {
-    return <Empty>This story has no Arcs.</Empty>
-  }
   return (
     <Stack gap="md">
-      {story.arcs.map((arc) => (
+      <div>
+        <Button type="button" onClick={onNew}>
+          New Arc
+        </Button>
+      </div>
+      {story.arcs.length === 0 ? (
+        <Empty>This story has no Arcs.</Empty>
+      ) : (
+        story.arcs.map((arc) => (
         <Paper key={arc.id} withBorder p="md">
           <Group gap="sm" align="baseline">
             <Title order={4}>
@@ -51,7 +58,8 @@ export function ArcsSection({
             </List>
           )}
         </Paper>
-      ))}
+        ))
+      )}
     </Stack>
   )
 }
