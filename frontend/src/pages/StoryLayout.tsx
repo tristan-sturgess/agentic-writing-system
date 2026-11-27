@@ -2,22 +2,36 @@ import {
   Alert,
   Anchor,
   Box,
+  Button,
   Drawer,
   Group,
   Loader,
+  Modal,
   Paper,
   Stack,
+  Text,
   Title,
   useMantineTheme,
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { useCallback, useMemo, useState } from 'react'
-import { Link, Navigate, Outlet, useLocation, useMatch, useParams, useSearchParams } from 'react-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  Link,
+  Navigate,
+  Outlet,
+  useBlocker,
+  useLocation,
+  useMatch,
+  useParams,
+  useSearchParams,
+  type BlockerFunction,
+} from 'react-router'
 
 import { ApiError, describeFailure, getStory } from '../api/client'
+import { CreatePanel, type CreateRequest } from '../story/CreatePanel'
 import { DetailPanel } from '../story/DetailPanel'
 import { indexRecords } from '../story/records'
-import { useLoad } from '../useLoad'
+import { useReloadableLoad } from '../useLoad'
 import type { StoryOutlet } from './storyContext'
 
 // A view is added here when its screen exists. This page does not link to a
@@ -29,25 +43,55 @@ const VIEWS = [
   { path: 'graph', label: 'Graph' },
 ] as const
 
+type Pending =
+  | { kind: 'select'; id: string }
+  | { kind: 'close' }
+  | { kind: 'create'; request: CreateRequest }
+
 /**
  * One story, loaded once for every view under it.
  *
  * `/stories/{id}` redirects to the records view. The selected record is
  * `?record=`, and the view links keep it, so it survives a reload and a
- * change of view.
+ * change of view. The detail panel lives here, so an edit survives a change
+ * of view too.
  */
 export function StoryLayout() {
   const { storyId = '' } = useParams()
   const location = useLocation()
   const [params, setParams] = useSearchParams()
   const load = useCallback(() => getStory(storyId), [storyId])
-  const story = useLoad(load)
+  const [story, reloadStory] = useReloadableLoad(load)
+  const [reloadError, setReloadError] = useState<{ id: string; error: Error } | null>(null)
+  const [createState, setCreateState] = useState<{
+    storyId: string
+    request: CreateRequest
+  } | null>(null)
+  const [dirty, setDirty] = useState(false)
+  const [pending, setPending] = useState<{ id: string; action: Pending } | null>(null)
+  const dirtyRef = useRef(false)
   const theme = useMantineTheme()
   const wide = useMediaQuery(`(min-width: ${theme.breakpoints.md})`, true, {
     getInitialValueInEffect: false,
   })
 
   const selectedId = params.get('record')
+  const creating = createState?.storyId === storyId ? createState.request : null
+  const action = pending?.id === storyId ? pending.action : null
+  const reloadFailure = reloadError?.id === storyId ? reloadError.error : null
+
+  // A failed reload is reported here and leaves the story already on screen.
+  const reload = useCallback(async () => {
+    try {
+      await reloadStory()
+      setReloadError(null)
+    } catch (reason) {
+      const error = reason instanceof Error ? reason : new Error(String(reason))
+      setReloadError({ id: storyId, error })
+    }
+  }, [reloadStory, storyId])
+  const stopCreating = useCallback(() => setCreateState(null), [])
+
   const selectRecord = useCallback(
     (id: string) => {
       setParams((prev) => {
@@ -66,24 +110,141 @@ export function StoryLayout() {
     })
   }, [setParams])
 
+  const onDirtyChange = useCallback((next: boolean) => {
+    dirtyRef.current = next
+    setDirty(next)
+  }, [])
+
+  // Leaving the story is a navigation. Changing view or query stays on this
+  // page, and the panel stays mounted, so that navigation is left alone.
+  const shouldBlock = useCallback<BlockerFunction>(
+    ({ nextLocation }) => {
+      if (!dirtyRef.current) return false
+      const base = `/stories/${storyId}`
+      return nextLocation.pathname !== base && !nextLocation.pathname.startsWith(`${base}/`)
+    },
+    [storyId],
+  )
+  const blocker = useBlocker(shouldBlock)
+
+  const requestSelect = useCallback(
+    (id: string) => {
+      if (dirtyRef.current && (creating || id !== selectedId)) {
+        setPending({ id: storyId, action: { kind: 'select', id } })
+        return
+      }
+      stopCreating()
+      selectRecord(id)
+    },
+    [creating, selectedId, selectRecord, stopCreating, storyId],
+  )
+  const requestClose = useCallback(() => {
+    if (dirtyRef.current) {
+      setPending({ id: storyId, action: { kind: 'close' } })
+      return
+    }
+    stopCreating()
+    clearRecord()
+  }, [clearRecord, stopCreating, storyId])
+  const beginCreate = useCallback(
+    (request: CreateRequest) => {
+      if (creating && createKey(creating) === createKey(request)) return
+      if (dirtyRef.current) {
+        setPending({ id: storyId, action: { kind: 'create', request } })
+        return
+      }
+      setCreateState({ storyId, request })
+    },
+    [creating, storyId],
+  )
+
+  useEffect(() => {
+    if (!dirty) return
+    const onLeave = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+    }
+    window.addEventListener('beforeunload', onLeave)
+    return () => window.removeEventListener('beforeunload', onLeave)
+  }, [dirty])
+
+  function keepEditing() {
+    setPending(null)
+    if (blocker.state === 'blocked') blocker.reset()
+  }
+
+  function discardEdit() {
+    dirtyRef.current = false
+    setDirty(false)
+    const chosen = action
+    setPending(null)
+    if (blocker.state === 'blocked') {
+      stopCreating()
+      blocker.proceed()
+      return
+    }
+    if (chosen?.kind === 'select') {
+      stopCreating()
+      selectRecord(chosen.id)
+    } else if (chosen?.kind === 'close') {
+      stopCreating()
+      clearRecord()
+    } else if (chosen?.kind === 'create') {
+      setCreateState({ storyId, request: chosen.request })
+    }
+  }
+
   const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null)
 
   const loaded = story.status === 'loaded' ? story.data : null
-  const index = useMemo(() => (loaded ? indexRecords(loaded) : null), [loaded])
+  const index = loaded ? indexRecords(loaded) : null
   const outlet = loaded ? (
     <Outlet
       context={
         {
           story: loaded,
           selectedId,
-          selectRecord,
+          selectRecord: requestSelect,
           sideSlot: wide ? sideSlot : null,
+          reload,
+          beginCreate,
         } satisfies StoryOutlet
       }
     />
   ) : (
     <Outlet context={null} />
   )
+
+  const panel =
+    loaded && index && creating ? (
+      <CreatePanel
+        key={createKey(creating)}
+        request={creating}
+        story={loaded}
+        index={index}
+        onSelect={requestSelect}
+        onClose={requestClose}
+        onDirtyChange={onDirtyChange}
+        onCancel={stopCreating}
+        onReload={reload}
+        onCreated={(id) => {
+          stopCreating()
+          if (id) selectRecord(id)
+        }}
+      />
+    ) : loaded && index && selectedId ? (
+      <DetailPanel
+        story={loaded}
+        index={index}
+        recordId={selectedId}
+        onSelect={requestSelect}
+        onClose={requestClose}
+        onRemoved={clearRecord}
+        onReload={reload}
+        onDirtyChange={onDirtyChange}
+      />
+    ) : null
+
+  const asking = action !== null || blocker.state === 'blocked'
 
   return (
     <Stack gap="md">
@@ -105,6 +266,11 @@ export function StoryLayout() {
       {loaded && index && (
         <>
           <Title order={2}>{loaded.title || 'Untitled story'}</Title>
+          {reloadFailure && (
+            <Alert color="red" title="The story could not be loaded again">
+              {describeFailure(reloadFailure)}
+            </Alert>
+          )}
           <ViewLinks storyId={loaded.id} search={location.search} />
           <Group align="flex-start" wrap="nowrap" gap={0}>
             <Box style={{ flex: '1 1 auto', minWidth: 0 }}>{outlet}</Box>
@@ -121,15 +287,9 @@ export function StoryLayout() {
                   overflow: 'auto',
                 }}
               >
-                {selectedId && (
+                {panel && (
                   <Paper withBorder p="md" w={340} ml="lg">
-                    <DetailPanel
-                      story={loaded}
-                      index={index}
-                      recordId={selectedId}
-                      onSelect={selectRecord}
-                      onClose={clearRecord}
-                    />
+                    {panel}
                   </Paper>
                 )}
                 <Stack gap="md" ref={setSideSlot} />
@@ -140,25 +300,35 @@ export function StoryLayout() {
             <Drawer
               position="right"
               size="md"
-              opened={selectedId !== null}
-              onClose={clearRecord}
+              opened={panel !== null}
+              onClose={requestClose}
               withCloseButton={false}
             >
-              {selectedId && (
-                <DetailPanel
-                  story={loaded}
-                  index={index}
-                  recordId={selectedId}
-                  onSelect={selectRecord}
-                  onClose={clearRecord}
-                />
-              )}
+              {panel}
             </Drawer>
           )}
         </>
       )}
+      <Modal opened={asking} onClose={keepEditing} title="Discard this edit?">
+        <Stack gap="md">
+          <Text size="sm">This edit has not been saved.</Text>
+          <Group gap="xs" wrap="wrap">
+            <Button type="button" color="red" onClick={discardEdit}>
+              Discard
+            </Button>
+            <Button type="button" variant="default" onClick={keepEditing}>
+              Keep editing
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   )
+}
+
+/** Two requests for the same create are one create, so a second click does not reset the form. */
+function createKey(request: CreateRequest): string {
+  return JSON.stringify(request)
 }
 
 /** `/stories/{id}` opens on the records view, at that view's own address. */

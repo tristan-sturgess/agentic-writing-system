@@ -47,7 +47,7 @@ Selecting a record in any view opens the detail panel beside the view. The panel
 
 On a wide window, the `md` breakpoint and wider, the panel is a column to the right of the view. On a narrower window it is a drawer over the view, open while a record is selected. Closing the panel clears `?record=`.
 
-The panel is read-only today. When editing is built it becomes the editor, as [Saving](#saving) says. Every view opens the same panel, so a view does not need an editor of its own, and a new view gets editing by letting the writer select a record.
+The panel edits an Entity, as [Saving](#saving) says. The other kinds of record are shown read-only until their editors are built. Every view opens the same panel, so a view does not need an editor of its own, and a new view gets editing by letting the writer select a record.
 
 The references the panel lists are the ones in "How the records connect" in [story-bible.md](story-bible.md). The graph draws the same list as its edges. There is one definition of a reference in the frontend, and both use it.
 
@@ -61,23 +61,25 @@ A view that is loading says so. A story the acting user cannot see is reported a
 
 ### Saving
 
-No screen saves anything yet. This section is how the detail panel edits a record once editing is built. The application doc fixes what a save may return. This section says what the writer sees.
+The detail panel edits an Entity. The other kinds of record are still shown read-only, and each is edited in this same panel when its editor is built. The application doc fixes what a save may return. This section says what the writer sees.
 
 A save is a commit, the same commit an import or an agent makes. A failed save writes nothing: the stored story stays as it was, and the unsaved edit stays in the panel so the writer can correct it, retry, or discard it. A refusal has no override. The Story Bible rules hold for the writer as they do for the agent, and a save is refused only for structure, never for the quality of what was written, as [story-bible.md](story-bible.md) says.
 
 #### Editing a record
 
-- The panel shows the record read-only, with an **Edit** button. Edit turns the panel into a form with **Save** and **Cancel**. Cancel drops the unsaved edit and shows the record read-only again.
+- The panel shows the record read-only, with an **Edit** button. Edit turns the panel into a form with **Save** and **Cancel**. Cancel drops the unsaved edit and shows the record read-only again. An Entity's form edits its name and its notes.
 - **Delete** is its own button, and it asks for confirmation first. Deleting an Entity says that its Properties are deleted with it.
-- A record is created from a **New** action for its kind. The form collects the primary text before the record exists, as the identity rules in [story-bible.md](story-bible.md) require, so a blank create never mints an id.
+- A record is created from a **New** action for its kind. An Entity's **New** action is on the records view's Entities tab. The form collects the primary text before the record exists, as the identity rules in [story-bible.md](story-bible.md) require, so a blank create never mints an id.
 - An update sends only the fields that changed, with the revision the panel loaded.
-- Selecting another record, or leaving the view, while an edit is unsaved asks before discarding it.
+- The panel belongs to the story's page and survives a switch between views. Selecting another record, closing the panel, or leaving the story while an edit is unsaved asks before discarding it. A switch between views keeps the edit.
 
 #### What each outcome shows
 
-- **Committed (`200`).** The story is loaded again, along with what the view loaded about story time, and the panel shows the record read-only. A create selects the new record.
+- **Committed (`200`).** The story is loaded again, along with what the view loaded about story time, and the panel shows the record read-only. A create selects the new record. A delete closes the panel.
 - **Refused (`422`).** The refusal's message is shown. Each problem is shown on the field it names, with the legal ids it lists. Referring records are shown as links, so the writer can open them and fix them first.
-- **Conflict (`409`).** The stored record is shown beside the unsaved edit, with two actions. **Save mine anyway** sends the edit again against the current revision. **Discard mine** drops the edit and shows the stored record. A record that was deleted in the meantime offers only Discard mine.
+- **Conflict (`409`).** The response lists every row that moved. The panel lists each moved row by its primary text, with its current fields, or marked as gone. A row other than the edited record can be in that list. A delete of an Entity also deletes the Properties the commit's snapshot shows it owning. A Property created on that Entity after that snapshot still names it, so the store turns the delete into a conflict, and the panel lists that Property. A Property committed before the delete is sent is in the snapshot and is deleted with the Entity.
+  - Beside an unsaved edit, **Save mine anyway** sends the same writes against the current revisions. **Discard mine** drops the edit and shows the stored record. A record that was deleted in the meantime offers only Discard mine.
+  - A conflict on a delete has no form to keep. The panel shows the moved rows, with **Delete anyway** and **Cancel**. When the record being deleted is already gone, only Cancel is offered.
 - **Busy (`503`).** The message is shown with a **Retry** button that sends the same commit again.
 
 ## The views

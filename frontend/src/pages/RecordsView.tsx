@@ -16,7 +16,7 @@ export function RecordsView() {
   const story = outlet?.story
   const index = useMemo(() => (story ? indexRecords(story) : null), [story])
   if (!outlet || !story || !index) return null
-  const { selectRecord } = outlet
+  const { selectRecord, beginCreate } = outlet
   return (
     <Tabs defaultValue="framing">
       <Tabs.List>
@@ -31,7 +31,12 @@ export function RecordsView() {
         <FramingSection story={story} />
       </Tabs.Panel>
       <Tabs.Panel value="entities" pt="md">
-        <EntitiesSection story={story} index={index} onSelect={selectRecord} />
+        <EntitiesSection
+          story={story}
+          index={index}
+          onSelect={selectRecord}
+          onNew={() => beginCreate({ kind: 'entity' })}
+        />
       </Tabs.Panel>
       <Tabs.Panel value="events" pt="md">
         <EventsSection story={story} index={index} onSelect={selectRecord} />

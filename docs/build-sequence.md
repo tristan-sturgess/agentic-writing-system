@@ -53,7 +53,7 @@ Built. The frontend shows the model from slice 1 in four read-only views, each c
 - **The graph.** [ui/graph.md](ui/graph.md): every record as a node and every reference as an edge, a filter by kind of record, and the list of records that connect to nothing. The first work on a readable layout is also built: a layout that places one story the same way on every load, each Entity drawn in a box with its Properties, forces set by kind, the layout panel that tunes them, and `scripts/graph_screenshot.py`, which saves a screenshot of the graph so layouts can be compared.
 - **Sample stories.** `samples/timeline_story.json`, `samples/ensemble_story.json`, and `samples/large_story.json`, each added to stress one view.
 
-Nothing can be edited on screen. That is slice 3. The rest of the graph's work, a large story that reads well and search and focus, is in [future-work.md](future-work.md).
+Editing on screen is slice 3, and it has started: an Entity can be created, edited, and deleted, and the other records are still read-only. The rest of the graph's work, a large story that reads well and search and focus, is in [future-work.md](future-work.md).
 
 ## Slice 3 — Editing
 

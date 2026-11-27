@@ -37,6 +37,8 @@ export function EntitiesView() {
   const outlet = useStory()
   const story = outlet?.story
   const storyId = story?.id ?? ''
+  // A save loads the story again, and `updated_at` moves, so these reads load with it.
+  const updatedAt = story?.updated_at ?? ''
   const [params, setParams] = useSearchParams()
   const entityParam = params.get('entity')
   const at = params.get('at')
@@ -55,15 +57,16 @@ export function EntitiesView() {
   }, [viewed, entityParam, setParams])
 
   const loadTimes = useCallback((): Promise<StatementTimes> => {
-    if (storyId === '') return Promise.resolve({ properties: [], assertions: [] })
+    // `updatedAt` is part of the load so a save, which changes it, fetches again.
+    if (storyId === '' || updatedAt === '') return Promise.resolve({ properties: [], assertions: [] })
     return getStatementTimes(storyId)
-  }, [storyId])
+  }, [storyId, updatedAt])
   const times = useLoad(loadTimes)
 
   const loadStretches = useCallback((): Promise<InForceStretches | null> => {
-    if (storyId === '' || !viewed) return Promise.resolve(null)
+    if (storyId === '' || updatedAt === '' || !viewed) return Promise.resolve(null)
     return getInForceStretches(storyId, viewed)
-  }, [storyId, viewed])
+  }, [storyId, viewed, updatedAt])
   const stretches = useLoad(loadStretches)
 
   const chooseStretch = useCallback(

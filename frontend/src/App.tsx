@@ -1,5 +1,5 @@
 import { Anchor, AppShell, Container, Group, Text } from '@mantine/core'
-import { Link, Route, Routes } from 'react-router'
+import { Link, Outlet, RouterProvider, createBrowserRouter } from 'react-router'
 
 import { EntitiesView } from './entities/EntitiesView'
 import { GraphView } from './graph/GraphView'
@@ -8,7 +8,32 @@ import { StoryListPage } from './pages/StoryListPage'
 import { OpenRecords, StoryLayout } from './pages/StoryLayout'
 import { TimelineView } from './timeline/TimelineView'
 
+const router = createBrowserRouter([
+  {
+    element: <Shell />,
+    children: [
+      { index: true, element: <StoryListPage /> },
+      {
+        path: 'stories/:storyId',
+        element: <StoryLayout />,
+        children: [
+          { index: true, element: <OpenRecords /> },
+          { path: 'records', element: <RecordsView /> },
+          { path: 'timeline', element: <TimelineView /> },
+          { path: 'entities', element: <EntitiesView /> },
+          { path: 'graph', element: <GraphView /> },
+        ],
+      },
+      { path: '*', element: <NoSuchPage /> },
+    ],
+  },
+])
+
 export default function App() {
+  return <RouterProvider router={router} />
+}
+
+function Shell() {
   return (
     <AppShell header={{ height: 52 }} padding="md">
       <AppShell.Header>
@@ -20,18 +45,7 @@ export default function App() {
       </AppShell.Header>
       <AppShell.Main>
         <Container size="lg">
-          <Routes>
-            <Route path="/" element={<StoryListPage />} />
-            <Route path="/stories/:storyId" element={<StoryLayout />}>
-              <Route index element={<OpenRecords />} />
-              <Route path="records" element={<RecordsView />} />
-              <Route path="timeline" element={<TimelineView />} />
-              <Route path="entities" element={<EntitiesView />} />
-              <Route path="graph" element={<GraphView />} />
-            </Route>
-            {/* The service answers any path outside /api with this app. */}
-            <Route path="*" element={<NoSuchPage />} />
-          </Routes>
+          <Outlet />
         </Container>
       </AppShell.Main>
     </AppShell>

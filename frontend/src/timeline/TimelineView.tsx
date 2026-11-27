@@ -61,14 +61,17 @@ export function TimelineView() {
   const outlet = useStory()
   const story = outlet?.story
   const storyId = story?.id ?? ''
+  // A save loads the story again, and `updated_at` moves, so the times load with it.
+  const updatedAt = story?.updated_at ?? ''
   const [params, setParams] = useSearchParams()
   const highlightParam = params.get('highlight')
   const load = useCallback((): Promise<EventTimes> => {
     // The layout renders this view before the story has loaded, and passes no
     // context. There is nothing to ask the service for until a story id exists.
-    if (storyId === '') return Promise.resolve({ events: [] })
+    // `updatedAt` is part of the load so a save, which changes it, fetches again.
+    if (storyId === '' || updatedAt === '') return Promise.resolve({ events: [] })
     return getEventTimes(storyId)
-  }, [storyId])
+  }, [storyId, updatedAt])
   const times = useLoad(load)
   const [picked, setPicked] = useState<{ storyId: string; time: TimeSelection } | null>(null)
   const index = useMemo(() => (story ? indexRecords(story) : null), [story])

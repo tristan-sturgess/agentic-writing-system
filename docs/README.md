@@ -1,6 +1,6 @@
 # Creative Writing System
 
-This repository is the version 3 build of a creative writing system for fiction. The Story Bible records and rules, the story store, the commit, the story endpoints, and import are built. So are the read-only views: the records view, the timeline with the Entities and Arcs on it, the entities view, and the graph, each at its own address, with one detail panel they share. Nothing can be edited on screen yet, and there is no agent. [build-sequence.md](build-sequence.md) says what is next. The documents below are the design the build follows.
+This repository is the version 3 build of a creative writing system for fiction. The Story Bible records and rules, the story store, the commit, the story endpoints, and import are built. So are the read-only views: the records view, the timeline with the Entities and Arcs on it, the entities view, and the graph, each at its own address, with one detail panel they share. An Entity can be created, edited, and deleted on screen. The other records are still read-only, and there is no agent. [build-sequence.md](build-sequence.md) says what is next. The documents below are the design the build follows.
 
 The Story Bible is the shared object. The user can inspect and edit it directly. Agents do most of the work, with revision loops. Measuring whether a prompt or workflow change actually helped is a requirement, not a follow-up.
 

@@ -8,7 +8,7 @@ A workspace for writing long-form fiction. The writer describes the story they w
 
 Measuring whether a prompt, model, or workflow change actually helped is part of the product, not a follow-up.
 
-The Story Bible and the read-only views are built. The Story Bible is the records and rules, the story store on SQLite, the commit, the story endpoints, and import. The views are the records view, a route per view, the read-only detail panel, the edge on a time point that names an Event, story time from the service, the timeline, including the Entities and Arcs on it, the entities view, and the graph. Nothing can be edited on screen yet, and there is no agent. On-screen editing is next, as `docs/build-sequence.md` says. The design lives in `docs/`.
+The Story Bible and the read-only views are built. The Story Bible is the records and rules, the story store on SQLite, the commit, the story endpoints, and import. The views are the records view, a route per view, the read-only detail panel, the edge on a time point that names an Event, story time from the service, the timeline, including the Entities and Arcs on it, the entities view, and the graph. An Entity can be created, edited, and deleted in the detail panel. The other records are still read-only, and there is no agent. The rest of on-screen editing is next, as `docs/build-sequence.md` says. The design lives in `docs/`.
 
 ## What the project is for
 
