@@ -1,4 +1,4 @@
-import { Box, Group, Stack, Text } from '@mantine/core'
+import { Box, Button, Group, Stack, Text } from '@mantine/core'
 
 import type { NarrativeUnit, Story } from '../api/client'
 import { Empty, Prose, RecordId, RecordLink, RecordRefs, type SelectRecord } from './parts'
@@ -12,16 +12,28 @@ export function UnitsSection({
   story,
   index,
   onSelect,
+  onNew,
 }: {
   story: Story
   index: RecordIndex
   onSelect: SelectRecord
+  onNew: () => void
 }) {
-  if (story.unit_ids.length === 0) {
-    return <Empty>This story has no Narrative Units.</Empty>
-  }
   const units = new Map(story.units.map((unit) => [unit.id, unit]))
-  return <UnitList ids={story.unit_ids} units={units} index={index} onSelect={onSelect} />
+  return (
+    <Stack gap="md">
+      <div>
+        <Button type="button" onClick={onNew}>
+          New Narrative Unit
+        </Button>
+      </div>
+      {story.unit_ids.length === 0 ? (
+        <Empty>This story has no Narrative Units.</Empty>
+      ) : (
+        <UnitList ids={story.unit_ids} units={units} index={index} onSelect={onSelect} />
+      )}
+    </Stack>
+  )
 }
 
 function UnitList({

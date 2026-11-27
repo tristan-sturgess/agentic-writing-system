@@ -16,6 +16,11 @@ export type StoryOutlet = {
   reload: () => Promise<void>
   /** Open the create form for the requested kind in the detail panel. */
   beginCreate: (request: CreateRequest) => void
+  /**
+   * Report that a form has unsaved edits. The panel and the framing tab are
+   * separate, so one clearing does not drop the other's edit.
+   */
+  setDirtySource: (source: string, dirty: boolean) => void
 }
 
 /** The story loaded by the story layout. Null while that load has not settled. */

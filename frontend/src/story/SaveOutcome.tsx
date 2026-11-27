@@ -3,6 +3,7 @@
 import { Alert, Button, Group, Stack, Text } from '@mantine/core'
 
 import type { ConflictResponse, ConflictRowView, Refusal } from '../api/client'
+import { fieldLabel } from './fieldLabels'
 import { labelOf, type RecordIndex } from './records'
 import { RecordLink, type SelectRecord } from './parts'
 import { conflictRowIsGone, conflictRowLabel, problemMessage } from './writes'
@@ -12,27 +13,6 @@ export type SaveFailure =
   | { status: 'conflict'; conflict: ConflictResponse }
   | { status: 'busy'; message: string }
   | { status: 'error'; message: string }
-
-const FIELD_LABEL: Record<string, string> = {
-  name: 'Name',
-  notes: 'Notes',
-  title: 'Title',
-  statement: 'Statement',
-  description: 'Description',
-  premise: 'Premise',
-  tone: 'Tone',
-  themes: 'Themes',
-  writing_style: 'Writing style',
-  entity_id: 'Entity',
-  entity_ids: 'Entities',
-  event_ids: 'Events',
-  arc_ids: 'Arcs',
-  caused_by: 'Caused by',
-  when: 'When',
-  child_ids: 'Units inside',
-  subject_ids: 'Depicts',
-  unit_ids: 'In the story',
-}
 
 /**
  * The refusal, conflict, or busy error from a save.
@@ -180,7 +160,7 @@ function FieldList({
     <Stack gap={2}>
       {Object.entries(fields).map(([key, value]) => (
         <Text key={key} size="sm">
-          {FIELD_LABEL[key] ?? key}: {formatFieldValue(value, index)}
+          {fieldLabel(key)}: {formatFieldValue(value, index)}
         </Text>
       ))}
     </Stack>

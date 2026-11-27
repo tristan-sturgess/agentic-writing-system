@@ -1,4 +1,4 @@
-import { Table } from '@mantine/core'
+import { Button, Stack, Table } from '@mantine/core'
 
 import type { Story } from '../api/client'
 import { Empty, Prose, RecordId, RecordLink, RecordRefs, When, type SelectRecord } from './parts'
@@ -12,15 +12,23 @@ export function EventsSection({
   story,
   index,
   onSelect,
+  onNew,
 }: {
   story: Story
   index: RecordIndex
   onSelect: SelectRecord
+  onNew: () => void
 }) {
-  if (story.events.length === 0) {
-    return <Empty>This story has no Events.</Empty>
-  }
   return (
+    <Stack gap="md">
+      <div>
+        <Button type="button" onClick={onNew}>
+          New Event
+        </Button>
+      </div>
+      {story.events.length === 0 ? (
+        <Empty>This story has no Events.</Empty>
+      ) : (
     <Table verticalSpacing="sm">
       <Table.Thead>
         <Table.Tr>
@@ -51,5 +59,7 @@ export function EventsSection({
         ))}
       </Table.Tbody>
     </Table>
+      )}
+    </Stack>
   )
 }

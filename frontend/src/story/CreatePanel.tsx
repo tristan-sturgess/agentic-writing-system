@@ -1,14 +1,25 @@
 // The detail panel while a new record is being created. The request names the
-// kind, and later kinds add the fields a create starts from, such as the
-// Entity a new Property belongs to.
+// kind, and the fields a create starts from, such as the Entity a new Property
+// belongs to or the time a new Event was picked from.
 
-import type { Story } from '../api/client'
+import type { Committed, Span, Story } from '../api/client'
+import { ArcForm } from './ArcForm'
+import { AssertionForm } from './AssertionForm'
 import { EntityForm } from './EntityForm'
+import { EventForm } from './EventForm'
+import { PropertyForm } from './PropertyForm'
+import { UnitForm } from './UnitForm'
 import type { SelectRecord } from './parts'
-import type { RecordIndex } from './records'
+import { labelOf, type RecordIndex } from './records'
 import { CREATED_REF, createdId, entityCreate } from './writes'
 
-export type CreateRequest = { kind: 'entity' }
+export type CreateRequest =
+  | { kind: 'entity' }
+  | { kind: 'property'; entityId: string }
+  | { kind: 'event'; when?: Span[] }
+  | { kind: 'arc' }
+  | { kind: 'assertion' }
+  | { kind: 'unit'; parentId?: string }
 
 export function CreatePanel({
   request,
@@ -33,6 +44,24 @@ export function CreatePanel({
   /** The create landed and the story has been loaded again. */
   onCreated: (id: string | null) => void
 }) {
+  async function onLanded(committed: Committed) {
+    await onReload()
+    onCreated(createdId(committed, CREATED_REF))
+  }
+  const shared = {
+    story,
+    storyId: story.id,
+    index,
+    onSelect,
+    onClose,
+    onDirtyChange,
+    onCancel,
+    onDiscard: () => {
+      onCancel()
+      void onReload()
+    },
+    onLanded,
+  }
   switch (request.kind) {
     case 'entity':
       return (
@@ -40,22 +69,34 @@ export function CreatePanel({
           heading="New Entity"
           recordId={null}
           initialValues={{ name: '', notes: '' }}
-          buildWrite={entityCreate}
-          storyId={story.id}
+          buildWrites={(draft) => [entityCreate(draft)]}
+          storyId={shared.storyId}
           index={index}
           onSelect={onSelect}
           onClose={onClose}
           onDirtyChange={onDirtyChange}
           onCancel={onCancel}
-          onDiscard={() => {
-            onCancel()
-            void onReload()
-          }}
-          onLanded={async (committed) => {
-            await onReload()
-            onCreated(createdId(committed, CREATED_REF))
-          }}
+          onDiscard={shared.onDiscard}
+          onLanded={onLanded}
         />
+      )
+    case 'property':
+      return (
+        <PropertyForm
+          {...shared}
+          heading={`New Property of ${labelOf(index, request.entityId)}`}
+          entityId={request.entityId}
+        />
+      )
+    case 'event':
+      return <EventForm {...shared} heading="New Event" initialWhen={request.when} />
+    case 'arc':
+      return <ArcForm {...shared} heading="New Arc" />
+    case 'assertion':
+      return <AssertionForm {...shared} heading="New Assertion" />
+    case 'unit':
+      return (
+        <UnitForm {...shared} heading="New Narrative Unit" parentId={request.parentId ?? 'story'} />
       )
   }
 }

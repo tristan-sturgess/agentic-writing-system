@@ -1,4 +1,4 @@
-import { Table } from '@mantine/core'
+import { Button, Stack, Table } from '@mantine/core'
 
 import type { Story } from '../api/client'
 import { Empty, RecordId, RecordLink, RecordRefs, StatementLinks, When, type SelectRecord } from './parts'
@@ -8,15 +8,23 @@ export function AssertionsSection({
   story,
   index,
   onSelect,
+  onNew,
 }: {
   story: Story
   index: RecordIndex
   onSelect: SelectRecord
+  onNew: () => void
 }) {
-  if (story.assertions.length === 0) {
-    return <Empty>This story has no Assertions.</Empty>
-  }
   return (
+    <Stack gap="md">
+      <div>
+        <Button type="button" onClick={onNew}>
+          New Assertion
+        </Button>
+      </div>
+      {story.assertions.length === 0 ? (
+        <Empty>This story has no Assertions.</Empty>
+      ) : (
     <Table verticalSpacing="sm">
       <Table.Thead>
         <Table.Tr>
@@ -55,5 +63,7 @@ export function AssertionsSection({
         ))}
       </Table.Tbody>
     </Table>
+      )}
+    </Stack>
   )
 }

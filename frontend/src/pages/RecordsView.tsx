@@ -16,7 +16,7 @@ export function RecordsView() {
   const story = outlet?.story
   const index = useMemo(() => (story ? indexRecords(story) : null), [story])
   if (!outlet || !story || !index) return null
-  const { selectRecord, beginCreate } = outlet
+  const { selectRecord, beginCreate, reload, setDirtySource } = outlet
   return (
     <Tabs defaultValue="framing">
       <Tabs.List>
@@ -28,7 +28,13 @@ export function RecordsView() {
         <Tabs.Tab value="units">Narrative Units ({story.units.length})</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="framing" pt="md">
-        <FramingSection story={story} />
+        <FramingSection
+          story={story}
+          index={index}
+          onSelect={selectRecord}
+          onReload={reload}
+          onDirtyChange={(dirty) => setDirtySource('framing', dirty)}
+        />
       </Tabs.Panel>
       <Tabs.Panel value="entities" pt="md">
         <EntitiesSection
@@ -39,16 +45,36 @@ export function RecordsView() {
         />
       </Tabs.Panel>
       <Tabs.Panel value="events" pt="md">
-        <EventsSection story={story} index={index} onSelect={selectRecord} />
+        <EventsSection
+          story={story}
+          index={index}
+          onSelect={selectRecord}
+          onNew={() => beginCreate({ kind: 'event' })}
+        />
       </Tabs.Panel>
       <Tabs.Panel value="arcs" pt="md">
-        <ArcsSection story={story} index={index} onSelect={selectRecord} />
+        <ArcsSection
+          story={story}
+          index={index}
+          onSelect={selectRecord}
+          onNew={() => beginCreate({ kind: 'arc' })}
+        />
       </Tabs.Panel>
       <Tabs.Panel value="assertions" pt="md">
-        <AssertionsSection story={story} index={index} onSelect={selectRecord} />
+        <AssertionsSection
+          story={story}
+          index={index}
+          onSelect={selectRecord}
+          onNew={() => beginCreate({ kind: 'assertion' })}
+        />
       </Tabs.Panel>
       <Tabs.Panel value="units" pt="md">
-        <UnitsSection story={story} index={index} onSelect={selectRecord} />
+        <UnitsSection
+          story={story}
+          index={index}
+          onSelect={selectRecord}
+          onNew={() => beginCreate({ kind: 'unit' })}
+        />
       </Tabs.Panel>
     </Tabs>
   )

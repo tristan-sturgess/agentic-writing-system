@@ -8,6 +8,7 @@ import {
   createdId,
   editedRecordGone,
   entityCreate,
+  framingUpdate,
   recordUpdate,
   fieldProblems,
   recordDelete,
@@ -168,6 +169,43 @@ test('a refusal problem is matched to the field it names, with its legal ids', (
       message: 'No such record. Legal ids: event_arrival, event_departure.',
     },
   ])
+})
+
+test('a problem on another record is not shown on this form', () => {
+  const problems = [
+    problem({
+      message: 'The parent lists the unit twice.',
+      field: 'child_ids',
+      record_id: 'unit_act',
+    }),
+    problem({
+      message: 'unit_scene has a blank title.',
+      field: 'title',
+      record_id: 'unit_scene',
+    }),
+  ]
+  expect(fieldProblems(problems, 'unit_scene')).toEqual([
+    { field: 'title', message: 'unit_scene has a blank title.' },
+  ])
+  expect(fieldProblems(problems, null)).toEqual([])
+})
+
+test('a framing save names only the fields that changed', () => {
+  const base = {
+    revision: 2,
+    title: 'Harbour',
+    description: '',
+    premise: 'A return.',
+    tone: '',
+    themes: '',
+    writing_style: '',
+  }
+  expect(framingUpdate(base, { ...base, premise: 'A return.', tone: 'Cold' })).toEqual({
+    op: 'set_story',
+    revision: 2,
+    fields: { tone: 'Cold' },
+  })
+  expect(framingUpdate(base, base)).toBeNull()
 })
 
 test('a conflict keeps a create as it is and moves an update onto the current revision', () => {

@@ -43,6 +43,29 @@ export function labelOf(index: RecordIndex, recordId: string): string {
   return index.get(recordId)?.label ?? recordId
 }
 
+/**
+ * The field that holds a record's primary text. The story's is its title.
+ * A conflict row is named from this same rule.
+ */
+const PRIMARY_TEXT_FIELD: Record<string, string> = {
+  entity: 'name',
+  property: 'statement',
+  assertion: 'statement',
+  event: 'title',
+  unit: 'title',
+  arc: 'title',
+  story: 'title',
+}
+
+/** The primary text in a field bag, when that bag carries a non-blank one. */
+export function primaryText(kind: string, fields: { [key: string]: unknown }): string | null {
+  const key = PRIMARY_TEXT_FIELD[kind]
+  if (!key) return null
+  const value = fields[key]
+  if (typeof value !== 'string' || value.trim() === '') return null
+  return value
+}
+
 /** Each Entity's Properties, in the order the story lists them. */
 export function propertiesByEntity(story: Story): ReadonlyMap<string, Property[]> {
   const byEntity = new Map<string, Property[]>()

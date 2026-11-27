@@ -2,6 +2,7 @@ import {
   Alert,
   Anchor,
   Box,
+  Button,
   CloseButton,
   Group,
   Loader,
@@ -19,6 +20,7 @@ import {
   describeFailure,
   getEventTimes,
   type EventTimes,
+  type Span,
   type Story,
 } from '../api/client'
 import { labelOf, indexRecords } from '../story/records'
@@ -130,6 +132,7 @@ export function TimelineView() {
         story.entities.length > 0 || story.arcs.length > 0 ? highlightOptions(story, name) : null
       }
       links={{ highlight, participantsOf, onHighlight }}
+      onNewEvent={(when) => outlet.beginCreate(when ? { kind: 'event', when } : { kind: 'event' })}
     />
   )
 }
@@ -147,6 +150,7 @@ function Timeline({
   onClearTime,
   options,
   links,
+  onNewEvent,
 }: {
   storyId: string
   layout: TimelineLayout
@@ -160,6 +164,7 @@ function Timeline({
   onClearTime: () => void
   options: NonNullable<NativeSelectProps['data']> | null
   links: TimelineLinks
+  onNewEvent: (when?: Span[]) => void
 }) {
   const shown = useMemo(() => visibleIds(layout, time, linked), [layout, time, linked])
   const highlightIds = links.highlight?.eventIds ?? null
@@ -168,7 +173,18 @@ function Timeline({
     return (timestamp: string) => labels.get(timestamp) ?? timestamp.replace('T', ' ')
   }, [layout.moments])
 
-  if (eventCount === 0) return <Empty>This story has no Events.</Empty>
+  if (eventCount === 0) {
+    return (
+      <Stack gap="md">
+        <div>
+          <Button type="button" onClick={() => onNewEvent()}>
+            New Event
+          </Button>
+        </div>
+        <Empty>This story has no Events.</Empty>
+      </Stack>
+    )
+  }
 
   return (
     <Stack gap="md">
@@ -193,6 +209,7 @@ function Timeline({
           onSelect={onSelect}
           onClose={onClearTime}
           links={links}
+          onNewEvent={() => onNewEvent(spansForTime(time))}
         />
       )}
       {layout.moments.length === 0 ? (
@@ -224,6 +241,14 @@ function Timeline({
   )
 }
 
+/** A moment is one `at`. A stretch is one `range` from the earlier moment to the later. */
+function spansForTime(time: TimeSelection): Span[] {
+  if (time.kind === 'moment') {
+    return [{ kind: 'at', at: { timestamp: time.timestamp } }]
+  }
+  return [{ kind: 'range', start: { timestamp: time.from }, end: { timestamp: time.to } }]
+}
+
 function TimeReading({
   layout,
   time,
@@ -232,6 +257,7 @@ function TimeReading({
   onSelect,
   onClose,
   links,
+  onNewEvent,
 }: {
   layout: TimelineLayout
   time: TimeSelection
@@ -240,6 +266,7 @@ function TimeReading({
   onSelect: (id: string) => void
   onClose: () => void
   links: TimelineLinks
+  onNewEvent: () => void
 }) {
   if (time.kind === 'moment') {
     const reading = inProgress(layout, time)
@@ -249,6 +276,9 @@ function TimeReading({
           <Text fw={600}>{momentLabel(time.timestamp)}</Text>
           <CloseButton aria-label="Clear the selected time" onClick={onClose} />
         </Group>
+        <Button type="button" variant="default" size="xs" mt="xs" onClick={onNewEvent}>
+          New Event at this time
+        </Button>
         <ReadingLists reading={reading} name={name} onSelect={onSelect} links={links} />
       </Box>
     )
@@ -272,6 +302,9 @@ function TimeReading({
         </Text>
         <CloseButton aria-label="Clear the selected time" onClick={onClose} />
       </Group>
+      <Button type="button" variant="default" size="xs" mt="xs" onClick={onNewEvent}>
+        New Event at this time
+      </Button>
       <Text fw={600} size="sm" mt="xs">
         Across this stretch
       </Text>

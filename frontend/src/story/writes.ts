@@ -2,7 +2,8 @@
 // The commit treats a field left out of an update as unchanged, so an update
 // names only the fields that differ from what the panel loaded.
 
-import type { Committed, ConflictRowView, Problem, UpdateWrite, Write } from '../api/client'
+import type { Committed, ConflictRowView, Problem, Span, UpdateWrite, Write } from '../api/client'
+import { primaryText } from './records'
 
 export type EntityDraft = {
   name: string
@@ -78,6 +79,110 @@ export function entityCreate(draft: EntityDraft): Write {
   }
 }
 
+export type PropertyDraftFields = {
+  statement: string
+  when: Span[]
+  caused_by: string | null
+}
+
+export function propertyCreate(entityId: string, draft: PropertyDraftFields): Write {
+  return {
+    op: 'create',
+    kind: 'property',
+    ref: CREATED_REF,
+    fields: {
+      entity_id: entityId,
+      statement: draft.statement,
+      when: draft.when,
+      caused_by: draft.caused_by,
+    },
+  }
+}
+
+export type EventDraftFields = {
+  title: string
+  description: string
+  entity_ids: string[]
+  when: Span[]
+}
+
+export function eventCreate(draft: EventDraftFields): Write {
+  return {
+    op: 'create',
+    kind: 'event',
+    ref: CREATED_REF,
+    fields: {
+      title: draft.title,
+      description: draft.description,
+      entity_ids: draft.entity_ids,
+      when: draft.when,
+    },
+  }
+}
+
+export type ArcDraftFields = {
+  title: string
+  description: string
+  event_ids: string[]
+}
+
+export function arcCreate(draft: ArcDraftFields): Write {
+  return {
+    op: 'create',
+    kind: 'arc',
+    ref: CREATED_REF,
+    fields: {
+      title: draft.title,
+      description: draft.description,
+      event_ids: draft.event_ids,
+    },
+  }
+}
+
+export type AssertionDraftFields = {
+  statement: string
+  entity_ids: string[]
+  event_ids: string[]
+  arc_ids: string[]
+  when: Span[]
+  caused_by: string | null
+}
+
+export function assertionCreate(draft: AssertionDraftFields): Write {
+  return {
+    op: 'create',
+    kind: 'assertion',
+    ref: CREATED_REF,
+    fields: {
+      statement: draft.statement,
+      entity_ids: draft.entity_ids,
+      event_ids: draft.event_ids,
+      arc_ids: draft.arc_ids,
+      when: draft.when,
+      caused_by: draft.caused_by,
+    },
+  }
+}
+
+const FRAMING_FIELDS = ['title', 'description', 'premise', 'tone', 'themes', 'writing_style'] as const
+
+export type FramingDraft = Record<(typeof FRAMING_FIELDS)[number], string>
+
+/** The framing fields that changed, as one `set_story`. Null when nothing changed. */
+export function framingUpdate(
+  base: { revision: number } & FramingDraft,
+  draft: FramingDraft,
+): Write | null {
+  const fields: Record<string, string> = {}
+  for (const key of FRAMING_FIELDS) {
+    if (draft[key] !== base[key]) fields[key] = draft[key]
+  }
+  if (Object.keys(fields).length === 0) return null
+  // The generated patch marks every framing field required because each has a
+  // default. The JSON must omit the ones the writer did not change.
+  return { op: 'set_story', revision: base.revision, fields } as unknown as Write
+}
+
 /** The id the commit minted for the create that carried `ref`. */
 export function createdId(committed: Committed, ref: string): string | null {
   return committed.created.find((item) => item.ref === ref)?.id ?? null
@@ -95,14 +200,21 @@ export function problemMessage(problem: Problem): string {
 }
 
 /**
- * The problems that name a field, in the order the fields first appear.
- * A problem with no field is left for the refusal message.
+ * The problems that name a field of `recordId`, in the order the fields first appear.
+ * A problem with no field is left for the refusal message. A problem that names
+ * some other record is left out, so a commit that also updates a parent does
+ * not paint the parent's field onto this form. `recordId` null is a create, or
+ * the story itself: only a problem that names no record.
  */
-export function fieldProblems(problems: readonly Problem[]): { field: string; message: string }[] {
+export function fieldProblems(
+  problems: readonly Problem[],
+  recordId: string | null = null,
+): { field: string; message: string }[] {
   const groups = new Map<string, Problem[]>()
   for (const problem of problems) {
     const field = problem.field
     if (!field) continue
+    if ((problem.record_id ?? null) !== recordId) continue
     const list = groups.get(field)
     if (list) list.push(problem)
     else groups.set(field, [problem])
@@ -113,24 +225,10 @@ export function fieldProblems(problems: readonly Problem[]): { field: string; me
   }))
 }
 
-const PRIMARY_FIELD: Record<string, string> = {
-  entity: 'name',
-  property: 'statement',
-  assertion: 'statement',
-  event: 'title',
-  unit: 'title',
-  arc: 'title',
-  story: 'title',
-}
-
 /** The primary text of a conflict row's current fields, when those fields carry one. */
 export function conflictRowLabel(row: ConflictRowView): string | null {
   if (row.fields == null || row.kind == null) return null
-  const key = PRIMARY_FIELD[row.kind]
-  if (!key) return null
-  const value = row.fields[key]
-  if (typeof value !== 'string' || value.trim() === '') return null
-  return value
+  return primaryText(row.kind, row.fields)
 }
 
 /** A row the response marks gone: it is missing, or it has no current fields. */

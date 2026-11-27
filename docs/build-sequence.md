@@ -53,13 +53,13 @@ Built. The frontend shows the model from slice 1 in four read-only views, each c
 - **The graph.** [ui/graph.md](ui/graph.md): every record as a node and every reference as an edge, a filter by kind of record, and the list of records that connect to nothing. The first work on a readable layout is also built: a layout that places one story the same way on every load, each Entity drawn in a box with its Properties, forces set by kind, the layout panel that tunes them, and `scripts/graph_screenshot.py`, which saves a screenshot of the graph so layouts can be compared.
 - **Sample stories.** `samples/timeline_story.json`, `samples/ensemble_story.json`, and `samples/large_story.json`, each added to stress one view.
 
-Editing on screen is slice 3, and it has started: an Entity can be created, edited, and deleted, and the other records are still read-only. The rest of the graph's work, a large story that reads well and search and focus, is in [future-work.md](future-work.md).
+Editing on screen is slice 3, and it has started: every kind of record can be created, edited, and deleted, and the framing can be edited. History, revert, and export are not built yet. The rest of the graph's work, a large story that reads well and search and focus, is in [future-work.md](future-work.md).
 
 ## Slice 3 — Editing
 
 Editing on the screens slice 2 built, and the story endpoints that are left: history, revert, and export. Accounts and a hosted login are not part of this slice. Locally there is still one implicit user, and the API resolves every request to it.
 
-Selecting a record in any view opens the same detail panel. It is read-only now, and in this slice it becomes the editor, so a view does not get an editor of its own. The records view stays, as the screen where every field of every record can be reached.
+Selecting a record in any view opens the same detail panel. The panel is the editor for every kind of record, so a view does not get an editor of its own. The records view stays, as the screen where every field of every record can be reached. The framing is edited on that view's Framing tab.
 
 A hand edit is a commit. A failed save writes nothing. The stored story stays as it was, and the unsaved edit stays in the panel so the writer can correct it, retry, or discard it.
 

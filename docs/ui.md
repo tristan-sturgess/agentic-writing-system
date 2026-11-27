@@ -47,7 +47,7 @@ Selecting a record in any view opens the detail panel beside the view. The panel
 
 On a wide window, the `md` breakpoint and wider, the panel is a column to the right of the view. On a narrower window it is a drawer over the view, open while a record is selected. Closing the panel clears `?record=`.
 
-The panel edits an Entity, as [Saving](#saving) says. The other kinds of record are shown read-only until their editors are built. Every view opens the same panel, so a view does not need an editor of its own, and a new view gets editing by letting the writer select a record.
+The panel edits every kind of record, as [Saving](#saving) says. Every view opens the same panel, so a view does not need an editor of its own, and a new view gets editing by letting the writer select a record.
 
 The references the panel lists are the ones in "How the records connect" in [story-bible.md](story-bible.md). The graph draws the same list as its edges. There is one definition of a reference in the frontend, and both use it.
 
@@ -61,16 +61,16 @@ A view that is loading says so. A story the acting user cannot see is reported a
 
 ### Saving
 
-The detail panel edits an Entity. The other kinds of record are still shown read-only, and each is edited in this same panel when its editor is built. The application doc fixes what a save may return. This section says what the writer sees.
+The detail panel edits every kind of record. The story's framing is not a record in the panel: it is edited on the records view's Framing tab, as a `set_story` commit, and that save shows the same outcomes as a save in the panel. The application doc fixes what a save may return. This section says what the writer sees.
 
 A save is a commit, the same commit an import or an agent makes. A failed save writes nothing: the stored story stays as it was, and the unsaved edit stays in the panel so the writer can correct it, retry, or discard it. A refusal has no override. The Story Bible rules hold for the writer as they do for the agent, and a save is refused only for structure, never for the quality of what was written, as [story-bible.md](story-bible.md) says.
 
 #### Editing a record
 
-- The panel shows the record read-only, with an **Edit** button. Edit turns the panel into a form with **Save** and **Cancel**. Cancel drops the unsaved edit and shows the record read-only again. An Entity's form edits its name and its notes.
-- **Delete** is its own button, and it asks for confirmation first. Deleting an Entity says that its Properties are deleted with it.
-- A record is created from a **New** action for its kind. An Entity's **New** action is on the records view's Entities tab. The form collects the primary text before the record exists, as the identity rules in [story-bible.md](story-bible.md) require, so a blank create never mints an id.
-- An update sends only the fields that changed, with the revision the panel loaded.
+- The panel shows the record read-only, with an **Edit** button. Edit turns the panel into a form with **Save** and **Cancel**. Cancel drops the unsaved edit and shows the record read-only again. An Entity's form edits its name and its notes. A Property's form edits its statement, its `when`, and `caused_by`, and a Property is created from its Entity's panel. An Event's form edits its title, its description, the Entities that take part, and its `when`. An Assertion's form edits its statement, the Entities, Events, and Arcs it names, its `when`, and `caused_by`. The "at least two records" rule is the service's refusal. An Arc's form and a Narrative Unit's form are described below. A unit's prose is shown and stays empty.
+- **Delete** is its own button, and it asks for confirmation first. Deleting an Entity says that its Properties are deleted with it. Deleting a Narrative Unit also takes it out of the list that holds it. A unit that still has units inside it is refused.
+- A record is created from a **New** action for its kind. An Entity's is on the records view's Entities tab. A Property's is on its Entity's panel. An Event's is on the Events tab, and on the timeline from a selected moment or stretch, which fills that time in. An Arc's is on the Arcs tab. An Assertion's is on the Assertions tab. A Narrative Unit's is on the Narrative Units tab, and on a unit's panel, which places the new unit inside that one. The form collects the primary text before the record exists, as the identity rules in [story-bible.md](story-bible.md) require, so a blank create never mints an id.
+- An update sends only the fields that changed, with the revision the panel loaded. Creating a Narrative Unit, moving it between lists, and deleting it each go out as one commit, because a unit has to stay in exactly one list.
 - The panel belongs to the story's page and survives a switch between views. Selecting another record, closing the panel, or leaving the story while an edit is unsaved asks before discarding it. A switch between views keeps the edit.
 
 #### What each outcome shows
@@ -99,7 +99,17 @@ The timeline draws both of the pictures the Story Bible doc requires. Events in 
 
 The records view is the story as stored. It has a tab for the framing and one for each kind of record, with a count. Every field of every record is shown, with the record's id. A `when` list is written out as text, one span at a time, as the spans are stored, including which end of an Event a time point names. It does not decide what is in force.
 
-This is the view that does not interpret. The other views each answer their questions by leaving things out. This one leaves nothing out, so it is where the writer checks what a record actually holds, and it is where every field can be reached once editing exists.
+This is the view that does not interpret. The other views each answer their questions by leaving things out. This one leaves nothing out, so it is where the writer checks what a record actually holds, and it is where every field can be reached. Editing a record opens the detail panel. Editing the framing stays on this view's Framing tab.
+
+### The Arc editor
+
+The Arc editor is the detail panel's form for an Arc. It edits the title, the description, and the Arc's Events. An Event is added from a select, moved up or down, and removed. That order is the Arc's own order, which may differ from story time. Creating and deleting an Arc use the same panel. The timeline, with that Arc highlighted, is where the order is seen against story time.
+
+### Narrative Units
+
+A Narrative Unit is edited in the detail panel as structure. The form edits the title, the summary, the notes, and the Entities, Events, and Arcs it depicts. The prose is shown and stays empty. Where the unit sits is a parent, the story or another unit, and a position in that parent's list. The units inside it are reordered with up and down buttons.
+
+Creating a unit, moving it, and deleting it are each one commit. A create is the new unit plus an update of the parent list that names it. A move updates the list it leaves and the list it joins. A delete takes it out of its parent list and deletes it. A unit that still has units inside it is refused, because those units would be left in no list.
 
 ## Screens that are planned
 
@@ -107,7 +117,6 @@ These are required by other docs, and none is built. Each gets a section or a do
 
 | Screen | Required by | Built with |
 | --- | --- | --- |
-| The Arc editor | [story-bible.md](story-bible.md) | Editing |
 | The history, with what each commit changed and a revert | [architecture/persistence.md](architecture/persistence.md), and [architecture/agents.md](architecture/agents.md), where it is the writer's review of what an agent's turn did | Editing. The arc-planning agent adds the turn. |
 | Model configs and the API key | [architecture/model-configuration.md](architecture/model-configuration.md) | The arc-planning agent |
 | The chat panel, on the story's latest conversation with an action that starts a new one, and the turn's status | [architecture/application.md](architecture/application.md), and [architecture/agents.md](architecture/agents.md) for which conversation is shown | The arc-planning agent |

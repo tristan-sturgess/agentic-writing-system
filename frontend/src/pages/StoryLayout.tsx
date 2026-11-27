@@ -70,6 +70,7 @@ export function StoryLayout() {
   const [dirty, setDirty] = useState(false)
   const [pending, setPending] = useState<{ id: string; action: Pending } | null>(null)
   const dirtyRef = useRef(false)
+  const dirtySources = useRef(new Set<string>())
   const theme = useMantineTheme()
   const wide = useMediaQuery(`(min-width: ${theme.breakpoints.md})`, true, {
     getInitialValueInEffect: false,
@@ -110,18 +111,30 @@ export function StoryLayout() {
     })
   }, [setParams])
 
-  const onDirtyChange = useCallback((next: boolean) => {
-    dirtyRef.current = next
-    setDirty(next)
+  const setDirtySource = useCallback((source: string, next: boolean) => {
+    const sources = dirtySources.current
+    if (next) sources.add(source)
+    else sources.delete(source)
+    const isDirty = sources.size > 0
+    dirtyRef.current = isDirty
+    setDirty(isDirty)
   }, [])
+  const onPanelDirty = useCallback(
+    (next: boolean) => setDirtySource('panel', next),
+    [setDirtySource],
+  )
 
-  // Leaving the story is a navigation. Changing view or query stays on this
-  // page, and the panel stays mounted, so that navigation is left alone.
+  // Leaving the story drops every edit. Leaving the records view drops a
+  // framing edit, which lives on that view. The panel stays mounted, so a
+  // change of view keeps its edit.
   const shouldBlock = useCallback<BlockerFunction>(
     ({ nextLocation }) => {
       if (!dirtyRef.current) return false
+      const path = nextLocation.pathname
       const base = `/stories/${storyId}`
-      return nextLocation.pathname !== base && !nextLocation.pathname.startsWith(`${base}/`)
+      const inStory = path === base || path.startsWith(`${base}/`)
+      if (!inStory) return true
+      return dirtySources.current.has('framing') && !path.endsWith('/records')
     },
     [storyId],
   )
@@ -173,12 +186,21 @@ export function StoryLayout() {
   }
 
   function discardEdit() {
-    dirtyRef.current = false
-    setDirty(false)
+    const nextPath = blocker.state === 'blocked' ? blocker.location.pathname : null
+    const base = `/stories/${storyId}`
+    const inStory = nextPath != null && (nextPath === base || nextPath.startsWith(`${base}/`))
+    // A view change only drops the framing edit. The panel stays where it is.
+    // Leaving the story drops both. A panel action drops the panel's edit.
+    if (inStory && !nextPath.endsWith('/records')) dirtySources.current.delete('framing')
+    else if (blocker.state === 'blocked') dirtySources.current.clear()
+    else dirtySources.current.delete('panel')
+    const still = dirtySources.current.size > 0
+    dirtyRef.current = still
+    setDirty(still)
     const chosen = action
     setPending(null)
     if (blocker.state === 'blocked') {
-      stopCreating()
+      if (!inStory) stopCreating()
       blocker.proceed()
       return
     }
@@ -207,6 +229,7 @@ export function StoryLayout() {
           sideSlot: wide ? sideSlot : null,
           reload,
           beginCreate,
+          setDirtySource,
         } satisfies StoryOutlet
       }
     />
@@ -223,7 +246,7 @@ export function StoryLayout() {
         index={index}
         onSelect={requestSelect}
         onClose={requestClose}
-        onDirtyChange={onDirtyChange}
+        onDirtyChange={onPanelDirty}
         onCancel={stopCreating}
         onReload={reload}
         onCreated={(id) => {
@@ -240,7 +263,8 @@ export function StoryLayout() {
         onClose={requestClose}
         onRemoved={clearRecord}
         onReload={reload}
-        onDirtyChange={onDirtyChange}
+        onDirtyChange={onPanelDirty}
+        onBeginCreate={beginCreate}
       />
     ) : null
 

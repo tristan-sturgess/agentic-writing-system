@@ -1,15 +1,19 @@
 // The confirmation for deleting one record, and what a failed delete shows.
+// The writes are the whole commit: a Narrative Unit's delete also updates the
+// list that holds it.
 
 import { Button, Group, Stack, Text } from '@mantine/core'
 
+import type { Write } from '../api/client'
 import type { SelectRecord } from './parts'
 import type { RecordIndex } from './records'
 import { SaveOutcome } from './SaveOutcome'
 import { useCommit } from './useCommit'
-import { recordDelete, recordGone } from './writes'
+import { recordGone } from './writes'
 
 export function DeleteRecord({
-  target,
+  writes,
+  recordId,
   prompt,
   storyId,
   index,
@@ -18,8 +22,10 @@ export function DeleteRecord({
   onReload,
   onDeleted,
 }: {
-  /** The record as it was when the writer asked to delete it. */
-  target: { id: string; revision: number }
+  /** The commit that deletes the record, at the revisions the panel loaded. */
+  writes: readonly Write[]
+  /** The record being deleted. When a conflict marks it gone, only Cancel remains. */
+  recordId: string
   /** The question the confirmation asks, including what goes with the record. */
   prompt: string
   storyId: string
@@ -30,7 +36,6 @@ export function DeleteRecord({
   onDeleted: () => Promise<void>
 }) {
   const commit = useCommit(storyId)
-  const remove = [recordDelete(target)]
 
   async function settle(sent: ReturnType<typeof commit.send> | null) {
     if (!sent) return
@@ -39,7 +44,7 @@ export function DeleteRecord({
   }
 
   const { failure, conflict, pending } = commit
-  const gone = conflict != null && recordGone(conflict.rows, target.id)
+  const gone = conflict != null && recordGone(conflict.rows, recordId)
   const showDelete = failure == null || failure.status === 'refused' || failure.status === 'error'
 
   return (
@@ -50,7 +55,7 @@ export function DeleteRecord({
           failure={failure}
           index={index}
           onSelect={onSelect}
-          onOverwrite={conflict && !gone ? () => void settle(commit.overwrite(remove)) : undefined}
+          onOverwrite={conflict && !gone ? () => void settle(commit.overwrite(writes)) : undefined}
           overwriteLabel="Delete anyway"
           onDiscard={
             conflict
@@ -61,7 +66,7 @@ export function DeleteRecord({
               : undefined
           }
           discardLabel="Cancel"
-          onRetry={failure.status === 'busy' ? () => void settle(commit.send(remove)) : undefined}
+          onRetry={failure.status === 'busy' ? () => void settle(commit.send(writes)) : undefined}
         />
       )}
       {showDelete && (
@@ -70,7 +75,7 @@ export function DeleteRecord({
             type="button"
             color="red"
             loading={pending}
-            onClick={() => void settle(commit.send(remove))}
+            onClick={() => void settle(commit.send(writes))}
           >
             Delete
           </Button>
