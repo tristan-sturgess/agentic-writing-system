@@ -30,7 +30,7 @@ Paths are relative to `docs/`.
 | [ui/graph.md](ui/graph.md) | How the graph draws every record and the references between them, and the questions it must answer. |
 | [build-sequence.md](build-sequence.md) | The order the proof of concept is built in, what is built so far, and which docs each part depends on. |
 | [future-work.md](future-work.md) | What waits until after the proof of concept. |
-| [open-questions.md](open-questions.md) | Decisions still deferred, each one naming the doc that will close it, and the decisions already settled. |
+| [open-questions.md](open-questions.md) | Decisions still deferred, each one naming the doc that will close it. A decision that has been made is stated in the doc that owns its area. |
 
 ### Background research
 

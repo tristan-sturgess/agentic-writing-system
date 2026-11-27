@@ -39,7 +39,7 @@ A view that turns out not to suit editing is kept as a view. Editing is then rea
 
 A story's views draw from one `GET /stories/{story_id}` response, loaded when the story's page opens. Moving between views does not load it again.
 
-A view that shows story time also loads what the service computed about it, because the service resolves story time and the frontend does not, as settled item 43 in [open-questions.md](open-questions.md) says. The timeline loads the Event times. The entities view loads the statement times and the in-force stretches for the Entity on screen. A screen never resolves a time point itself, and it never decides what is in force.
+A view that shows story time also loads what the service computed about it, because the service resolves story time and the frontend does not, as [architecture/application.md](architecture/application.md) says. The timeline loads the Event times. The entities view loads the statement times and the in-force stretches for the Entity on screen. A screen never resolves a time point itself, and it never decides what is in force.
 
 ### Selecting a record
 
@@ -74,7 +74,7 @@ No screen saves anything yet. The application doc already fixes what a save may 
 
 Each view's questions are stated in full in its doc.
 
-The timeline draws both of the pictures the Story Bible doc requires. Events in story time is the axis. Arcs laid over the Events is the timeline with one Arc highlighted. The entities view and the graph are not required by the Story Bible doc. They are here because the owner asked for them.
+The timeline draws both of the pictures the Story Bible doc requires. Events in story time is the axis. Arcs laid over the Events is the timeline with one Arc highlighted. The entities view and the graph are not required by the Story Bible doc. They are here because the owner asked for them. A view beyond these four is added to this doc first.
 
 ### The records view
 
@@ -89,7 +89,7 @@ These are required by other docs, and none is built. Each gets a section or a do
 | Screen | Required by | Built with |
 | --- | --- | --- |
 | The Arc editor | [story-bible.md](story-bible.md) | Editing |
-| The history, with what each commit changed and a revert | [architecture/persistence.md](architecture/persistence.md), and item 23 in [open-questions.md](open-questions.md) | Editing. The arc-planning agent adds the turn. |
+| The history, with what each commit changed and a revert | [architecture/persistence.md](architecture/persistence.md), and [architecture/agents.md](architecture/agents.md), where it is the writer's review of what an agent's turn did | Editing. The arc-planning agent adds the turn. |
 | Model configs and the API key | [architecture/model-configuration.md](architecture/model-configuration.md) | The arc-planning agent |
 | The chat panel and the turn's status | [architecture/application.md](architecture/application.md) | The arc-planning agent |
 | The call list | [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md) | The arc-planning agent |
@@ -121,11 +121,13 @@ A view is judged on stories, so each view has a sample that stresses it. The sam
 
 ## How a screen is checked
 
-Logic that does not render has Vitest tests: laying out resolved spans, assigning lanes, deriving the references between records. What the service computes has its own tests in Python. A screen is not tested by rendering it in a test. It is checked by using it in a browser, against a service on a scratch data directory with the samples imported, and the report says which of the view's questions were answered on which sample. The graph also has a command that saves a screenshot of it, as [ui/graph.md](ui/graph.md) says, so a layout can be judged and compared from images. A screenshot goes with the report of a check in the browser; it does not replace the check. `AGENTS.md` and item 21 in [open-questions.md](open-questions.md) state this rule; this section applies it to the views.
+Logic that does not render has Vitest tests: laying out resolved spans, assigning lanes, deriving the references between records. What the service computes has its own tests in Python. A screen is not tested by rendering it in a test. It is checked by using it in a browser, against a service on a scratch data directory with the samples imported, and the report says which of the view's questions were answered on which sample. The graph also has a command that saves a screenshot of it, as [ui/graph.md](ui/graph.md) says, so a layout can be judged and compared from images. A screenshot goes with the report of a check in the browser; it does not replace the check. `AGENTS.md` and [architecture/application.md](architecture/application.md) state this rule; this section applies it to the views.
 
 ## What stays open
 
-How a screen is drawn is not an open question, as settled item 22 in [open-questions.md](open-questions.md) says. The widget each view is drawn with is chosen in the view's doc. The timeline is drawn with a grid, plain marks, and Mantine. The entities view is selects and lists. The graph is Cytoscape.js with the fcose layout. A built view can change once it has been used, and the change is made in its doc.
+How a screen is drawn is design work recorded in this doc and the view docs. It is not a question in [open-questions.md](open-questions.md). The widget each view is drawn with is chosen in the view's doc. The timeline is drawn with a grid, plain marks, and Mantine. The entities view is selects and lists. The graph is Cytoscape.js with the fcose layout. The owner judged the built views good enough for now. A built view can change once it has been used, and the change is made in its doc.
 
-- What the planned screens look like. Each is designed here or in its own doc before it is built.
+- What the planned screens look like. Each is designed here or in its own doc before it is built. What each must do is fixed by the doc that requires it, in [Screens that are planned](#screens-that-are-planned), and designing the screen does not change that.
+- Whether the chat transcript shows the tool calls and results the turn stream carries. It is decided when the chat panel is designed.
+- Whether the story list separates an evaluation run's story from the stories the writer started by hand. It is decided when the screen for runs is designed.
 - What each view doc lists under its own "What stays open".

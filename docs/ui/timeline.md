@@ -2,7 +2,7 @@
 
 The timeline arranges a story's Events in story time. A highlight draws the Events of one Entity or one Arc. It draws both of the pictures [story-bible.md](../story-bible.md) requires: Events in story time, and Arcs laid over them. It is built read-only, and editing from it is planned. [ui.md](../ui.md) says what it shares with the other views.
 
-Story time comes from the spans in each Event's `when`. The Story Bible doc owns what a span means and how a time point that names an Event resolves to a timestamp. The service does the resolving, as settled item 43 in [open-questions.md](../open-questions.md) says, and this view draws what the service returns. This doc says how. It does not restate the rules, and it does not add to them.
+Story time comes from the spans in each Event's `when`. The Story Bible doc owns what a span means and how a time point that names an Event resolves to a timestamp. The service does the resolving, as [architecture/application.md](../architecture/application.md) says, and this view draws what the service returns. This doc says how. It does not restate the rules, and it does not add to them.
 
 ## The questions
 
@@ -17,7 +17,7 @@ Story time comes from the spans in each Event's `when`. The Story Bible doc owns
 
 Questions 1 to 3 are the picture. Questions 4 and 5 say what the picture is about: whose Events these are, and which threads they make. Questions 6 and 7 keep it honest: a time that is derived is not shown as if it were written, and an Event with no known time is not given a position it does not have. Question 8 is what the picture is for. The view answers it by making a stretch between two moments something the writer can select and read, by showing who is free in that stretch, and by putting each Event's description one click away.
 
-Question 8 is asked by an agent as well as by the writer. An agent does not use this screen. Its read tool, when the agent is built, returns the same resolved times from the service, which is why item 43 puts the resolving there.
+Question 8 is asked by an agent as well as by the writer. An agent does not use this screen. Its read tool, when the agent is built, returns the same resolved times from the service, which is why the resolving is done there.
 
 ## What an Event's time can be
 
@@ -36,7 +36,7 @@ This is what the model stores, and so what the view draws. Each row is one case 
 
 An Event can mix these. Each of its spans is drawn by its own row of the table.
 
-The model cannot record that an Event happens once at some unknown moment inside a window, or that it comes after another Event with no time given for either. The timeline draws only what is stored. Question 44 holds those cases for the Story Bible.
+The model cannot record that an Event happens once at some unknown moment inside a window, or that it comes after another Event with no time given for either. The timeline draws only what is stored. Question 9 in [open-questions.md](../open-questions.md) holds those cases for the Story Bible.
 
 ## The axis
 
@@ -133,4 +133,4 @@ The layout is rows and lanes, so it is drawn with a grid, plain SVG where a mark
 
 ## What stays open
 
-- **Times the model cannot store.** Question 44. Later.
+- **Times the model cannot store.** Question 9 in [open-questions.md](../open-questions.md). Later.

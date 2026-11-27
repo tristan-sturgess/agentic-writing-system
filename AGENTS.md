@@ -29,7 +29,7 @@ The project owner decides what to build. `docs/` is the written record of those 
 - **The docs win over everything except the owner.** If the code and a doc disagree, the code is presumed wrong. If the docs seem wrong to you, raise it. Do not change a doc to match code you wrote, or to make a task easier, without the owner agreeing.
 - `docs/build-sequence.md` sets the order of work for the proof of concept. Build the current step, not a later one. It is the only place the work is numbered. Every other doc, and this file, says what is built and what is planned, and does not name a part of the build sequence by number.
 - `docs/future-work.md` holds work for after the proof of concept. Do not build from it unless the owner asks.
-- `docs/open-questions.md` lists settled and open decisions. Do not reopen a settled item unless the owner asks. When a task needs an open question answered, ask the owner rather than deciding it silently.
+- `docs/open-questions.md` lists the decisions that are still open. When a task needs an open question answered, ask the owner rather than deciding it silently. A decision that has been made is not kept there: it is stated in the doc that owns its area, with a short reason where the reason matters, and the question is removed from the list. Do not reopen a decision a doc states unless the owner asks.
 
 ## Work in small, visible steps
 

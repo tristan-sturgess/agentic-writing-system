@@ -143,7 +143,7 @@ A **time point** is an object with one of these shapes:
 
 The object wraps the value so that a new kind of time point can be added later without changing the records that hold one.
 
-A timestamp is story-local time in the proleptic Gregorian calendar, with no time zone. Years run from `0001` to `9999`, the range common date libraries accept. Two timestamps compare chronologically, and a date-only value is the start of that day. The calendar is nominal: a world with no Gregorian calendar still uses these values, and the writer reads year 1000 as whatever the story calls it. Months and days are then ordinals, nothing more. A story that needs its own calendar, with its own names, month lengths, or a year outside that range, would add a new kind of time point to this list, beside the timestamp and the Event id. It would not add a field to any record.
+A timestamp is story-local time in the proleptic Gregorian calendar, with no time zone. Years run from `0001` to `9999`, the range common date libraries accept. Two timestamps compare chronologically, and a date-only value is the start of that day. The calendar is nominal: a world with no Gregorian calendar still uses these values, and the writer reads year 1000 as whatever the story calls it. Months and days are then ordinals, nothing more. A story that needs its own calendar, with its own names, month lengths, or a year outside that range, would add a new kind of time point to this list, beside the timestamp and the Event id. It would not add a field to any record. A generic integer timeline, with no calendar at all, was considered and set aside as more than this version needs.
 
 A **span** is one of these kinds:
 
@@ -176,6 +176,8 @@ When `edge` is left out, the place the time point sits decides:
 
 So a `range` from one Event to another, with no `edge` on either bound, runs from the end of the first to the start of the second. A range that should begin when an Event begins, or last until an Event is over, says so with `edge`.
 
+The record can say which end because no fixed reading fits every sentence a writer means. Always the Event's end, always its start, and the bound of the same name were each considered as the whole rule and set aside for that reason. Requiring `edge` on every time point that names an Event was also set aside: most Events a span names are single moments, where `edge` changes nothing, and the place the time point sits already gives the common reading.
+
 A save with an `at` span that names an Event and gives no `edge` is refused. The refusal names the record and the span, and says that `edge` must be `start` or `end`. The rule holds whatever that Event's own time is, because the Event can be changed from a moment to a period after the span is saved.
 
 The start and the end of an Event come from its own `when`:
@@ -186,7 +188,7 @@ The start and the end of an Event come from its own `when`:
 
 A time point resolves to a timestamp when these rules reach one. That can pass through several Events, because the point or bound it lands on may itself name an Event, and the same rules apply there. It does not resolve when it reaches an Event with no time, an Event with several spans, or a bound that is absent. A time point that does not resolve is not an error. The record is saved as written, and a view that reads story time says that the point is unresolved and why.
 
-This is one rule for every reader of story time: the in-force view below, the timeline, and the agent's read tools. The service computes it, as settled item 43 in [open-questions.md](open-questions.md) says.
+This is one rule for every reader of story time: the in-force view below, the timeline, and the agent's read tools. The service computes it, and [architecture/application.md](architecture/application.md) gives the endpoints that return it.
 
 ### What is in force
 
@@ -322,7 +324,7 @@ Two pictures are part of the model, whatever widget draws them:
 
 Version 2 drew a graph of typed edges between Events and offered connect actions for those edges. This model arranges Events from their spans and shows Arcs over them. The widget is the one [ui/timeline.md](ui/timeline.md) chooses.
 
-[ui.md](ui.md) lists the views that are built and what each must answer. The service resolves the spans to timestamps and computes the in-force view, and a view draws the result, so the agent's read tools and the screens read story time by one implementation of the rules above. That is settled item 43 in [open-questions.md](open-questions.md). The views are built read-only, before editing, and one of them is a graph of every record and the references between them. That graph shows the id fields in [How the records connect](#how-the-records-connect). It is not version 2's graph of typed edges, and it adds no edge record to the model.
+[ui.md](ui.md) lists the views that are built and what each must answer. The service resolves the spans to timestamps and computes the in-force view, and a view draws the result, so the agent's read tools and the screens read story time by one implementation of the rules above. The views are built read-only, before editing, and one of them is a graph of every record and the references between them. That graph shows the id fields in [How the records connect](#how-the-records-connect). It is not version 2's graph of typed edges, and it adds no edge record to the model.
 
 ## Locations
 
@@ -343,6 +345,6 @@ These stay open on purpose. [open-questions.md](open-questions.md) is the list.
 - Whether a stricter overlap rule replaces the in-force view above.
 - Whether statements gain a marker for objective fact, belief, or plan. The model has no such marker. Adding one later must not block a writer's edit.
 - Whether an Assertion's references need roles.
-- Whether Properties should ever link to other Properties, or whether a change should propagate on its own. They do not. `supersedes`, which named the statement a new one replaced, was removed. Question 28.
+- Whether Properties should ever link to other Properties, or whether a change should propagate on its own. They do not. `supersedes`, which named the statement a new one replaced, was removed. Question 4.
 - Whether a story-specific calendar is ever added as a new kind of time point. The model uses the ISO 8601 timestamp above.
-- Whether an Event's time can be recorded more loosely: once at an unknown moment inside a window, or only as before or after another Event. Each would be a new kind of span. Question 44.
+- Whether an Event's time can be recorded more loosely: once at an unknown moment inside a window, or only as before or after another Event. Each would be a new kind of span. Question 9.

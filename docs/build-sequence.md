@@ -44,9 +44,9 @@ Left for slice 4: the commit's guards on the unit tree and span chains, the conf
 
 Built. The frontend shows the model from slice 1 in four read-only views, each checked against sample stories. A person can see the events, the arcs, and the entities of a story without reading storage. [ui.md](ui.md) lists the views and the questions each one must answer, and each view has its own doc under `ui/`.
 
-- **The frontend and the records view.** The frontend is React and TypeScript, built by Vite, with Mantine components, settled item 21 in [open-questions.md](open-questions.md), and it is served as [architecture/application.md](architecture/application.md) says. It lists the stories and shows every field of every record in one story.
-- **Which end of an Event a time point means.** The `edge` on a time point that names an Event, settled item 42, and the refusal of an `at` span that names an Event without one. This revised the model slice 1 built, because the timeline was the first thing to read it.
-- **Story time from the service.** The Story Bible layer resolves spans to timestamps and computes what is in force, settled item 43. The event-times, statement-times, in-force, and in-force-stretches endpoints return the results, and a view draws them.
+- **The frontend and the records view.** The frontend is React and TypeScript, built by Vite, with Mantine components, and it is built and served as [architecture/application.md](architecture/application.md) says. It lists the stories and shows every field of every record in one story.
+- **Which end of an Event a time point means.** The `edge` on a time point that names an Event, as [story-bible.md](story-bible.md) says, and the refusal of an `at` span that names an Event without one. This revised the model slice 1 built, because the timeline was the first thing to read it.
+- **Story time from the service.** The Story Bible layer resolves spans to timestamps and computes what is in force, so the views and the agent's read tools use one implementation of the rules. The event-times, statement-times, in-force, and in-force-stretches endpoints return the results, and a view draws them.
 - **The timeline.** [ui/timeline.md](ui/timeline.md): the axis, the lanes, the Events with no place, selecting an Event, a moment, or a stretch, and the highlight of one Entity or one Arc. These are the two pictures the Story Bible doc requires: Events in story time, and Arcs laid over them.
 - **An address per view and the detail panel.** Each view has its own address under the story. Selecting a record in any view opens the same read-only detail panel.
 - **The entities view.** [ui/entities.md](ui/entities.md): one Entity with its Properties over story time, their `caused_by` links, the Assertions that name it, and what is in force in a chosen stretch.
@@ -92,7 +92,7 @@ This is the first slice that calls a model, so the docs that exist only to suppo
 
 A chat that cannot be attributed to the story, the `chat` node, and the config is not done, because slice 5 would otherwise have to capture the prompt a second way.
 
-The workflow does not write prose. It does not hold a draft for review, and no run waits for the writer to approve a commit; the history view with its turn-level revert is the review, as item 23 settles. Candidate explorations and character interviews stay out, as the agents doc says. How many conversations the workspace lists stays open with the UI, and whether the transcript renders the tool calls the stream already carries is a rendering choice in this slice.
+The workflow does not write prose. It does not hold a draft for review, and no run waits for the writer to approve a commit; the history view with its turn-level revert is the review, as the agents doc says. Candidate explorations and character interviews stay out, as the agents doc says. How many conversations the workspace lists stays open with the UI, and whether the transcript renders the tool calls the stream already carries is a rendering choice in this slice.
 
 Slice 4 is done when a prompt can produce arcs in that same bible, the user can revise the result by hand or with another prompt, the history shows what that turn changed and the turn can be reverted, an in-flight run can be cancelled, the writer can edit during a run without losing either write, and the calls of that turn are in the log.
 
