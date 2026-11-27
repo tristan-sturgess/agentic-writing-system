@@ -26,11 +26,13 @@ A batch of tool calls from one message may run at the same time. The persistence
 
 Read tools do not write. They return stored records, or the in-force view when the question is what holds at a time. A read does not paraphrase a record into a new claim.
 
+A read of story time returns what the service computed: the resolved Event times, the statement times, and the in-force view in [application.md](application.md), which are the results the views draw. The rules are not written a second time for the agent. What a read returns beyond those, such as what is in progress at a time, is designed with the tools.
+
 ## The arc-planning chat
 
 The first workflow is the chat agent. It is one `create_agent` agent, built by the shared agent builder, on the registry node `chat`. Its default role is `orchestration`. The conversation it runs in is the LangGraph thread from the persistence doc. The logging context is `workflow` `chat`, `node_id` `chat`, and that thread's id. `workflow_run_id` stays empty, because the agent is the run.
 
-There is no nested plot agent. Version 2 took event writes off the chat agent and ran them inside `plan_plot`, a tool-loop sub-agent that drafted in a sandbox, interpreted intimacy on each write, and blocked the chat turn until it finished. The blocking call is the failure in version 2's known issues. This workflow does not have that call. The chat agent writes the records itself, and the turn streams while it does.
+There is no nested plot agent. Version 2 took event writes off the chat agent and ran them inside `plan_plot`, a tool-loop sub-agent that drafted in a sandbox, interpreted intimacy on each write, and blocked the chat turn until it finished. The blocking call is the failure in version 2's known issues. This workflow does not have that call. The chat agent writes the records itself, and the turn streams while it does. There is no intermediate plan and no step that converts a plan into records. The chat transcript is the explanation of what the agent did.
 
 The planning unit is the story the conversation belongs to. The user describes the story they want. The agent writes a small set of arcs and the records those arcs need. Later prompts revise that same story. The user can edit the bible by hand between prompts, and the next turn reads whatever the commits have stored. A beat, a scene, a sequence, an act, or a graph window is not a mode of this workflow. When a story is large, the user says what to change, and the agent reads the records that request needs.
 
@@ -40,7 +42,7 @@ One turn does this:
 2. The agent reads what it needs and writes framing, Entities, Properties, Assertions, Events, and Arcs.
 3. Each write commits as it succeeds. The story on disk changes at that commit. The writer can inspect it and edit it during the run. When the turn ends, the history shows every commit it made, and the writer can revert the turn or any one commit in it. Another prompt on this conversation waits until the run has ended. A turn whose process died is not running: the application doc reports it as interrupted under the heartbeat rule, and it does not block the next prompt.
 
-Prose is out. The agent does not create Narrative Units, and it does not write scene text. It does not touch `unit_ids` or any unit's `child_ids`. The writer may build units by hand from slice 2; the agent leaves whatever is there alone until a prose workflow exists.
+Prose is out. The agent does not create Narrative Units, and it does not write scene text. It does not touch `unit_ids` or any unit's `child_ids`. The writer may build units by hand once editing is built; the agent leaves whatever is there alone until a prose workflow exists.
 
 Plot is the Events and the Arcs. The agent does not decide what happens by simulating a character's reaction, and it does not run an interpretation step that derives a rank or a signal. Version 2's plot loop was constrained by that chain: a desired later beat had to be justified by replaying character state forward. Here a later Event is just an Event the agent writes. Coherence is the writer's judgment and the agent's reading of the records. The tools check references. They do not check whether a beat is dramatically plausible, and they do not check whether two statements contradict. Both save, as the Story Bible doc says.
 
@@ -83,6 +85,12 @@ A create of an Entity, a Property, an Assertion, an Event, or an Arc is in the s
 
 A note about the page or record the user currently has open is a content block on the user message for that turn. The thread stores it, so a later turn can see what the user was pointing at. The next turn carries its own note when the user has moved. The note is not part of the system prompt. The assistant's visible reply is still only assistant text, as the prompt-assembly doc says.
 
+### Conversations on a story
+
+The workspace shows one conversation on a story: the latest. The writer can start a new one, and it becomes the one shown. The store keeps the earlier conversations, and the agent runs on the conversation it was given. A list of the earlier ones, with a way to reopen one, waits in [future-work.md](../future-work.md).
+
+A new conversation is how the writer resets what the agent carries from earlier turns. Nothing trims or summarizes a thread, and each turn reads whatever the commits have stored. The bible holds the story's state, so a new conversation loses the dialogue and not the work. Whether a long thread needs more than that is question 4 in [open-questions.md](../open-questions.md).
+
 ## Cancellation
 
 The user can stop an arc run while it is going. The stop takes effect at the next superstep boundary. A model call or a tool batch already running finishes. Version 2 stored a `cancel_requested` flag on the job and never consulted it. This check is the requirement. A flag that nothing reads is not a cancel.
@@ -105,26 +113,26 @@ The first workflow does not open a draft. The writer sees each successful tool c
 
 If any record the draft wrote or read has moved since the draft started, the commit conflicts and writes nothing. The caller tells the user the story moved. It does not reapply the whole draft onto the new state. The user can ask for the work again against the story as it is. If the process dies before the commit, the draft is gone and the story stays at the last successful commit.
 
-No run waits for the writer to approve a commit, including a run that uses this draft. The writer's review is after the fact: the history view lists what the turn changed, record by record with the before and after, and the writer can revert one commit or the whole turn. That is the workflow this product aims at, and it is settled as item 23 in [open-questions.md](../open-questions.md). A gate in front of the commit was considered and set aside: it would make every agent turn block on the writer, when the history already gives the writer the same control without stopping the work. Approval on each write tool was set aside for the same reason, and it would have changed the direct-write path this workflow uses. The draft is a way to make a batch land together. It is not a way to make the writer wait.
+No run waits for the writer to approve a commit, including a run that uses this draft. The writer's review is after the fact: the history view lists what the turn changed, record by record with the before and after, and the writer can revert one commit or the whole turn. That is the workflow this product aims at. A gate in front of the commit was considered and set aside: it would make every agent turn block on the writer, when the history already gives the writer the same control without stopping the work. Approval on each write tool was set aside for the same reason, and it would have changed the direct-write path this workflow uses. The draft is a way to make a batch land together. It is not a way to make the writer wait.
 
 ## A fixed workflow, when the product needs a step order
 
 Some later work needs an order the model must not skip. That workflow is a LangGraph graph. The edges fix the step order. Each node that calls a model is an agent from the shared builder, with its own registry entry and its own base prompt. The graph is an entry point of its own. The chat agent does not carry it as a tool it can reorder.
 
-The arc chat is not that graph. One tool loop is the right shape, because the user is in the loop and the next prompt is the revision. The prose slice is the first place a fixed order is expected. The build sequence holds the salvage for that slice: enforced steps, a model config per node, continuity from neighboring units, and saving each finished step. This doc does not design it.
+The arc chat is not that graph. One tool loop is the right shape, because the user is in the loop and the next prompt is the revision. The prose workflow is the first place a fixed order is expected. The build sequence holds the salvage for it: enforced steps, a model config per node, continuity from neighboring units, and saving each finished step. This doc does not design it.
 
 Version 2's scene-writing graph and its intimacy graph are not ported. The intimacy workflow depended on replay and signals, which the Story Bible dropped. A belief, if a story needs one, is a Property or an Assertion written with the tools above.
 
-## Later, and not this slice
+## Later, and not this workflow
 
 Exploring several candidate arc directions, and asking what a character would think, wait until this workflow exists. They are not tools on the arc chat, and the arc chat does not call them.
 
 When exploration is added, a candidate is not a Story Bible record. It stays off to the side until the writer, or an explicit step the writer asked for, adopts it. Adopting it writes records through the same tools and the same commit. Nothing in the exploration becomes canon by being generated.
 
-When a character query is added, it is a read. The input is a character and a story point. The answer uses only what that character could know there, from stored records, and it is not written into the bible. Persisting an answer would be a separate decision. The query does not decide the plot. The open choices for both additions, including how many candidates, how they are ranked, and the exact knowledge boundary, stay in [open-questions.md](../open-questions.md).
+When a character query is added, it is a read. The input is a character and a story point. The answer uses only what that character could know there, from stored records, and it is not written into the bible. Persisting an answer would be a separate decision. The query does not decide the plot. The choices still to make for both additions, including how many candidates, how they are ranked, and the exact knowledge boundary, wait with them in [future-work.md](../future-work.md).
 
-How many conversations the workspace lists stays open with the UI. The store already allows more than one conversation per story. The agent runs on the conversation it was given. The turn stream carries the assistant text and the tool calls and results as typed events, item 40 in [open-questions.md](../open-questions.md); the reply the frontend renders is the assistant text, and whether it also shows the calls is a rendering choice there.
+The turn stream carries the assistant text and the tool calls and results as typed events, as [application.md](application.md) defines them. The reply the frontend renders is the assistant text. Whether it also shows the calls is a rendering choice made when the chat panel is designed in [ui.md](../ui.md).
 
 ## What stays open
 
-[open-questions.md](../open-questions.md) holds the choices this doc does not close: how many conversations the workspace shows, and the shape of later exploration and character queries. Review before a commit is settled there as item 23: there is none, and the history view with its revert is the writer's review.
+[open-questions.md](../open-questions.md) holds the choices this doc has to close for the arc chat: whether a model call retries and with what settings, how long a conversation thread may grow, and, with the Story Bible doc, how the agent places an Event that comes after another when no time is given. The shape of later exploration and character queries waits in [future-work.md](../future-work.md). Review before a commit is not an open choice. There is none, and the history view with its revert is the writer's review, as [A draft, when a batch must land together](#a-draft-when-a-batch-must-land-together) says.

@@ -4,7 +4,7 @@ This is what the Python API does and what the frontend gets from it. The API is 
 
 This doc owns the contract and the service. It does not own the subsystems it calls. The Story Bible doc owns the rules a commit checks; the persistence doc owns the commit and the stores; the agents doc owns the tools and what a cancelled turn leaves in the thread; the model-configuration doc owns configs and the agent builder; the logging doc owns the call record; the evaluations doc owns the run. Where this doc names one of their rules, it is saying where the API calls it, not restating it.
 
-Settled items 34 and 39–41 in [open-questions.md](../open-questions.md) fix the shape: a Python API with a separate frontend, a turn as a job with a durable row and a row-based stop, a stream of typed events over SSE, and the background routines in the service process. This doc states them. Settled item 21 fixes what the frontend is built with, and [The frontend](#the-frontend) states it. Question 33, how a hosted request authenticates, is placed here and not closed.
+The shape is a Python API with a separate frontend, a turn as a job with a durable row and a row-based stop, a stream of typed events over SSE, and the background routines in the service process. [The frontend](#the-frontend) says what the frontend is built with. How a hosted request authenticates is placed here and not chosen. It waits with hosting, in [future-work.md](../future-work.md).
 
 ## The service
 
@@ -12,9 +12,9 @@ The service is one Python process: an ASGI application serving HTTP and SSE, wit
 
 Locally the service also serves the built frontend as static files from the same port, so the local app is one process started by one command, and the frontend and the API share an origin. Hosted, Railway runs the same process. Whether the hosted frontend is served from the service or from a static host is a deployment detail; the API does not change.
 
-The service holds no story state between requests. A story lives in the store and changes only by a commit. The in-process state the service does keep is the set of running turn tasks and their event buffers, and both are allowed to die with the process, as item 39 says. Nothing above a row is relied on for consistency.
+The service holds no story state between requests. A story lives in the store and changes only by a commit. The in-process state the service does keep is the set of running turn tasks and their event buffers, and both are allowed to die with the process, as [A turn](#a-turn) says. Nothing above a row is relied on for consistency.
 
-Version 2's application was the NiceGUI process. The UI framework owned the wire, the chat ran as a task inside it, and background work was tracked by a process-wide singleton whose records lived in memory. The screen polled that singleton on a timer. That tied the application to one process and one framework, and it is the shape item 34 declines. What that design had right, an `asyncio` task for the chat turn and a live buffer a page could re-attach to on mount, is kept here as the turn task and the replay buffer.
+Version 2's application was the NiceGUI process. The UI framework owned the wire, the chat ran as a task inside it, and background work was tracked by a process-wide singleton whose records lived in memory. The screen polled that singleton on a timer. That tied the application to one process and one framework, and the framework got in the way of the visualizations. It is the shape this design declines. What that design had right, an `asyncio` task for the chat turn and a live buffer a page could re-attach to on mount, is kept here as the turn task and the replay buffer.
 
 ## A request becomes a user
 
@@ -23,7 +23,7 @@ Every request is resolved to a `user_id` at the edge, before any handler, store,
 The resolver is an adapter chosen when the service starts:
 
 - The local resolver returns the one implicit user, created on first run. Every request is that user. There is no login screen.
-- The hosted resolver turns a credential on the request into a `user_id`, or rejects the request with `401`. Which credential, and which provider issues it, is question 33. The adapter's output is the same `user_id` the local resolver returns, and nothing below the edge knows which resolver ran.
+- The hosted resolver turns a credential on the request into a `user_id`, or rejects the request with `401`. Which credential, and which provider issues it, is decided when hosting is built. The adapter's output is the same `user_id` the local resolver returns, and nothing below the edge knows which resolver ran.
 
 The service refuses to start with the local resolver unless it is configured as a local install. A hosted deployment that forgot to configure authentication fails at startup rather than serving every request as the implicit user.
 
@@ -47,9 +47,9 @@ A busy error that outlives the store's retries is `503`, and the frontend may re
 
 The `400` body is `{ "detail": [...] }`, one entry per rejected value: where it is in the body (`loc`), a message (`msg`), and an error type (`type`). One mistake produces one entry. The `404` and `503` bodies are `{ "detail": "..." }`, one sentence. The OpenAPI document lists, for each path, the statuses that path returns and no others.
 
-### Slices 1 and 2
+### Stories
 
-The first endpoints. Slice 1 builds the story endpoints, the commit, and import; slice 2 adds the Event times, the statement times, the in-force view, the in-force stretches, history, revert, and export, and the frontend that calls them. [build-sequence.md](../build-sequence.md) places each one. In these slices every commit is a hand edit, an import, or a revert.
+The first endpoints. The story endpoints, the commit, import, the Event times, the statement times, the in-force view, and the in-force stretches are built, with the frontend that calls them. History, revert, and export are planned, and [build-sequence.md](../build-sequence.md) places them. Until the agent exists, every commit is a hand edit, an import, or a revert.
 
 | Method and path | What it does |
 | --- | --- |
@@ -86,7 +86,9 @@ A Property is in `properties` and carries its `entity_id`. It is not nested unde
 
 #### The Event times
 
-Settled item 43 puts the resolving of story time in the service. The Story Bible layer computes it from one `load`, by the rules in [story-bible.md](../story-bible.md), and `GET /stories/{story_id}/event-times` returns it. The timeline in [ui/timeline.md](../ui/timeline.md) draws from it, and the slice 3 read tool that tells an agent when Events happen returns the same result. The frontend does not resolve a time point itself.
+The service resolves story time, and the frontend lays the result out. The reason is the agent. The owner wants an agent to be able to reason about when Events happen and where a new one could go, as the writer does on the timeline, and an agent cannot use a screen. Resolving in the frontend was set aside because the agent's read tools would then need the same rules written a second time in Python, and the two could drift.
+
+The Story Bible layer resolves each Event's spans from one `load`, by the rules in [story-bible.md](../story-bible.md), and `GET /stories/{story_id}/event-times` returns the result. The timeline in [ui/timeline.md](../ui/timeline.md) draws from it, and the agent's read tool that tells it when Events happen returns the same result. The frontend does not resolve a time point itself.
 
 The body is `{ "events": [...] }`, one entry for each Event, in the order the story document lists them. An entry has the Event's `id` and its `spans`, one for each span in the Event's `when` list, in the stored order. An Event with an empty `when` has an empty `spans`.
 
@@ -101,7 +103,7 @@ A span has its `kind` and one entry for each point it stores: `at` on an `at` sp
 
 A `range` whose two bounds resolve with the start after the end carries `ends_before_start` as true. A save does not refuse that range when a bound is an Event, which the Story Bible doc lists as a known issue, and this is where it is reported.
 
-The reason codes follow the Story Bible doc's rule for a time point that names an Event, settled item 42:
+The reason codes follow the Story Bible doc's rule for a time point that names an Event:
 
 | Code | The chain stopped at an Event that |
 | --- | --- |
@@ -113,7 +115,7 @@ The result is computed on each request and is not stored. It has no revision. Th
 
 #### Statement times
 
-The same resolving covers a Property or an Assertion. `GET /stories/{story_id}/statement-times` returns it, from one `load`. The entities view in [ui/entities.md](../ui/entities.md) draws each span from it. A slice 3 read that needs a statement's time returns the same result. The frontend does not resolve a time point itself.
+The same resolving covers a Property or an Assertion. `GET /stories/{story_id}/statement-times` returns it, from one `load`. The entities view in [ui/entities.md](../ui/entities.md) draws each span from it. An agent's read that needs a statement's time returns the same result. The frontend does not resolve a time point itself.
 
 The body is `{ "properties": [...], "assertions": [...] }`. Each list is in the story document's order. An entry has the record's `id` and its `spans`, one for each span in its `when`, in the stored order. An empty `when` has an empty `spans`.
 
@@ -123,7 +125,7 @@ The result is computed on each request and is not stored. An unknown story is `4
 
 #### The in-force view
 
-[story-bible.md](../story-bible.md) owns which Properties and Assertions are in force at a query point. The service computes that reading from one `load`, by those rules and by the resolving above, and `GET /stories/{story_id}/in-force` returns it. The entities view lists the part that belongs to the Entity on screen. The slice 3 read tool that asks what holds at a time returns the same result. The frontend does not decide what is in force.
+[story-bible.md](../story-bible.md) owns which Properties and Assertions are in force at a query point. The service computes that reading from one `load`, by those rules and by the resolving above, and `GET /stories/{story_id}/in-force` returns it. The entities view lists the part that belongs to the Entity on screen. The agent's read tool that asks what holds at a time returns the same result. The frontend does not decide what is in force.
 
 The query point is one of these, and not both:
 
@@ -177,14 +179,14 @@ The `422` body has a message and a list of problems. Each problem has a code, a 
 
 The import does not use refs. Its ids come from the file.
 
-### Slice 3
+### Conversations, turns, configs, the key, and calls
 
-The arc chat is the first endpoint that streams and the first that has to carry a stop to a running turn. Slice 3 adds these and the stores behind them.
+The arc chat is the first endpoint that streams and the first that has to carry a stop to a running turn. These endpoints and the stores behind them are planned. They are built with the arc-planning agent.
 
 | Method and path | What it does |
 | --- | --- |
-| `GET /stories/{story_id}/conversations` | The conversation rows for a story: id, created time, and the latest turn's id and status. |
-| `POST /stories/{story_id}/conversations` | A new conversation row on this story for the acting user. The thread is created when the first turn runs. |
+| `GET /stories/{story_id}/conversations` | The conversation rows for a story, newest first: id, created time, and the latest turn's id and status. The chat panel shows the first. |
+| `POST /stories/{story_id}/conversations` | A new conversation row on this story for the acting user. The thread is created when the first turn runs. This is the panel's "start a new conversation", and the new row is then the latest. |
 | `GET /conversations/{conversation_id}` | The row and the transcript: the thread's messages, projected to the same types the stream carries. User messages, assistant text, tool calls, tool results. There is no system message in the thread, and none is projected. |
 | `DELETE /conversations/{conversation_id}` | Removes the row and the thread. A conversation with a running turn is refused with `409`. |
 | `POST /conversations/{conversation_id}/turns` | Starts a turn. [A turn](#a-turn) below. |
@@ -204,7 +206,9 @@ The arc chat is the first endpoint that streams and the first that has to carry 
 
 The heartbeat is not an endpoint. It is a routine in [Background routines](#background-routines), and `interrupted` on a turn or a call is the API reading what it wrote.
 
-### Slice 4
+### Fixtures and runs
+
+These endpoints are planned. They are built with the evaluations.
 
 | Method and path | What it does |
 | --- | --- |
@@ -217,7 +221,7 @@ The heartbeat is not an endpoint. It is a routine in [Background routines](#back
 | `POST /runs/pairs` | The optional pairwise comparison of two runs on one fixture version. `add_pair`. |
 | `GET /fixtures/{fixture_id}/versions/{version}/comparison` | The runs of that fixture version lined up as the evaluations doc's comparison: version, hashes, binding, status, checks, scores with notes, usage, and the bible copies. The API lines them up; the frontend draws them. |
 
-The run task is the turn task called once per fixture message with the run's `workflow_run_id` in the context, then the checks and the judge, as item 41 says. A run is a sequence of turns on one conversation, each with its own turn row, so the run and the chat share one lifecycle and one stop.
+The run task is the turn task called once per fixture message with the run's `workflow_run_id` in the context, then the checks and the judge, as [Background routines](#background-routines) says. A run is a sequence of turns on one conversation, each with its own turn row, so the run and the chat share one lifecycle and one stop.
 
 ## A turn
 
@@ -257,7 +261,7 @@ The handler, in order:
 
 The task invokes the agent on the conversation's `thread_id` with `run_id` in the invoke config and the agents doc's `recursion_limit`, consumes the LangGraph stream, emits the events in [The stream](#the-stream) into the turn's buffer, and when the invoke returns, writes the terminal event and calls `finish_turn`. The task writes nothing to the story. The write tools commit, as the agents doc says, and the task only reports what they returned.
 
-A turn is not an HTTP connection. A held request, where the turn lives as long as the response does, was set aside in item 39: a refresh or a proxy timeout would have ended a long arc run that had already committed half its writes. Here the task runs to its end whether or not anyone is subscribed.
+A turn is not an HTTP connection. A held request, where the turn lives as long as the response does, was set aside: a refresh or a proxy timeout would have ended a long arc run that had already committed half its writes, with no way to re-attach. Here the task runs to its end whether or not anyone is subscribed.
 
 ### The stop
 
@@ -284,13 +288,13 @@ Version 2 stored `cancel_requested` on its job and nothing read it. The check is
 | `error` | `message` | The invoke raised. Terminal. |
 | `done` | nothing | The turn finished. Terminal. |
 
-The service consumes LangGraph's stream and maps by message type: an assistant chunk is `assistant_delta`; a completed assistant message's `tool_calls` are `tool_call` events; a tool message is `tool_result`, and a `commit` when its result carries a commit. A system message has no event type, so it cannot reach the transcript. That is the prompt-assembly doc's rule enforced on the wire. The frontend never sees a LangGraph message, and the filter is not its job. Forwarding LangGraph's stream modes was set aside in item 40 for that reason: it would have put the filter in the frontend, against LangGraph's shapes, which is how version 2 rendered a system prompt as assistant text.
+The service consumes LangGraph's stream and maps by message type: an assistant chunk is `assistant_delta`; a completed assistant message's `tool_calls` are `tool_call` events; a tool message is `tool_result`, and a `commit` when its result carries a commit. A system message has no event type, so it cannot reach the transcript. That is the prompt-assembly doc's rule enforced on the wire. The frontend never sees a LangGraph message, and the filter is not its job. Forwarding LangGraph's stream modes was set aside for that reason: it would have put the filter in the frontend, against LangGraph's shapes, which is how version 2 rendered a system prompt as assistant text.
 
-`tool_call` and `tool_result` carry the same fields as the call log's `tool_call` record, so the transcript and the debug view agree. The frontend renders `assistant_delta` as the reply. Whether it also shows `tool_call` and `tool_result` is a rendering choice, item 25. `commit` is why the events are typed: the writer edits the same bible while the agent runs, and the frontend learns which records moved without polling the story.
+`tool_call` and `tool_result` carry the same fields as the call log's `tool_call` record, so the transcript and the debug view agree. The frontend renders `assistant_delta` as the reply. Whether it also shows `tool_call` and `tool_result` is a rendering choice, made when the chat panel is designed in [ui.md](../ui.md). Nothing in this contract turns on it, because the stream carries them either way. `commit` is why the events are typed and the stream is not assistant text alone: the writer edits the same bible while the agent runs, and the frontend learns which records moved without polling the story. The write tool already has the commit id when it returns, so the event costs nothing to produce.
 
 The service keeps a turn's events in an in-process buffer while the turn runs. A subscriber that connects partway, or reconnects after a drop, sends the last sequence it saw as `Last-Event-ID` and receives the events after it, then the live ones. With no `Last-Event-ID`, it receives the buffer from the start. The buffer is kept for a short grace after the terminal event, long enough for a subscriber mid-reconnect, and is then dropped. A subscription to a turn whose buffer is gone receives one terminal event built from the row, `done`, `cancelled`, or `error`, and the connection closes; the transcript is in the thread at `GET /conversations/{conversation_id}`, and the frontend reads it from there. A subscription to an `interrupted` turn receives `error` with that reason.
 
-The buffer is not durable and is in one process. A subscriber reaches the process running the turn, which in the local install and in the single-replica hosted shape is the only process. Fanning a stream across replicas is deferred with the rest of hosting, as item 39 says.
+The buffer is not durable and is in one process. A subscriber reaches the process running the turn, which in the local install and in the single-replica hosted shape is the only process. Fanning a stream across replicas is deferred with the rest of hosting, and a single replica is the hosted shape until then.
 
 SSE over a WebSocket: the stream is one-way, the stop is its own request, resume is `Last-Event-ID`, and no connection upgrade has to pass a proxy.
 
@@ -307,17 +311,21 @@ The routines run as tasks on the service's event loop, locally and hosted. There
 
 A task dies with its process. The row says so: the turn or run stays `running` in the store and is read as `interrupted`. The story is consistent because every change was a commit, and the agents doc's thread rules mean the next prompt on that conversation is valid once the stale turn is no longer counted as running. On shutdown the service sets `stop_requested_at` on its own running turns and gives them a short grace to reach a boundary; whatever is still running when the process exits is interrupted, and nothing is lost that a commit had not already kept.
 
-A separate worker, with a queue such as Celery and the stream served from the database, was considered in item 41 and set aside. Nothing the early slices run is heavy, and the robustness a worker buys is not what they need. The condition for revisiting it is question 29: when a workflow must resume after a restart, a durable task owner is worth having, and the buffer moves out of process with it. The turn row is the row that resume would be built on.
+A separate worker, with a queue such as Celery and the stream served from the database, was considered and set aside. Nothing the proof of concept runs is heavy: model calls are I/O, and the checks and the bible copies are small. The robustness a worker buys, retries and a durable task owner, is not what the proof of concept needs, and a task is already allowed to die with its process while the row says so. A worker would also move the stream buffer out of process at once, which is hosting work that waits. Keeping one process is also what keeps the local install one command. The condition for revisiting it is in [future-work.md](../future-work.md): when a workflow must resume after a restart, a durable task owner is worth having, and the buffer moves out of process with it. The turn row is the row that resume would be built on.
 
 ## The frontend
 
-The frontend is React and TypeScript, built by Vite, with Mantine for its components. Settled item 21 in [open-questions.md](../open-questions.md) holds the reasons. Its source is in `frontend/` at the repository root, with its own `package.json`, managed with npm. Building it and running its dev server need Node 22.12 or later. The Python service does not need Node to run.
+The frontend is React and TypeScript, built by Vite, with Mantine for its components. Its source is in `frontend/` at the repository root, with its own `package.json`, managed with npm. Building it and running its dev server need Node 22.12 or later. The Python service does not need Node to run.
+
+Svelte and Vue would each have met the requirements. React was chosen because it has the widest choice of libraries for what the later screens draw. A framework that runs its own server, such as Next.js, was set aside because the service already serves the frontend, and a second server would make the local app two processes. A component library was chosen over Tailwind with copied-in components and over plain CSS because the UI is supporting work in this project: the editors need id pickers, dialogs, and refusal and conflict notices, and building those by hand is effort the project spends elsewhere. The widget that draws a view is not chosen here. The view's doc chooses it, as [ui.md](../ui.md) says.
 
 The build writes static files to `frontend/dist`, which is not checked in. The service serves that directory from the same port as the API. A request whose path is not under `/api` gets the file at that path, and a path that is not a file gets `index.html`, so a frontend route such as one story's page survives a reload. A path under `/api` that matches no endpoint is still the API's `404`. When `frontend/dist` does not exist, the service still starts and serves the API, and a path outside `/api` returns `404` with one sentence that names the build command.
 
 In development the frontend runs from the Vite dev server on its own port, and that server proxies `/api` to the service. The browser sees one origin in both setups, so the service sends no CORS headers and the frontend calls the API by path. Development is two processes. The local app is one.
 
 The frontend's request and response types are generated from the service's OpenAPI document. The generated file is checked in, and it is regenerated when an endpoint or a schema changes. The frontend does not restate the contract by hand.
+
+A frontend step passes its type check, its lint, and its build, and has Vitest tests for logic that does not render, such as laying spans out in story time. A screen is not tested by rendering it. It is checked by using it, as [ui.md](../ui.md) says.
 
 ## What the frontend may never do
 
@@ -332,4 +340,6 @@ The frontend does own rendering: the views in [ui.md](../ui.md), the structured 
 
 ## What stays open
 
-Question 22, how each screen in [ui.md](../ui.md) is drawn, is closed in slice 2. Question 33, the hosted authentication mechanism, is an adapter behind the edge described above and is closed when hosting is built. Question 24, how many conversations the workspace lists, is a frontend choice over `GET /stories/{story_id}/conversations`. Question 29, a workflow that survives a restart, is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting.
+These wait until after the proof of concept, and [future-work.md](../future-work.md) holds them. The hosted authentication mechanism is an adapter behind the edge described above and is chosen when hosting is built. A workflow that survives a restart is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting. A list of a story's earlier conversations is a frontend addition over `GET /stories/{story_id}/conversations`.
+
+Whether a model call retries is question 3 in [open-questions.md](../open-questions.md). A retry middleware, if there is one, joins the builder's list in [Starting a turn](#starting-a-turn).

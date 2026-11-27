@@ -59,7 +59,7 @@ The registry starts with the arc-planning conversation and the evaluation judge:
 | `chat` | Arc-planning chat | Turns the user's description into arcs and the Story Bible records they need. | `orchestration` |
 | `judge` | Evaluation judge | Scores an evaluation run's arcs and Story Bible construction. | `judgment` |
 
-Add a registry entry, with a role as its default, before the UI exposes a selector for that node. Version 2's scene-writing nodes and intimacy nodes are not in this registry. When the prose slice adds model calls, those nodes are classified then. An imported version 2 config file keeps the four roles and a `chat` selection. Selections for nodes this registry does not have are dropped.
+Add a registry entry, with a role as its default, before the UI exposes a selector for that node. Version 2's scene-writing nodes and intimacy nodes are not in this registry. When the prose workflow adds model calls, those nodes are classified then. An imported version 2 config file keeps the four roles and a `chat` selection. Selections for nodes this registry does not have are dropped.
 
 ## Resolution
 
@@ -77,7 +77,7 @@ A cached agent includes the prefix, the model id, the sampling options, and the 
 
 ## The prefixed agent
 
-Resolution returns a binding: a chat model with the config's model id, temperature, max tokens, and reasoning effort set, plus the prefix string. Code outside the factory does not build a chat model from a config, and the binding does not hand out its model. The binding builds agents.
+Resolution returns a binding: a chat model with the config's model id, temperature, max tokens, and reasoning effort set, plus the prefix string. Code outside the factory does not build a chat model from a config, and the binding does not hand out its model. The binding builds agents. Which LangChain integration that chat model comes from is not chosen yet: question 2 in [open-questions.md](../open-questions.md).
 
 Every model call is an agent from `create_agent`. The chat loop is one. A one-shot call is a tool-less agent, with `response_format` set when the output is structured, placed in the workflow graph as a node. LangChain's middleware runs inside the compiled graph that `create_agent` returns, so a one-shot agent nested in a larger `StateGraph` keeps its middleware. The workflow node invokes that agent with its own input, the user message for the step, and reads the result or `structured_response` from the return value. The agent's message list is its own; it is not the workflow's state. There is no second call path for one-shot calls, so there is no second place the prefix could be missed. A caller cannot use the config's model and skip the prefix.
 
@@ -156,4 +156,4 @@ The prompt-assembly doc owns how the base prompt, Story Bible context, and conve
 
 The logging doc owns the logging middleware and the record. This doc's promise to that one: every model call goes through an agent whose middleware list has the prefix middleware before the logging middleware, so the request the logger sees is the request the provider gets.
 
-The persistence doc owns what sits behind the config store, locally and hosted, how a user's config document is addressed, and how that user's API key is stored. Prose nodes are added to the registry when that slice exists.
+The persistence doc owns what sits behind the config store, locally and hosted, how a user's config document is addressed, and how that user's API key is stored. Prose nodes are added to the registry when the prose workflow is built.

@@ -34,14 +34,14 @@ A change to a prompt, a model, or a workflow should be comparable to the previou
 
 ## What ships in what order
 
-The build follows the order a writer would notice. [build-sequence.md](build-sequence.md) is the authority for the slices and their dependencies.
+The build follows the order a writer would notice. [build-sequence.md](build-sequence.md) is the authority for the order and what each part depends on.
 
 1. The Story Bible, plus enough editing and visualization to inspect and correct it. The first pictures are events in time, and arcs across those events.
 2. A chat agent whose job is to turn a description into arcs and the bible records those arcs need. The writer can edit between prompts.
 3. Evaluations for those arcs, then for characters and other generated entities, and for the bible as a whole.
 4. The prose workflow, and evaluations for prose.
 
-Prose stays out until the earlier slices exist.
+Prose stays out until the earlier parts exist.
 
 The interface is a separate frontend on a Python API, so the application can later be hosted without being rebuilt. The frontend is built with React, and [architecture/application.md](architecture/application.md) says how. Being able to see and edit the story matters more than matching any earlier screen.
 

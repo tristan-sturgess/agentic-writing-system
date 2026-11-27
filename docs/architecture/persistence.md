@@ -2,7 +2,7 @@
 
 This is how a story is saved, who owns it, and what happens when the user and an agent write at the same time. It is also what sits behind the config store, the secrets store, the call-log store, and the conversation thread. The model-configuration and logging docs fix their interfaces. This doc chooses the implementations, locally and on Railway, and names the data directory once.
 
-The Story Bible doc is the authority for what a story contains and which saves it refuses. The agents doc is the authority for how an agent calls tools. A failed run's durable artifact, for the early slices, is the last successful commit.
+The Story Bible doc is the authority for what a story contains and which saves it refuses. The agents doc is the authority for how an agent calls tools. A failed run's durable artifact, for the proof of concept, is the last successful commit.
 
 ## Two layers
 
@@ -18,7 +18,7 @@ Nothing above a store opens its engine. Swapping SQLite for Postgres changes the
 
 A story is the isolation boundary. Every Story Bible record belongs to one story. A story has one owner, a user. Locally there is one user, created on first run. That user id is still passed into every store call. A second user is an authorization check, not a new shape for a story.
 
-A request acts as one user. A read or a write of a story succeeds only for that story's owner. Slice 1 has no sharing. The API in [application.md](application.md) resolves every request to a user id before it calls a store; locally that is the one implicit user. How a hosted request proves who it is from is authentication, which waits in [open-questions.md](../open-questions.md). Every store call takes the user id either way.
+A request acts as one user. A read or a write of a story succeeds only for that story's owner. There is no sharing. The API in [application.md](application.md) resolves every request to a user id before it calls a store; locally that is the one implicit user. How a hosted request proves who it is from is authentication, which waits with hosting in [future-work.md](../future-work.md). Every store call takes the user id either way.
 
 The same boundary covers the data that is not a story. Model configs, the API key, call logs, and conversations belong to the user. A conversation also belongs to one story. One user's rows are never returned to another user.
 
@@ -35,15 +35,15 @@ Local files live in `data/` under the application root. The path can be set by a
 
 Nothing above a store opens these files. Copying `data/` is not an export.
 
-On Railway the same stores are tables in one Postgres database, and the checkpointer is the Postgres checkpointer with the tables its setup creates. A Railway bucket holds blobs once prose or other large bodies exist. Slice 1 has no blobs, and it does not need the bucket.
+On Railway the same stores are tables in one Postgres database, and the checkpointer is the Postgres checkpointer with the tables its setup creates. A Railway bucket holds blobs once prose or other large bodies exist. There are no blobs yet, and nothing needs the bucket until there are.
 
-SQLite is the local engine, opened in WAL mode with a busy timeout, so the debug view can read while the middleware writes and a short overlap of two writers waits instead of failing. Postgres is the hosted engine. Callers see the store interfaces below, not the engine. Version 2's `world.json`, rewritten under a process-wide lock, is not this design. A JSON file under a lock can still implement a store in a test. It is not what slice 1 builds.
+SQLite is the local engine, opened in WAL mode with a busy timeout, so the debug view can read while the middleware writes and a short overlap of two writers waits instead of failing. Postgres is the hosted engine. Callers see the store interfaces below, not the engine. Version 2's `world.json`, rewritten under a process-wide lock, is not this design. A JSON file under a lock can still implement a store in a test. It is not what the build uses.
 
 Async methods of every store do their work off the event loop. A blocking lock or a `sleep` inside an async call would stall every agent sharing that loop. Version 2 retried a file lock with `time.sleep` on the UI thread, and the interface froze for the retry. A transient busy error that outlasts the busy timeout is retried a few times with a short backoff on the worker. When the retries are spent, the call fails, and the screen stays responsive.
 
 ## Story store
 
-The story store is the adapter slice 1 codes against. It has six operations and no knowledge of the rules inside a story.
+The story store is the adapter the commit codes against. It has six operations and no knowledge of the rules inside a story.
 
 A story is a story row and a row per record. The story row holds the story id, the owner id, the schema version, the framing fields, and `unit_ids`. The story id is assigned by the store and may be opaque. A record row holds the story id, the record id, the kind, the record's fields, and the ids the record names: for an Assertion its `entity_ids`, `event_ids`, and `arc_ids`; for an Event its `entity_ids`; for an Arc its `event_ids`; for a Narrative Unit its `child_ids` and `subject_ids`; for a Property its `entity_id` and `caused_by`; and for any record the Event ids its spans use as time points. The Story Bible layer computes that list from the record's fields when it writes the row. The store does not read the fields to find it. Every row, the story row included, has a revision: an integer that starts at 1 and increases by one each time a save writes or guards that row. There is no story-wide revision. The whole story is the document in [story-bible.md](../story-bible.md); the rows are how the store holds it.
 
@@ -114,7 +114,7 @@ Independent reads of a story run together. Writes to two stories run together. A
 
 A multi-step agent draft is the same commit with a longer-lived snapshot. The draft holds the writes until one commit. That changeset carries the snapshot revisions for every record the draft writes, and a `guard` for every record the draft read while planning, so the commit lands only if nothing it saw has moved. If anything has, the commit conflicts, returns the rows that moved, and writes nothing. The story is still the one the user has. The agents doc says the caller reports that conflict and does not reapply the draft onto the new state. The plot-draft commit in version 2 is the pattern. The process-wide story-bible claim it also required is not.
 
-If the process dies before that commit, the draft is gone. The draft is in-process state; it is not in the conversation thread's checkpoints. The story stays at the last successful commit. Call records already written stay in the log. Resuming a workflow after a restart, and checkpointing a run that must survive the process, stay open in [open-questions.md](../open-questions.md).
+If the process dies before that commit, the draft is gone. The draft is in-process state; it is not in the conversation thread's checkpoints. The story stays at the last successful commit. Call records already written stay in the log. Resuming a workflow after a restart, and checkpointing a run that must survive the process, wait in [future-work.md](../future-work.md).
 
 A busy flag in the UI can tell the user a run is in progress. It is not what keeps the story consistent. Version 2's in-memory job claims died on restart and were not a transaction. They are not ported.
 
@@ -152,7 +152,7 @@ The agent does not revert. A revert is an action the writer takes on the history
 
 The history is edit history: who changed the story and what they changed. It is not story time, and it is not a second copy of the current state. The current state is the record rows. The in-force view in [story-bible.md](../story-bible.md) is over those rows, not over the history.
 
-Commit records are story data. They are deleted with the story. They are not in the story export; the export is the story, not how it got there, and an imported story starts its history with the import commit. There is no retention cap on them in slice 1. A story's history grows by one small row per commit, and a story that has thousands of commits is a story that has been worked on. If a cap is ever needed, it is a cap on the oldest records, and a revert of a commit whose record is gone is simply unavailable.
+Commit records are story data. They are deleted with the story. They are not in the story export; the export is the story, not how it got there, and an imported story starts its history with the import commit. There is no retention cap on them. A story's history grows by one small row per commit, and a story that has thousands of commits is a story that has been worked on. If a cap is ever needed, it is a cap on the oldest records, and a revert of a commit whose record is gone is simply unavailable.
 
 An evaluation run still copies `bible_before` and `bible_after` into its own record. Reconstructing a document from the history is possible and is not what the evaluations doc relies on. The copies are simpler and they survive a history cap.
 
@@ -166,19 +166,19 @@ Locally the document is a row in `app.sqlite`. On Railway it is a row in Postgre
 
 The user provides their own OpenRouter API key. The secrets store is `set`, `get`, and `delete` for the acting user's key. The model binding in [model-configuration.md](model-configuration.md) reads the key through `get` when it builds a chat model. Nothing else reads it.
 
-The key is not a field on the config document. It is not written into a story export, a config export, or a call record. Locally it is a row in `data/secrets.sqlite`, in plain text; the local install is the user's own machine, and the separate file keeps the key out of a copied `app.sqlite`. On Railway it is a row in its own table, encrypted by the application with a key from the environment before it is written, so a database dump does not contain usable keys. Platform encryption at rest protects the disk, not a dump. No export query reads that table. The key reaches this store through the API's `set` endpoint; the screen that collects it is built in slice 3, as [build-sequence.md](../build-sequence.md) places it.
+The key is not a field on the config document. It is not written into a story export, a config export, or a call record. Locally it is a row in `data/secrets.sqlite`, in plain text; the local install is the user's own machine, and the separate file keeps the key out of a copied `app.sqlite`. On Railway it is a row in its own table, encrypted by the application with a key from the environment before it is written, so a database dump does not contain usable keys. Platform encryption at rest protects the disk, not a dump. No export query reads that table. The key reaches this store through the API's `set` endpoint; the screen that collects it is planned, and [build-sequence.md](../build-sequence.md) places it.
 
 ## Conversations
 
 A conversation is a LangGraph thread. The chat agent from `create_agent` is compiled with a checkpointer, and the conversation's id is the `thread_id` it is invoked with. The transcript the workspace shows is that thread's state. There is no second message table. The logging doc's `thread_id` is this id.
 
-The app keeps a conversation row in `app.sqlite`: the conversation id, the owner, the story, and a created time. The checkpointer's tables carry no user or story, so that row is the scope. A request resolves a conversation through its row, and the owner check happens there, before the agent is invoked with that `thread_id`. A thread has one invoke in flight. A second prompt on that conversation waits until the run has ended, as the agents doc says. A turn whose process died is reported as interrupted under the heartbeat rule below and no longer counts as running; the application doc states that. Story edits during the run are commits, and they do not start a second invoke. The store allows more than one conversation per story. The agent runs on the conversation it was given. Whether the workspace lists more than one stays open in the agents doc.
+The app keeps a conversation row in `app.sqlite`: the conversation id, the owner, the story, and a created time. The checkpointer's tables carry no user or story, so that row is the scope. A request resolves a conversation through its row, and the owner check happens there, before the agent is invoked with that `thread_id`. A thread has one invoke in flight. A second prompt on that conversation waits until the run has ended, as the agents doc says. A turn whose process died is reported as interrupted under the heartbeat rule below and no longer counts as running; the application doc states that. Story edits during the run are commits, and they do not start a second invoke. The store allows more than one conversation per story. The agent runs on the conversation it was given. The workspace shows the story's latest conversation and lets the writer start a new one, as the agents doc says.
 
 Locally the checkpointer is the SQLite checkpointer on `data/checkpoints.sqlite`. On Railway it is the Postgres checkpointer. Each is its async form for the streaming chat path and its sync form for a sync caller. The sync saver does not implement the async methods, so the chat loop, which streams, needs the async one. This is the same rule as the middleware hooks. The library's setup creates its tables; the app does not define them.
 
 Deleting a conversation deletes its row and its thread. Deleting a story deletes its conversations. A conversation is not a Story Bible record. The story export does not include it. Version 2 kept chat in a side file and left it out of the ZIP. The side file had no owner and no story. The exclusion from the export stays.
 
-This checkpointer is conversation memory. It gives the chat agent its history between turns. Using it to resume a workflow after a process restart is a separate decision, open in [open-questions.md](../open-questions.md), and the draft commit above does not depend on it.
+This checkpointer is conversation memory. It gives the chat agent its history between turns. Using it to resume a workflow after a process restart is a separate decision that waits in [future-work.md](../future-work.md), and the draft commit above does not depend on it.
 
 ## Call-log store
 
@@ -214,14 +214,14 @@ On Railway, the routine may delete uncited records older than 90 days. Cited rec
 
 A story export is a serialization of that story's document, for a story the acting user owns. It includes the schema version. It does not include row revisions, the commit history, other stories, configs, the API key, call logs, or conversations.
 
-Slice 1 has no prose, so the export is one JSON document. When prose exists, the export can be a zip with that document and the prose blobs. Version 2's zip was `world.json` plus scene files because the prose lived beside the world. The extra members, when they exist, are the blobs. The exclusion list does not change.
+There is no prose yet, so the export is one JSON document. When prose exists, the export can be a zip with that document and the prose blobs. Version 2's zip was `world.json` plus scene files because the prose lived beside the world. The extra members, when they exist, are the blobs. The exclusion list does not change.
 
 Secrets stay out. Version 2's export also left out model profiles, and that stays: configs have their own export, in the model-configuration doc.
 
-Import checks the schema version and fails with a clear error when it does not match. Slice 1 does not migrate an older export. A successful import is a `create` followed by one commit of the file's contents, checked by the same rules as any commit, so a file with a duplicate id or a dangling reference is refused before anything is written. Record ids from the file are kept. The new story is owned by the acting user and has a new story id. Import does not replace an existing story. Version 2 had one world, so import replaced it.
+Import checks the schema version and fails with a clear error when it does not match. Import does not migrate an older export. A successful import is a `create` followed by one commit of the file's contents, checked by the same rules as any commit, so a file with a duplicate id or a dangling reference is refused before anything is written. Record ids from the file are kept. The new story is owned by the acting user and has a new story id. Import does not replace an existing story. Version 2 had one world, so import replaced it.
 
 ## What stays open
 
-Workflows that must survive a process restart stay open in [open-questions.md](../open-questions.md). Until that is decided, a run lives in the process. The story does not hold a half-applied draft.
+Workflows that must survive a process restart wait in [future-work.md](../future-work.md). Until one is needed, a run lives in the process. The story does not hold a half-applied draft.
 
-These stores are called from the Python API in [application.md](application.md), and from nothing else; the frontend never opens one. How a hosted request authenticates is still open there. It does not change the ownership model.
+These stores are called from the Python API in [application.md](application.md), and from nothing else; the frontend never opens one. How a hosted request authenticates is chosen when hosting is built. It does not change the ownership model.

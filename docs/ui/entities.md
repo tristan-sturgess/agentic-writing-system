@@ -1,8 +1,8 @@
 # Entities
 
-The entities view shows one Entity: what is true of it, when that holds, and how it is tied to other Entities. Step 6 of slice 2 in [build-sequence.md](../build-sequence.md) builds it read-only. [ui.md](../ui.md) says what it shares with the other views.
+The entities view shows one Entity: what is true of it, when that holds, and how it is tied to other Entities. It is built read-only. [ui.md](../ui.md) says what it shares with the other views.
 
-Story time and what is in force come from the service, as settled item 43 in [open-questions.md](../open-questions.md) says. The Story Bible doc owns what a span means, how a time point that names an Event resolves, and which statements are in force at a query point. This doc says how the view draws the service's result. It does not restate those rules, and it does not add to them.
+Story time and what is in force come from the service, as [architecture/application.md](../architecture/application.md) says. The Story Bible doc owns what a span means, how a time point that names an Event resolves, and which statements are in force at a query point. This doc says how the view draws the service's result. It does not restate those rules, and it does not add to them.
 
 ## The questions
 
@@ -11,7 +11,7 @@ Story time and what is in force come from the service, as settled item 43 in [op
 3. **Why did a claim change?** The Event in `caused_by` on a Property or an Assertion, as a link that selects that Event. The detail panel then shows the Event, and the timeline opens on it because the selected record carries between views.
 4. **How is this Entity tied to others?** The Assertions that name it, each with the other Entities, Events, and Arcs they name. An Assertion that does not name this Entity is not listed, including one that is in force for the story as a whole.
 
-Question 2 is asked by an agent as well as by the writer. An agent does not use this screen. It reads the same result from the service through a read tool in slice 3, which is why item 43 puts the reading there.
+Question 2 is asked by an agent as well as by the writer. An agent does not use this screen. Its read tool, when the agent is built, returns the same result from the service, which is why the reading is done there.
 
 ## One Entity
 
@@ -59,7 +59,7 @@ A statement with an unresolved comparison shows each one: which span, which boun
 
 ## What the view does not do
 
-- It does not edit. Step 10 adds that, in the detail panel.
+- It does not edit. Editing is planned, in the detail panel.
 - It does not draw Events on an axis. That is the timeline. A `caused_by` link selects the Event, and the writer opens the timeline on that selection.
 - It does not resolve a time point, and it does not decide what is in force. The service does both.
 - It does not detect that two statements contradict. Both are shown when both are in force.
@@ -67,7 +67,7 @@ A statement with an unresolved comparison shows each one: which span, which boun
 
 ## The sample
 
-Step 6 adds `samples/ensemble_story.json`. It has several Entities whose Properties change over time and bear on each other through Assertions and shared Events. It contains:
+`samples/ensemble_story.json` is the sample for this view. It has several Entities whose Properties change over time and bear on each other through Assertions and shared Events. It contains:
 
 - A Property that ends at the moment the next one starts, so only the new one is in force at that moment.
 - Two claims whose ranges overlap, so both are in force together.
@@ -95,6 +95,6 @@ The screen is a select for the Entity, a select for the stretch, and the lists. 
 
 ## What stays open
 
-- **A stricter overlap rule.** Question 26. It would replace this reading. It is not part of this step.
+- **A stricter overlap rule.** It would replace this reading. None is planned, and [future-work.md](../future-work.md) holds it.
 - **Several Entities at once.** One Entity is the first version. A second is added when a question here needs it.
 - **A timestamp that is not a bound.** The stretches are the choices. A field for any other timestamp is deferred.

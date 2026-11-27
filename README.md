@@ -8,11 +8,11 @@ The design lives in [`docs/`](docs/README.md).
 
 ## Current state
 
-Slice 1 is built: the Story Bible records and rules, a SQLite story store, commits, the story API, and import.
+The Story Bible is built: its records and rules, a SQLite story store, commits, the story API, and import.
 
-Slice 2 is partway through, and the screens are read-only. The app lists stories and, for one story, shows its records, a timeline of events with the entities and arcs on it, one entity's properties over story time, and a graph of every record and the references between them. Selecting a record opens a detail panel.
+The views are built, and they are read-only. The app lists stories and, for one story, shows its records, a timeline of events with the entities and arcs on it, one entity's properties over story time, and a graph of every record and the references between them. Selecting a record opens a detail panel.
 
-On-screen editing, the arc-planning agent, evaluations, and prose are still ahead. [`docs/build-sequence.md`](docs/build-sequence.md) is the order of work.
+On-screen editing is next. The arc-planning agent, evaluations, and prose follow it. [`docs/build-sequence.md`](docs/build-sequence.md) is the order of work, and [`docs/future-work.md`](docs/future-work.md) holds what waits until after those.
 
 ## Requirements
 

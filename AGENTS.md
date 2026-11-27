@@ -8,14 +8,14 @@ A workspace for writing long-form fiction. The writer describes the story they w
 
 Measuring whether a prompt, model, or workflow change actually helped is part of the product, not a follow-up.
 
-Slice 1 of `docs/build-sequence.md` is built: the Story Bible records and rules, the story store on SQLite, the commit, the story endpoints, and import. Slice 2 has the records view, a route per built view, the read-only detail panel, the edge on a time point that names an Event, Event times from the service, the timeline, including the Entities and Arcs on it, the entities view, and the graph. Nothing can be edited on screen yet, and there is no agent. The design lives in `docs/`.
+The Story Bible and the read-only views are built. The Story Bible is the records and rules, the story store on SQLite, the commit, the story endpoints, and import. The views are the records view, a route per view, the read-only detail panel, the edge on a time point that names an Event, story time from the service, the timeline, including the Entities and Arcs on it, the entities view, and the graph. Nothing can be edited on screen yet, and there is no agent. On-screen editing is next, as `docs/build-sequence.md` says. The design lives in `docs/`.
 
 ## What the project is for
 
 The project's owner is building it to learn about and experiment with agentic workflows and evaluating agentic systems. Spend design effort accordingly:
 
 - **Design carefully:** agent workflows, tools, prompt assembly, model-call logging, and evaluations (fixtures, checks, the judge, run comparison).
-- **Keep simple:** the UI, the data store, auth, deployment, and other supporting infrastructure. They must be correct and meet what the docs require, but prefer the plainest approach that does, and do not add machinery the current slice does not need.
+- **Keep simple:** the UI, the data store, auth, deployment, and other supporting infrastructure. They must be correct and meet what the docs require, but prefer the plainest approach that does, and do not add machinery the current step does not need.
 
 When a supporting piece starts to need a lot of design, say so and propose the simpler version before building it.
 
@@ -27,15 +27,16 @@ The project owner decides what to build. `docs/` is the written record of those 
 - **Plan against the docs.** Before planning, read `docs/README.md`, then the docs that own the area you are touching. `docs/architecture.md` maps each part of the system to its doc. Design against what they say, not against assumptions or what the code happens to do.
 - **Docs change first.** When a plan changes the vision, the architecture, a settled decision, or a documented rule, its first step is updating the docs, and the owner agrees to that before the code changes.
 - **The docs win over everything except the owner.** If the code and a doc disagree, the code is presumed wrong. If the docs seem wrong to you, raise it. Do not change a doc to match code you wrote, or to make a task easier, without the owner agreeing.
-- `docs/build-sequence.md` sets the order of work. Build the current step, not a later one.
-- `docs/open-questions.md` lists settled and open decisions. Do not reopen a settled item unless the owner asks. When a task needs an open question answered, ask the owner rather than deciding it silently.
+- `docs/build-sequence.md` sets the order of work for the proof of concept. Build the current step, not a later one. It is the only place the work is numbered. Every other doc, and this file, says what is built and what is planned, and does not name a part of the build sequence by number.
+- `docs/future-work.md` holds work for after the proof of concept, and the decisions that wait with it. Do not build from it unless the owner asks.
+- `docs/open-questions.md` lists the decisions the proof of concept still has to make. When a task needs an open question answered, ask the owner rather than deciding it silently. A decision that has been made is not kept there: it is stated in the doc that owns its area, with a short reason where the reason matters, and the question is removed from the list. Do not reopen a decision a doc states unless the owner asks.
 
 ## Work in small, visible steps
 
 This is a large project. Progress should come in small steps the owner can see, not in long stretches of invisible work.
 
 - When planning or designing a change, help break it into steps that each leave something visible and working: a test that passes, a command whose output shows the new behavior, or a screen that does something new. Aim for steps that fit in about a day.
-- Prefer the smallest step that moves the current slice forward. Defer anything the step does not need, and note it in the plan or in `docs/open-questions.md` instead of building it.
+- Prefer the smallest step that moves the build sequence forward. Defer anything the step does not need, and note it in the plan or in `docs/open-questions.md` instead of building it.
 - Small does not mean sloppy. Each step is done properly: it follows the docs, it is tested, and it does not leave hacks, stubs that pretend to work, or shortcuts that a later step has to undo. If doing it right is bigger than one step, say so and split the work. Do not shrink it by cutting corners.
 - Keep the number of decisions per step small. When a step needs a decision, present the few options that matter, recommend one, and leave the rest for later.
 - When a request is large, propose the split before starting.
@@ -55,7 +56,7 @@ Use these. Changing one is an architecture change: update the docs first.
 - **Playwright** for Python, with Chromium, as a development-only tool in a Poetry dev group. It drives the screenshot command for the graph, so a layout can be judged and compared from images. It is not part of the app and does not test screens: a screenshot goes with the report of a check in the browser.
 - The UI is a **separate frontend** that talks only to the Python API. It lives in `frontend/`: **React** and **TypeScript**, built by **Vite**, with **Mantine** for components, managed with **npm** on Node 22.12 or later. **Vitest** for its tests, **ESLint** for linting. Its API types are generated from the service's OpenAPI document. `docs/architecture/application.md` says how it is built and served. `docs/ui.md` says which screens exist and the questions each view must answer, and each view has its own doc under `docs/ui/`. Before changing `frontend/`, read `.cursor/rules/frontend-mantine.mdc` and use the Mantine MCP server in `.cursor/mcp.json`. Forms, comboboxes, and custom components have skills under `frontend/.agents/skills/`.
 
-Not yet decided: the LangChain integration used to reach OpenRouter (decided in slice 3). Update this section when it is.
+Not yet decided: the LangChain integration used to reach OpenRouter (decided when the arc-planning agent is built). It is a question in `docs/open-questions.md`. Update this section when it is decided.
 
 ## Testing
 
@@ -81,7 +82,7 @@ poetry run mypy             # type check
 poetry run python -m agentic_writing_system serve    # the API on http://127.0.0.1:8000, docs at /api/docs
 poetry run python scripts/story_api.py --help        # command-line client for the story endpoints
 poetry run playwright install chromium               # once, the browser the screenshot command drives
-poetry run python scripts/graph_screenshot.py --help # a PNG of a story's graph from a running service (slice 2, step 8)
+poetry run python scripts/graph_screenshot.py --help # a PNG of a story's graph from a running service
 
 npm --prefix frontend install        # install the frontend's dependencies (Node 22.12 or later)
 npm --prefix frontend run build      # build the frontend into frontend/dist, which `serve` then serves at /

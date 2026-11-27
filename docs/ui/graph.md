@@ -1,6 +1,6 @@
 # Graph
 
-The graph draws every record in a story as a node and every reference between records as an edge. Step 7 of slice 2 in [build-sequence.md](../build-sequence.md) builds it read-only, step 8 makes it readable on a large story, and step 9 adds search and focus. [ui.md](../ui.md) says what it shares with the other views.
+The graph draws every record in a story as a node and every reference between records as an edge. It is built read-only. The work to make it readable on a large story is partly built, and search and focus are not built. [future-work.md](../future-work.md) holds what is left of both. [ui.md](../ui.md) says what it shares with the other views.
 
 A reference is an id one record stores that names another, as "How the records connect" in [story-bible.md](../story-bible.md) lists them. The detail panel lists the same references, and both draw them from one definition in the frontend. This view adds no edge record to the model. It is not version 2's graph of typed edges, as the Story Bible doc says.
 
@@ -21,10 +21,10 @@ Question 2 is part of the writer's task of finding what is thin or disconnected 
 
 ## How the view answers them
 
-- **1 and 2: the layout.** Records that reference each other are drawn together, and an isolated group reads as separate on screen. Nothing is computed for the groups. The list of records that connect to nothing, below, answers question 2 for a single record without reading the graph node by node. Step 7 answers both on the small samples, and step 8 on the large one.
-- **3: search.** Step 9 builds it, and its design is added here when that step starts.
-- **4 to 6: focus.** Narrowing the graph to the records around one record or one Arc, to what an Arc depends on, or to what depends on a record. Step 9 builds it, and its design is added here when that step starts.
-- **7 and 8: partly, by reading the graph and opening records in the detail panel.** The graph shows that two characters are connected through an Assertion, and the panel shows what the Assertion states. The graph shows how many records name an Entity, and the panel lists them. Nothing is built for these two in steps 7 to 9. "What stays open" lists the ideas recorded for them.
+- **1 and 2: the layout.** Records that reference each other are drawn together, and an isolated group reads as separate on screen. Nothing is computed for the groups. The list of records that connect to nothing, below, answers question 2 for a single record without reading the graph node by node. This answers both on the small samples. It does not yet answer them on the large one, as "What stays open" says.
+- **3: search.** Not built. Its design is added here before it is built.
+- **4 to 6: focus.** Narrowing the graph to the records around one record or one Arc, to what an Arc depends on, or to what depends on a record. Not built. Its design is added here before it is built.
+- **7 and 8: partly, by reading the graph and opening records in the detail panel.** The graph shows that two characters are connected through an Assertion, and the panel shows what the Assertion states. The graph shows how many records name an Entity, and the panel lists them. Nothing more is built or planned for these two. "What stays open" lists the ideas recorded for them.
 
 ## Nodes
 
@@ -66,13 +66,13 @@ A selected record whose kind is hidden stays selected, and the panel stays open.
 
 The layout places the nodes once, when the view opens, and again only when the layout panel below asks it to. It is a force layout: records that reference each other are pulled together, and the rest are pushed apart, so groups that hang together read as clusters. Changing the filter or the selection does not run it again, so a node stays where the writer last saw it. A hidden kind leaves its space empty.
 
-Step 8 makes the layout repeatable: one story is placed the same way on every load, so a reload, a screenshot, and the writer's memory of where a record sits agree. Two screenshots of one story differ only where the story or the layout changed. The start positions and the layout's random numbers are drawn from the story id and a seed, so the same story with the same settings lands in the same place.
+The layout is repeatable: one story is placed the same way on every load, so a reload, a screenshot, and the writer's memory of where a record sits agree. Two screenshots of one story differ only where the story or the layout changed. The start positions and the layout's random numbers are drawn from the story id and a seed, so the same story with the same settings lands in the same place.
 
 The forces are set by kind. Each kind of record has its own repulsion, and a line takes its length and elasticity from the kind of the record that holds the reference. The line from a Property to its Entity has its own, shorter length, which with the box keeps the Properties close to their Entity. The boxes have their own repulsion. The view opens with a baseline the owner chose from the layout panel on `large_story`, kept in the frontend as the default settings. A new baseline is chosen the same way, from screenshots, and replaces the default.
 
 ### The layout panel
 
-The layout panel is a development tool. It answers none of the questions above. It is how the baseline is chosen, and the baseline is what makes questions 1 and 2 answerable on a large story. It is on the screen because tuning the layout is current work, and it will move behind a setting when that work settles.
+The layout panel is a development tool. It answers none of the questions above. It is how the baseline is chosen, and the baseline is what makes questions 1 and 2 answerable on a large story. It is on the screen because the layout is not settled, and it will move behind a setting when it is.
 
 The panel sits beside the graph, under the detail panel and the list of records that connect to nothing. It edits the layout's settings: the seed, the forces for each kind, the line from a Property to its Entity, the boxes' repulsion, and fcose's other options. An edit does nothing until Regenerate, which runs the layout again with the edited settings. Defaults puts the baseline back in the panel. Copy settings puts the settings of the layout on screen on the clipboard as JSON, which is how a chosen layout becomes the next baseline. The settings are not in the address and are not saved, so a reload opens on the baseline.
 
@@ -80,14 +80,14 @@ The graph can be zoomed and panned, and it opens fitted to the window. On a stor
 
 ## What the view does not do
 
-- It does not edit. Step 10 adds that, in the detail panel.
+- It does not edit. Editing is planned, in the detail panel.
 - It does not show story time or reading order. Those are the timeline and, later, the prose.
 - It does not add an edge to the model, type an edge, or offer a connect action.
-- It does not search or focus. Step 9 adds both.
+- It does not search or focus. Both are in [future-work.md](../future-work.md).
 
 ## The sample
 
-The existing samples hold at most about thirty records, too few to show whether the graph stays readable. Step 7 adds `samples/large_story.json`, with about 150 to 200 records across every kind. It contains:
+The other samples hold at most about thirty records, too few to show whether the graph stays readable. `samples/large_story.json` is the sample for this view, with about 150 to 200 records across every kind. It contains:
 
 - Several Arcs, some sharing Events.
 - Entities with many Properties.
@@ -96,9 +96,10 @@ The existing samples hold at most about thirty records, too few to show whether 
 - Spans that name an Event as a time point.
 - A Narrative Unit tree at least three levels deep.
 - A few records that connect to nothing: an Entity that nothing names, and an Event that names no Entity and that no Arc includes.
-- From step 8, an isolated group of five to ten records that connect to each other and to nothing else, so question 2 can be judged for a group and not only for a single record.
 
-Step 7 is checked by answering questions 1 and 2 for that story from the screen, and then for `samples/sample_story.json`. Step 8 checks the same two questions again on the changed layout, and step 9 checks questions 3 to 6.
+It does not yet contain an isolated group: five to ten records that connect to each other and to nothing else, so question 2 can be judged for a group and not only for a single record. Adding one is part of the work in [future-work.md](../future-work.md).
+
+The view is checked by answering questions 1 and 2 for that story from the screen, and then for `samples/sample_story.json`. A change to the layout is checked on the same two questions. Search and focus, when they are built, are checked on questions 3 to 6.
 
 ## How it is built
 
@@ -116,26 +117,18 @@ These were set aside:
 
 ### The screenshot command
 
-A layout is judged by looking at it, and two layouts are compared side by side, so step 8 adds `scripts/graph_screenshot.py`. Given a story id, the service's address, an output path, and a window size, it opens the story's graph in a browser, waits until the layout has finished, and saves a PNG of the graph area. It can set the same `?hide=` and `?record=` the address carries. The graph's container marks a finished layout with `data-layout="done"`, which is what the command waits for.
+A layout is judged by looking at it, and two layouts are compared side by side, so there is a command for it, `scripts/graph_screenshot.py`. Given a story id, the service's address, an output path, and a window size, it opens the story's graph in a browser, waits until the layout has finished, and saves a PNG of the graph area. It can set the same `?hide=` and `?record=` the address carries. The graph's container marks a finished layout with `data-layout="done"`, which is what the command waits for.
 
 The command uses Playwright for Python with Chromium, as a development tool. It is not part of the app, and it does not test the screen: a screenshot is attached to the report of a check in the browser, and does not replace that check. It runs against a service on a scratch data directory, never on the real `data/`.
 
-The steps:
-
-| Step | What it builds | Questions it answers |
-| --- | --- | --- |
-| 7 | The nodes and edges, what connects to nothing, the filter by kind, selecting a record, and the larger sample. | 1 and 2, on the small samples. |
-| 8 | The screenshot command, a repeatable layout, an isolated group in the large sample, and the layout changes the owner chooses: the Entity boxes, the forces by kind, the baseline, and the layout panel that chooses it. | 1 and 2, on the large sample. |
-| 9 | Search by a record's text, and focus on one record or one Arc. | 3 to 6. |
-
 ## What stays open
 
-- **What makes the large sample readable.** Checked in the browser after step 7, the large sample is not readable. It has about 180 records and 460 references. The largest groups of references are Events naming their Entities (about 100), Properties naming their Entity (about 60), and Assertions naming Entities (about 60), and the lines pile into a few main characters. Step 8 is where the owner chooses what changes, from screenshots of `large_story` and `sample_story`, each beside the current layout. Chosen so far, and written into "Nodes" and "Layout, zoom, and pan" above: tuning the force layout by kind, with a shorter line from a Property to its Entity, and Properties drawn in a box with their Entity. The candidates still open:
+- **What makes the large sample readable.** Checked in the browser when the graph was first drawn, the large sample was not readable. It has about 180 records and 460 references. The largest groups of references are Events naming their Entities (about 100), Properties naming their Entity (about 60), and Assertions naming Entities (about 60), and the lines pile into a few main characters. The owner chooses what changes, from screenshots of `large_story` and `sample_story`, each beside the current layout. Chosen so far, built, and written into "Nodes" and "Layout, zoom, and pan" above: tuning the force layout by kind, with a shorter line from a Property to its Entity, and Properties drawn in a box with their Entity. The rest of this work is in [future-work.md](../future-work.md). The candidates still open:
     - **Narrative Units drawn inside their parent unit.** This removes the lines for `child_ids` and the story node's lines.
     - **Quieter lines.** Lines are faint until a node is selected or the pointer is over it, so the clusters read through the pile of lines.
 
   A change chosen from these is written into "Nodes", "Edges", and "Layout, zoom, and pan" above before it is built. Drawing Narrative Units inside another node changes what this doc says a node is, which is why the choice comes before any code.
 - **Where the layout panel goes.** It is on the graph's screen while the layout is being tuned. It moves behind a setting when that work settles. Which setting, and where it lives, is decided then.
-- **Showing only the connections between two Entities.** An idea for question 7: the records that connect two chosen Entities, with the rest out of the way. Not built in steps 7 to 9.
-- **Measures of an Entity's reach.** An idea for question 8: how many records depend on an Entity, or how central it is to the story. Not built in steps 7 to 9.
+- **Showing only the connections between two Entities.** An idea for question 7: the records that connect two chosen Entities, with the rest out of the way. Not built.
+- **Measures of an Entity's reach.** An idea for question 8: how many records depend on an Entity, or how central it is to the story. Not built.
 - **Laying out again.** For the writer, the layout runs once. Regenerate in the layout panel runs it again, but that is the development tool. A control for the writer to run it again after the filter changes is added if the empty space a hidden kind leaves turns out to get in the way.
