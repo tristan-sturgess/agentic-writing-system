@@ -22,6 +22,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stories/{story_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get History */
+        get: operations["get_history_api_stories__story_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Export */
+        get: operations["get_export_api_stories__story_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stories/{story_id}": {
         parameters: {
             query?: never;
@@ -119,6 +153,23 @@ export interface paths {
         put?: never;
         /** Post Commit */
         post: operations["post_commit_api_stories__story_id__commits_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/revert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Revert */
+        post: operations["post_revert_api_stories__story_id__revert_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -282,10 +333,61 @@ export interface components {
             /** At */
             at: components["schemas"]["TimestampPoint"] | components["schemas"]["EventPoint"];
         };
+        /**
+         * ChangeView
+         * @description One change in a commit record. A create has no before; a delete has no after.
+         */
+        ChangeView: {
+            /** Record Id */
+            record_id: string | null;
+            /** Kind */
+            kind: string;
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "create" | "update" | "delete";
+            /** Before */
+            before: {
+                [key: string]: unknown;
+            } | null;
+            /** After */
+            after: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** CommitRequest */
         CommitRequest: {
             /** Writes */
             writes: components["schemas"]["Write"][];
+        };
+        /**
+         * CommitView
+         * @description A commit record without `user_id` and `story_id`.
+         */
+        CommitView: {
+            /** Commit Id */
+            commit_id: string;
+            /**
+             * Committed At
+             * Format: date-time
+             */
+            committed_at: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "user" | "tool" | "import" | "draft" | "revert" | "eval";
+            /** Thread Id */
+            thread_id: string | null;
+            /** Run Id */
+            run_id: string | null;
+            /** Tool Call Id */
+            tool_call_id: string | null;
+            /** Reverts */
+            reverts: string[];
+            /** Changes */
+            changes: components["schemas"]["ChangeView"][];
         };
         /** Committed */
         Committed: {
@@ -795,7 +897,7 @@ export interface components {
         /** Problem */
         Problem: {
             /** Code */
-            code: ("duplicate_id" | "blank_primary_text" | "unknown_id" | "delete_still_named" | "assertion_needs_two" | "unit_not_placed" | "unit_placed_twice" | "unit_contains_itself" | "duplicate_in_list" | "range_start_after_end" | "at_needs_edge" | "span_cycle") | ("unknown_ref" | "duplicate_ref" | "blank_primary_text" | "unknown_id" | "kind_mismatch") | ("schema_version" | "kind_changed");
+            code: ("duplicate_id" | "blank_primary_text" | "unknown_id" | "delete_still_named" | "assertion_needs_two" | "unit_not_placed" | "unit_placed_twice" | "unit_contains_itself" | "duplicate_in_list" | "range_start_after_end" | "at_needs_edge" | "span_cycle") | ("unknown_ref" | "duplicate_ref" | "blank_primary_text" | "unknown_id" | "kind_mismatch") | ("schema_version" | "kind_changed" | "unknown_commit");
             /** Message */
             message: string;
             /** Record Id */
@@ -894,6 +996,14 @@ export interface components {
             message: string;
             /** Problems */
             problems: components["schemas"]["Problem"][];
+        };
+        /**
+         * RevertRequest
+         * @description The commits to undo. An empty list is a schema error.
+         */
+        RevertRequest: {
+            /** Commit Ids */
+            commit_ids: string[];
         };
         /**
          * SchemaError
@@ -1328,6 +1438,86 @@ export interface operations {
             };
         };
     };
+    get_history_api_stories__story_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommitView"][];
+                };
+            };
+            /** @description No such story for the acting user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description The store is busy; retry */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+        };
+    };
+    get_export_api_stories__story_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryDocument"];
+                };
+            };
+            /** @description No such story for the acting user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description The store is busy; retry */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+        };
+    };
     get_story_api_stories__story_id__get: {
         parameters: {
             query?: never;
@@ -1642,6 +1832,77 @@ export interface operations {
                 };
             };
             /** @description A Story Bible rule refused the writes */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            /** @description The store is busy; retry */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+        };
+    };
+    post_revert_api_stories__story_id__revert_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevertRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Committed"];
+                };
+            };
+            /** @description The request schema rejected the body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaErrors"];
+                };
+            };
+            /** @description No such story for the acting user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            /** @description The story no longer matches the commits being undone */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictResponse"];
+                };
+            };
+            /** @description A rule refused the revert, or a commit id is not in this story */
             422: {
                 headers: {
                     [name: string]: unknown;

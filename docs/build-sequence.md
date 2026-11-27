@@ -53,11 +53,11 @@ Built. The frontend shows the model from slice 1 in four read-only views, each c
 - **The graph.** [ui/graph.md](ui/graph.md): every record as a node and every reference as an edge, a filter by kind of record, and the list of records that connect to nothing. The first work on a readable layout is also built: a layout that places one story the same way on every load, each Entity drawn in a box with its Properties, forces set by kind, the layout panel that tunes them, and `scripts/graph_screenshot.py`, which saves a screenshot of the graph so layouts can be compared.
 - **Sample stories.** `samples/timeline_story.json`, `samples/ensemble_story.json`, and `samples/large_story.json`, each added to stress one view.
 
-Editing on screen is slice 3, and it has started: every kind of record can be created, edited, and deleted, and the framing can be edited. History, revert, and export are not built yet. The rest of the graph's work, a large story that reads well and search and focus, is in [future-work.md](future-work.md).
+Editing on screen is slice 3, and it has started: every kind of record can be created, edited, and deleted, and the framing can be edited. History, revert, and export are built. The rest of the graph's work, a large story that reads well and search and focus, is in [future-work.md](future-work.md).
 
 ## Slice 3 — Editing
 
-Editing on the screens slice 2 built, and the story endpoints that are left: history, revert, and export. Accounts and a hosted login are not part of this slice. Locally there is still one implicit user, and the API resolves every request to it.
+Editing on the screens slice 2 built. History, revert, and export are built. The tweak step is what remains. Accounts and a hosted login are not part of this slice. Locally there is still one implicit user, and the API resolves every request to it.
 
 Selecting a record in any view opens the same detail panel. The panel is the editor for every kind of record, so a view does not get an editor of its own. The records view stays, as the screen where every field of every record can be reached. The framing is edited on that view's Framing tab.
 
@@ -73,7 +73,9 @@ How the panel shows a save, a refusal, and a conflict is in [ui.md](ui.md). How 
 - **3. Arcs.** The Arc editor: create, edit, and delete, and the order of an Arc's Events. The timeline with that Arc highlighted is where the result is seen.
 - **4a. Assertions and the framing.** Create, edit, and delete Assertions, and edit the story framing.
 - **4b. Narrative Units.** A Narrative Unit is edited as structure: its place in the reading order, its children, and its subjects. Its prose stays empty, and this slice does not grow a prose editor.
-- **5. History, revert, and export.** The history and revert endpoints, and the story's commit history newest first, with what each commit changed and a revert of one commit. The export endpoint, and an export action. In this slice every commit is a hand edit, an import, or a revert. Slice 4 adds the agent's commits to the same list, grouped by turn, and the turn-level revert.
+- **5a. The history.** The history endpoint and the read-only History view. The story's commits, newest first, with what each commit changed. This step returns the full history. In this slice every commit is a hand edit, an import, or a revert. Slice 4 adds the agent's commits to the same list, grouped by turn, and the turn-level revert. The history filters (source, `thread_id`, `run_id`, a time range) move to that step.
+- **5b. Revert.** Revert of one commit from that view.
+- **5c. Export.** The export endpoint, and an export action.
 - **6. Tweak.** No new features. The writer uses the screens by hand and fixes what gets in the way. A change to the model or a rule found here goes into the docs first, before any agent depends on it.
 
 "A little" is the bar. The screens make the model inspectable and hand-editable. They do not cover later workflows. The questions in a view's doc are where its design starts: a feature that serves none of them waits. A screen beyond the ones in [ui.md](ui.md) is added to that doc first.
@@ -92,7 +94,7 @@ The questions in [open-questions.md](open-questions.md) are answered in this sli
 2. **The call log.** The call-log store, the logging middleware on every call the shared builder makes, and the tool-result record, from the logging doc. Prompt layers from the prompt-assembly doc. Visible as a command that makes one tool-less call and prints its record.
 3. **The agent from a command.** The read and write tools and the base prompt from the agents doc, and the checkpointer for the conversation thread. A command sends one prompt to a story and prints the tool calls, their results, and the records that changed. Every call is in the log, attributed to the story, the `chat` node, and the config. Visible as a description turned into arcs, seen on the slice 2 views.
 4. **Chat on screen.** The conversation endpoints, the turn row, the stream of typed events, and the stop, from the application doc. A chat panel renders `assistant_delta` as the reply, and a `commit` event refreshes the records it names. The panel shows the story's latest conversation and can start a new one. Visible as a prompt sent from the screen and the bible changing while it runs.
-5. **The turn in the history.** The agent's commits grouped by turn, and the turn-level revert.
+5. **The turn in the history.** The agent's commits grouped by turn, and the turn-level revert. The history filters (source, `thread_id`, `run_id`, a time range) land in this step. Slice 3's history step returns the full history, newest first.
 6. **Writing beside the agent.** The work left from slice 1: the commit's guards, the conflict reapply, and the busy retry from the persistence doc, and the bounded retry in the write tools from the agents doc. The heartbeat and `interrupted`, and the stream's replay after a reconnect, from the application doc. Visible as tests where the writer edits during a run and a parallel tool batch writes one record twice.
 7. **The call list.** The read-only call list, with prompt markup shown literally. The page layout follows the frontend from slice 2 and is not specified.
 

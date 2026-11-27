@@ -136,6 +136,21 @@ export function getInForceStretches(storyId: string, entityId: string): Promise<
   return get(`/stories/${encodeURIComponent(storyId)}/in-force-stretches?${params.toString()}`)
 }
 
+export type CommitView = Schemas['CommitView']
+export type ChangeView = Schemas['ChangeView']
+
+/** The story's commits, newest first. */
+export function getHistory(storyId: string): Promise<CommitView[]> {
+  return get(`/stories/${encodeURIComponent(storyId)}/history`)
+}
+
+export type StoryDocument = Schemas['StoryDocument']
+
+/** The story as an export document: no story id, no revisions, no times. */
+export function getExport(storyId: string): Promise<StoryDocument> {
+  return get(`/stories/${encodeURIComponent(storyId)}/export`)
+}
+
 export type Write = Schemas['Write']
 export type UpdateWrite = Schemas['UpdateWrite']
 export type Committed = Schemas['Committed']
@@ -160,6 +175,31 @@ export async function postCommit(storyId: string, writes: readonly Write[]): Pro
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ writes }),
+  })
+  if (response.status === 200) {
+    return { status: 'committed', result: (await response.json()) as Committed }
+  }
+  if (response.status === 422) {
+    return { status: 'refused', refusal: (await response.json()) as Refusal }
+  }
+  if (response.status === 409) {
+    return { status: 'conflict', conflict: (await response.json()) as ConflictResponse }
+  }
+  if (response.status === 503) {
+    return { status: 'busy', message: await errorMessage(response) }
+  }
+  throw new ApiError(response.status, await errorMessage(response))
+}
+
+/**
+ * Undo the named commits. The same four outcomes as a save. A story that is
+ * gone, or a body the schema rejects, is thrown.
+ */
+export async function postRevert(storyId: string, commitIds: readonly string[]): Promise<CommitOutcome> {
+  const response = await fetch(`/api/stories/${encodeURIComponent(storyId)}/revert`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ commit_ids: commitIds }),
   })
   if (response.status === 200) {
     return { status: 'committed', result: (await response.json()) as Committed }

@@ -26,8 +26,9 @@ The layout in a view doc is the first attempt at answering the questions. It can
 | `/stories/{story_id}/timeline` | The timeline. |
 | `/stories/{story_id}/entities` | The entities view. |
 | `/stories/{story_id}/graph` | The graph. |
+| `/stories/{story_id}/history` | The history. |
 
-A story's page shows the story's title and a link to each view that is built, in a row under the title. The view on screen is marked. A view is linked once it has a screen, so the page does not offer a view that is not built yet. Each view has its own address, so a view can be added, replaced, or dropped without touching the others, and the view on screen survives a reload. The links keep the query string, so `?record=` carries from one view to the next.
+A story's page shows the story's title and a link to each view that is built, in a row under the title. The view on screen is marked. A view is linked once it has a screen, so the page does not offer a view that is not built yet. Each view has its own address, so a view can be added, replaced, or dropped without touching the others, and the view on screen survives a reload. The links keep the query string, so `?record=` carries from one view to the next. An **Export** action sits beside the story title and downloads the story's export document as JSON.
 
 The selected record is part of the address, as `?record={record_id}`. It survives a reload, and it carries from one view to the next: an Entity selected on the graph is still selected when the writer opens the entities view. A view that does not show the selected record ignores it.
 
@@ -111,13 +112,26 @@ A Narrative Unit is edited in the detail panel as structure. The form edits the 
 
 Creating a unit, moving it, and deleting it are each one commit. A create is the new unit plus an update of the parent list that names it. A move updates the list it leaves and the list it joins. A delete takes it out of its parent list and deletes it. A unit that still has units inside it is refused, because those units would be left in no list.
 
+## History
+
+Built. The history lists the story's commits. It answers:
+
+- What changed in this story, when, and from where (a hand edit, an import, or a revert)?
+- What did one commit change, field by field?
+- Can this commit be undone, and if not, what is in the way?
+
+Commits are listed newest first. Each shows its time, its source, and one line per change, such as "Created Entity Mara". A record that still exists is a link that opens the detail panel. A change can be expanded to show the fields it changed, before and after. A commit that a later revert undid is marked.
+
+**Revert** asks for confirmation first. On success, the story and the history are loaded again. A refusal shows its referring records as links. A conflict lists the rows in the way with their current fields. There is no "anyway" option, because the revert does not force the story back. Busy shows **Retry**.
+
+Grouping an agent's commits by turn, and reverting a whole turn, arrive with the arc-planning agent. Until then the view lists every commit.
+
 ## Screens that are planned
 
 These are required by other docs, and none is built. Each gets a section or a doc here before it is built, and nothing about its layout is decided yet. [build-sequence.md](build-sequence.md) places each one.
 
 | Screen | Required by | Built with |
 | --- | --- | --- |
-| The history, with what each commit changed and a revert | [architecture/persistence.md](architecture/persistence.md), and [architecture/agents.md](architecture/agents.md), where it is the writer's review of what an agent's turn did | Editing. The arc-planning agent adds the turn. |
 | Model configs and the API key | [architecture/model-configuration.md](architecture/model-configuration.md) | The arc-planning agent |
 | The chat panel, on the story's latest conversation with an action that starts a new one, and the turn's status | [architecture/application.md](architecture/application.md), and [architecture/agents.md](architecture/agents.md) for which conversation is shown | The arc-planning agent |
 | The call list | [architecture/llm-debug-logging.md](architecture/llm-debug-logging.md) | The arc-planning agent |
@@ -133,8 +147,8 @@ A view answers its own questions. These are the tasks that take more than one vi
 | Decide where a new Event belongs. | The timeline, with the Entities the Event would involve highlighted, and the detail panel for the Events around the place being considered. |
 | Find out why something is true of a character at a point in the story. | The entities view for the Property, then the Event that caused it on the timeline. |
 | Find what is thin or disconnected. | The graph. |
-
-Building a bible by hand and reviewing what an agent's turn changed are added to this table when editing and the history view are built.
+| Build a bible by hand. | The records view and the detail panel, for creating and editing every kind of record. The timeline, the entities view, and the graph show the result. |
+| Review what changed. | The history, for each commit and the fields it changed. A record that still exists opens in the detail panel. |
 
 ## Sample stories
 

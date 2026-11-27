@@ -3,6 +3,7 @@ import { Link, Outlet, RouterProvider, createBrowserRouter } from 'react-router'
 
 import { EntitiesView } from './entities/EntitiesView'
 import { GraphView } from './graph/GraphView'
+import { HistoryView } from './history/HistoryView'
 import { RecordsView } from './pages/RecordsView'
 import { StoryListPage } from './pages/StoryListPage'
 import { OpenRecords, StoryLayout } from './pages/StoryLayout'
@@ -22,6 +23,7 @@ const router = createBrowserRouter([
           { path: 'timeline', element: <TimelineView /> },
           { path: 'entities', element: <EntitiesView /> },
           { path: 'graph', element: <GraphView /> },
+          { path: 'history', element: <HistoryView /> },
         ],
       },
       { path: '*', element: <NoSuchPage /> },

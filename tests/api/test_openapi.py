@@ -16,6 +16,8 @@ def test_openapi_lists_the_statuses_each_path_returns(client: TestClient) -> Non
         ("GET", "/api/stories"): ["200", "503"],
         ("POST", "/api/stories"): ["201", "503"],
         ("GET", "/api/stories/{story_id}"): ["200", "404", "503"],
+        ("GET", "/api/stories/{story_id}/history"): ["200", "404", "503"],
+        ("GET", "/api/stories/{story_id}/export"): ["200", "404", "503"],
         ("GET", "/api/stories/{story_id}/event-times"): ["200", "404", "503"],
         ("GET", "/api/stories/{story_id}/in-force"): ["200", "400", "404", "503"],
         ("GET", "/api/stories/{story_id}/in-force-stretches"): [
@@ -27,6 +29,14 @@ def test_openapi_lists_the_statuses_each_path_returns(client: TestClient) -> Non
         ("GET", "/api/stories/{story_id}/statement-times"): ["200", "404", "503"],
         ("DELETE", "/api/stories/{story_id}"): ["204", "404", "503"],
         ("POST", "/api/stories/{story_id}/commits"): [
+            "200",
+            "400",
+            "404",
+            "409",
+            "422",
+            "503",
+        ],
+        ("POST", "/api/stories/{story_id}/revert"): [
             "200",
             "400",
             "404",
@@ -51,6 +61,8 @@ def test_a_story_response_requires_every_field_the_service_sends(
     schemas = client.get("/api/openapi.json").json()["components"]["schemas"]
     for name in (
         "StoryView",
+        "CommitView",
+        "ChangeView",
         "EntityView",
         "PropertyView",
         "AssertionView",

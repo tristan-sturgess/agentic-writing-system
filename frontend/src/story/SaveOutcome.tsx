@@ -4,6 +4,7 @@ import { Alert, Button, Group, Stack, Text } from '@mantine/core'
 
 import type { ConflictResponse, ConflictRowView, Refusal } from '../api/client'
 import { fieldLabel } from './fieldLabels'
+import { formatFieldValue } from './formatFieldValue'
 import { labelOf, type RecordIndex } from './records'
 import { RecordLink, type SelectRecord } from './parts'
 import { conflictRowIsGone, conflictRowLabel, problemMessage } from './writes'
@@ -165,18 +166,4 @@ function FieldList({
       ))}
     </Stack>
   )
-}
-
-function formatFieldValue(value: unknown, index: RecordIndex): string {
-  if (value == null) return 'none'
-  if (typeof value === 'string') {
-    if (value === '') return 'empty'
-    return index.has(value) ? labelOf(index, value) : value
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
-  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
-    if (value.length === 0) return 'none'
-    return value.map((item) => (index.has(item) ? labelOf(index, item) : item)).join(', ')
-  }
-  return JSON.stringify(value)
 }

@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Self, cast
+from typing import Any, Literal, Self, cast
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_core import PydanticCustomError
 
 from agentic_writing_system.stores.story_store import (
+    CommitRecord,
     Conflict,
     ConflictReason,
     ConflictRow,
     RecordRow,
+    SourceKind,
     StoredStory,
     StoryRow,
 )
@@ -142,6 +144,14 @@ def story_summary(row: StoryRow) -> StorySummary:
     )
 
 
+class RevertRequest(BaseModel):
+    """The commits to undo. An empty list is a schema error."""
+
+    model_config = _FORBID
+
+    commit_ids: list[str] = Field(min_length=1)
+
+
 class CommitRequest(BaseModel):
     model_config = _FORBID
 
@@ -227,6 +237,37 @@ def conflict_row_view(row: ConflictRow) -> ConflictRowView:
 
 def conflict_response(conflict: Conflict) -> ConflictResponse:
     return ConflictResponse(rows=[conflict_row_view(r) for r in conflict.rows])
+
+
+class ChangeView(BaseModel):
+    """One change in a commit record. A create has no before; a delete has no after."""
+
+    model_config = _SENT_WHOLE
+
+    record_id: str | None
+    kind: str
+    op: Literal["create", "update", "delete"]
+    before: dict[str, Any] | None
+    after: dict[str, Any] | None
+
+
+class CommitView(BaseModel):
+    """A commit record without `user_id` and `story_id`."""
+
+    model_config = _SENT_WHOLE
+
+    commit_id: str
+    committed_at: datetime
+    source: SourceKind
+    thread_id: str | None
+    run_id: str | None
+    tool_call_id: str | None
+    reverts: list[str]
+    changes: list[ChangeView]
+
+
+def commit_view(record: CommitRecord) -> CommitView:
+    return CommitView.model_validate(record.model_dump(exclude={"user_id", "story_id"}))
 
 
 def story_view(stored: StoredStory) -> StoryView:

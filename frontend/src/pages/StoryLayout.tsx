@@ -27,7 +27,7 @@ import {
   type BlockerFunction,
 } from 'react-router'
 
-import { ApiError, describeFailure, getStory } from '../api/client'
+import { ApiError, describeFailure, getExport, getStory } from '../api/client'
 import { CreatePanel, type CreateRequest } from '../story/CreatePanel'
 import { DetailPanel } from '../story/DetailPanel'
 import { indexRecords } from '../story/records'
@@ -36,11 +36,22 @@ import type { StoryOutlet } from './storyContext'
 
 // A view is added here when its screen exists. This page does not link to a
 // view that has no screen.
+/** A download name: the title when the story has one, otherwise its id. */
+function exportFilename(title: string, storyId: string): string {
+  const cleaned = title
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return `${cleaned || storyId}.json`
+}
+
 const VIEWS = [
   { path: 'records', label: 'Records' },
   { path: 'timeline', label: 'Timeline' },
   { path: 'entities', label: 'Entities' },
   { path: 'graph', label: 'Graph' },
+  { path: 'history', label: 'History' },
 ] as const
 
 type Pending =
@@ -63,6 +74,11 @@ export function StoryLayout() {
   const load = useCallback(() => getStory(storyId), [storyId])
   const [story, reloadStory] = useReloadableLoad(load)
   const [reloadError, setReloadError] = useState<{ id: string; error: Error } | null>(null)
+  const [exportState, setExportState] = useState<{
+    storyId: string
+    pending: boolean
+    error: Error | null
+  } | null>(null)
   const [createState, setCreateState] = useState<{
     storyId: string
     request: CreateRequest
@@ -218,6 +234,29 @@ export function StoryLayout() {
   const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null)
 
   const loaded = story.status === 'loaded' ? story.data : null
+  const exporting = exportState?.storyId === storyId && exportState.pending
+  const exportError = exportState?.storyId === storyId ? exportState.error : null
+  const downloadExport = useCallback(async () => {
+    if (!loaded) return
+    const title = loaded.title
+    setExportState({ storyId, pending: true, error: null })
+    try {
+      const document = await getExport(storyId)
+      const blob = new Blob([`${JSON.stringify(document, null, 2)}\n`], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const link = window.document.createElement('a')
+      link.href = url
+      link.download = exportFilename(title, storyId)
+      link.click()
+      URL.revokeObjectURL(url)
+      setExportState({ storyId, pending: false, error: null })
+    } catch (reason) {
+      const error = reason instanceof Error ? reason : new Error(String(reason))
+      setExportState({ storyId, pending: false, error })
+    }
+  }, [loaded, storyId])
   const index = loaded ? indexRecords(loaded) : null
   const outlet = loaded ? (
     <Outlet
@@ -289,7 +328,22 @@ export function StoryLayout() {
       )}
       {loaded && index && (
         <>
-          <Title order={2}>{loaded.title || 'Untitled story'}</Title>
+          <Group justify="space-between" align="center" wrap="nowrap">
+            <Title order={2}>{loaded.title || 'Untitled story'}</Title>
+            <Button
+              size="sm"
+              variant="default"
+              loading={exporting}
+              onClick={() => void downloadExport()}
+            >
+              Export
+            </Button>
+          </Group>
+          {exportError && (
+            <Alert color="red" title="The story could not be exported">
+              {describeFailure(exportError)}
+            </Alert>
+          )}
           {reloadFailure && (
             <Alert color="red" title="The story could not be loaded again">
               {describeFailure(reloadFailure)}
