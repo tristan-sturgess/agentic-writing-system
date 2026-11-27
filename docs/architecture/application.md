@@ -47,9 +47,9 @@ A busy error that outlives the store's retries is `503`, and the frontend may re
 
 The `400` body is `{ "detail": [...] }`, one entry per rejected value: where it is in the body (`loc`), a message (`msg`), and an error type (`type`). One mistake produces one entry. The `404` and `503` bodies are `{ "detail": "..." }`, one sentence. The OpenAPI document lists, for each path, the statuses that path returns and no others.
 
-### Slices 1 and 2
+### Stories
 
-The first endpoints. Slice 1 builds the story endpoints, the commit, and import; slice 2 adds the Event times, the statement times, the in-force view, the in-force stretches, history, revert, and export, and the frontend that calls them. [build-sequence.md](../build-sequence.md) places each one. In these slices every commit is a hand edit, an import, or a revert.
+The first endpoints. The story endpoints, the commit, import, the Event times, the statement times, the in-force view, and the in-force stretches are built, with the frontend that calls them. History, revert, and export are planned, and [build-sequence.md](../build-sequence.md) places them. Until the agent exists, every commit is a hand edit, an import, or a revert.
 
 | Method and path | What it does |
 | --- | --- |
@@ -86,7 +86,7 @@ A Property is in `properties` and carries its `entity_id`. It is not nested unde
 
 #### The Event times
 
-Settled item 43 puts the resolving of story time in the service. The Story Bible layer computes it from one `load`, by the rules in [story-bible.md](../story-bible.md), and `GET /stories/{story_id}/event-times` returns it. The timeline in [ui/timeline.md](../ui/timeline.md) draws from it, and the slice 3 read tool that tells an agent when Events happen returns the same result. The frontend does not resolve a time point itself.
+Settled item 43 puts the resolving of story time in the service. The Story Bible layer computes it from one `load`, by the rules in [story-bible.md](../story-bible.md), and `GET /stories/{story_id}/event-times` returns it. The timeline in [ui/timeline.md](../ui/timeline.md) draws from it, and the agent's read tool that tells it when Events happen returns the same result. The frontend does not resolve a time point itself.
 
 The body is `{ "events": [...] }`, one entry for each Event, in the order the story document lists them. An entry has the Event's `id` and its `spans`, one for each span in the Event's `when` list, in the stored order. An Event with an empty `when` has an empty `spans`.
 
@@ -113,7 +113,7 @@ The result is computed on each request and is not stored. It has no revision. Th
 
 #### Statement times
 
-The same resolving covers a Property or an Assertion. `GET /stories/{story_id}/statement-times` returns it, from one `load`. The entities view in [ui/entities.md](../ui/entities.md) draws each span from it. A slice 3 read that needs a statement's time returns the same result. The frontend does not resolve a time point itself.
+The same resolving covers a Property or an Assertion. `GET /stories/{story_id}/statement-times` returns it, from one `load`. The entities view in [ui/entities.md](../ui/entities.md) draws each span from it. An agent's read that needs a statement's time returns the same result. The frontend does not resolve a time point itself.
 
 The body is `{ "properties": [...], "assertions": [...] }`. Each list is in the story document's order. An entry has the record's `id` and its `spans`, one for each span in its `when`, in the stored order. An empty `when` has an empty `spans`.
 
@@ -123,7 +123,7 @@ The result is computed on each request and is not stored. An unknown story is `4
 
 #### The in-force view
 
-[story-bible.md](../story-bible.md) owns which Properties and Assertions are in force at a query point. The service computes that reading from one `load`, by those rules and by the resolving above, and `GET /stories/{story_id}/in-force` returns it. The entities view lists the part that belongs to the Entity on screen. The slice 3 read tool that asks what holds at a time returns the same result. The frontend does not decide what is in force.
+[story-bible.md](../story-bible.md) owns which Properties and Assertions are in force at a query point. The service computes that reading from one `load`, by those rules and by the resolving above, and `GET /stories/{story_id}/in-force` returns it. The entities view lists the part that belongs to the Entity on screen. The agent's read tool that asks what holds at a time returns the same result. The frontend does not decide what is in force.
 
 The query point is one of these, and not both:
 
@@ -177,9 +177,9 @@ The `422` body has a message and a list of problems. Each problem has a code, a 
 
 The import does not use refs. Its ids come from the file.
 
-### Slice 3
+### Conversations, turns, configs, the key, and calls
 
-The arc chat is the first endpoint that streams and the first that has to carry a stop to a running turn. Slice 3 adds these and the stores behind them.
+The arc chat is the first endpoint that streams and the first that has to carry a stop to a running turn. These endpoints and the stores behind them are planned. They are built with the arc-planning agent.
 
 | Method and path | What it does |
 | --- | --- |
@@ -204,7 +204,9 @@ The arc chat is the first endpoint that streams and the first that has to carry 
 
 The heartbeat is not an endpoint. It is a routine in [Background routines](#background-routines), and `interrupted` on a turn or a call is the API reading what it wrote.
 
-### Slice 4
+### Fixtures and runs
+
+These endpoints are planned. They are built with the evaluations.
 
 | Method and path | What it does |
 | --- | --- |
@@ -307,7 +309,7 @@ The routines run as tasks on the service's event loop, locally and hosted. There
 
 A task dies with its process. The row says so: the turn or run stays `running` in the store and is read as `interrupted`. The story is consistent because every change was a commit, and the agents doc's thread rules mean the next prompt on that conversation is valid once the stale turn is no longer counted as running. On shutdown the service sets `stop_requested_at` on its own running turns and gives them a short grace to reach a boundary; whatever is still running when the process exits is interrupted, and nothing is lost that a commit had not already kept.
 
-A separate worker, with a queue such as Celery and the stream served from the database, was considered in item 41 and set aside. Nothing the early slices run is heavy, and the robustness a worker buys is not what they need. The condition for revisiting it is question 29: when a workflow must resume after a restart, a durable task owner is worth having, and the buffer moves out of process with it. The turn row is the row that resume would be built on.
+A separate worker, with a queue such as Celery and the stream served from the database, was considered in item 41 and set aside. Nothing the proof of concept runs is heavy, and the robustness a worker buys is not what it needs. The condition for revisiting it is question 29: when a workflow must resume after a restart, a durable task owner is worth having, and the buffer moves out of process with it. The turn row is the row that resume would be built on.
 
 ## The frontend
 
@@ -332,4 +334,4 @@ The frontend does own rendering: the views in [ui.md](../ui.md), the structured 
 
 ## What stays open
 
-Question 22, how each screen in [ui.md](../ui.md) is drawn, is closed in slice 2. Question 33, the hosted authentication mechanism, is an adapter behind the edge described above and is closed when hosting is built. Question 24, how many conversations the workspace lists, is a frontend choice over `GET /stories/{story_id}/conversations`. Question 29, a workflow that survives a restart, is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting.
+Question 33, the hosted authentication mechanism, is an adapter behind the edge described above and is closed when hosting is built. Question 24, how many conversations the workspace lists, is a frontend choice over `GET /stories/{story_id}/conversations`. Question 29, a workflow that survives a restart, is the condition for a worker and for an out-of-process stream buffer; this doc revises with the persistence doc when that is needed. Fanning the stream across replicas waits with hosting.

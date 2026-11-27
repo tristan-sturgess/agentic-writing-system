@@ -1,6 +1,6 @@
 # Story Bible
 
-This is the conceptual model slice 1 implements. It says what a story stores, how the records point at each other, and how a writer's edit differs from an agent's. Storage, ownership, and concurrent writes are in the persistence doc. How an agent is allowed to call tools is in the agents doc.
+This is the conceptual model the build implements. It says what a story stores, how the records point at each other, and how a writer's edit differs from an agent's. Storage, ownership, and concurrent writes are in the persistence doc. How an agent is allowed to call tools is in the agents doc.
 
 The bible is a partial account of a fictional world and of the narrative told about it. Missing information is unspecified. It is a record the writer and the agents can both read and change. It is not a simulation that has to explain every change with an effect.
 
@@ -60,7 +60,7 @@ The statement is natural language. It does not use a fixed vocabulary or a subje
 
 A short free-form statement about a relationship. The relationship can be among Entities, Events, and Arcs. "Mara distrusts John." "The bedroom connects to the hallway." "The letter follows the arrival, and it is what changes Mara's mind." "Mara's leaving is her journey from distrust toward trust."
 
-The sentence carries the meaning. It does not need a predicate slug, and it does not have to start with one participant and end with another. The id lists are what make the participants explicit. An Assertion does not connect Properties or other Assertions. Slice 1 does not propagate a change from one statement to another, and it does not read an Assertion as a sort key for story time. Story time comes from the spans on an Event.
+The sentence carries the meaning. It does not need a predicate slug, and it does not have to start with one participant and end with another. The id lists are what make the participants explicit. An Assertion does not connect Properties or other Assertions. The model does not propagate a change from one statement to another, and it does not read an Assertion as a sort key for story time. Story time comes from the spans on an Event.
 
 | Field | Required | Role |
 | --- | --- | --- |
@@ -102,13 +102,13 @@ The structure is a tree, read from the top. The story's `unit_ids` lists the act
 | `notes` | no | Planning notes. |
 | `child_ids` | no | The Narrative Units inside this one, in reading order. |
 | `subject_ids` | no | What this unit depicts. A set of Entity, Event, and Arc ids. |
-| `prose` | no | The text, when the prose slice exists. Empty until then. |
+| `prose` | no | The text, once a prose workflow exists. Empty until then. |
 
 `subject_ids` is unordered. Duplicates are refused. A scene that presents what happens usually names Events, Arcs, or both. A unit that only describes a character names that Entity and may name nothing else. An act whose chapters do the depicting may leave the set empty. The same Event, Arc, or Entity may appear in more than one unit. Order inside the set is not story time and not reading order.
 
 `child_ids` is the reading order of the units it contains. A Narrative Unit appears in exactly one list: the story's `unit_ids`, or one unit's `child_ids`. A list cannot contain the same id twice. A unit cannot contain itself, directly or further down the tree. A save that would break either rule is refused.
 
-Version 2 stored a scene blueprint (purpose, point of view, stakes, stance, outline) beside the prose, and stored each scene's position as a number. Those generation artifacts are part of the prose workflow. They are not fields on the Narrative Unit in this model. Slice 1 does not enforce "one unit per event."
+Version 2 stored a scene blueprint (purpose, point of view, stakes, stance, outline) beside the prose, and stored each scene's position as a number. Those generation artifacts are part of the prose workflow. They are not fields on the Narrative Unit in this model. The model does not enforce "one unit per event."
 
 ### Arc
 
@@ -190,15 +190,15 @@ This is one rule for every reader of story time: the in-force view below, the ti
 
 ### What is in force
 
-This reading is for Properties and Assertions. It is the reading the first in-force view uses. Slice 1 stores the spans and builds no view; the view is built in slice 2, with the read-only in-force view on screen, and the slice 3 read tool uses the same code. A stricter overlap rule can replace the view later. It must not add a new record type or a new field beside `when`. That replacement is still open. See [open-questions.md](open-questions.md).
+This reading is for Properties and Assertions. It is the reading the in-force view uses. The service computes that view, the entities view shows it read-only, and the agent's read tool uses the same code. A stricter overlap rule can replace the view later. It must not add a new record type or a new field beside `when`. That replacement is still open. See [open-questions.md](open-questions.md).
 
 - A statement whose `when` is empty is included at every query point.
 - A statement is in force at a query point when any `range` covers that point: the point is at or after `start` (or `start` is absent) and before `end` (or `end` is absent). An absent `end` on a statement means the claim still applies after it starts. Ranges do not fill the gaps between them.
 - An `at` span records an observation at that point. It does not put the statement in force at that point or at any other point.
-- Spans on the same statement are stored as written. Slice 1 does not merge them, and an `at` that falls outside a `range` is allowed.
+- Spans on the same statement are stored as written. The model does not merge them, and an `at` that falls outside a `range` is allowed.
 - A time point that is a timestamp compares as that value. A time point that names an Event compares as the timestamp it resolves to, by the rules in [A time point that names an Event](#a-time-point-that-names-an-event). When it does not resolve, the comparison is unresolved. The view still includes the statement and marks the comparison unresolved, unless another bound of that same range resolves and places the query point outside the range. That bound decides the range: the range does not include the statement, and the unresolved bound is not marked.
 - An Assertion that names Events is a claim about them. It is not a substitute for their spans.
-- Two statements may contradict. Slice 1 saves both. Nothing in the model detects a contradiction between two sentences, and nothing blocks the writer or the agent over one.
+- Two statements may contradict. A save keeps both. Nothing in the model detects a contradiction between two sentences, and nothing blocks the writer or the agent over one.
 
 A Property or Assertion means what its `statement` says. The sentence does not change meaning as story time moves. An in-world change is a new record. The older record keeps its sentence, and its spans can be adjusted. `caused_by` is optional. No Event is required for every new statement. Nothing on the new record points at the old one. How one statement replaces another is open; see [open-questions.md](open-questions.md).
 
@@ -311,7 +311,7 @@ Every id field names a record in the same story.
 - Deleting any record that something else still names is refused. The refusal lists the referring records. The writer or the agent edits or deletes those first. List fields count: an Assertion's `entity_ids`, `event_ids`, and `arc_ids`, an Arc's `event_ids`, an Event's `entity_ids`, a Narrative Unit's `child_ids` and `subject_ids`, the story's `unit_ids`, and any Event id used as a time point.
 - Version 2 warned about dangling effect targets and saved anyway. Replay then skipped them. This model has no effect list to skip. A dangling id is refused for the writer and for the agent.
 
-## What the early slices show
+## What the screens show
 
 The records have to be editable as structured fields: Entities and their notes and Properties, Assertions, Events, Narrative Units, Arcs, and the story framing fields. Derived "in force" text is a view. The view is read-only.
 
@@ -320,9 +320,9 @@ Two pictures are part of the model, whatever widget draws them:
 - Events arranged in story time from the spans in `when`. A `range` is a stretch between the bounds that resolve. Each `at` is its own point, with nothing drawn between separate points. An Event whose spans do not resolve to a timestamp is shown without a derived order. Selecting an Event opens it for editing. A relationship between Events is an Assertion, edited with the other Assertions.
 - Arcs laid over those Events, so a thread shows the Events that belong to it.
 
-Version 2 drew a graph of typed edges between Events and offered connect actions for those edges. This model arranges Events from their spans and shows Arcs over them. The widget stays open. See [open-questions.md](open-questions.md).
+Version 2 drew a graph of typed edges between Events and offered connect actions for those edges. This model arranges Events from their spans and shows Arcs over them. The widget is the one [ui/timeline.md](ui/timeline.md) chooses.
 
-[ui.md](ui.md) lists the views that are built and what each must answer. The service resolves the spans to timestamps and computes the in-force view, and a view draws the result, so the slice 3 read tools and the screens read story time by one implementation of the rules above. That is settled item 43 in [open-questions.md](open-questions.md). Slice 2 builds them read-only before it adds editing, and it also draws a graph of every record and the references between them. That graph shows the id fields in [How the records connect](#how-the-records-connect). It is not version 2's graph of typed edges, and it adds no edge record to the model.
+[ui.md](ui.md) lists the views that are built and what each must answer. The service resolves the spans to timestamps and computes the in-force view, and a view draws the result, so the agent's read tools and the screens read story time by one implementation of the rules above. That is settled item 43 in [open-questions.md](open-questions.md). The views are built read-only, before editing, and one of them is a graph of every record and the references between them. That graph shows the id fields in [How the records connect](#how-the-records-connect). It is not version 2's graph of typed edges, and it adds no edge record to the model.
 
 ## Locations
 
@@ -341,8 +341,8 @@ Version 2's character identity fields (traits, appearance, background, voice), i
 These stay open on purpose. [open-questions.md](open-questions.md) is the list.
 
 - Whether a stricter overlap rule replaces the in-force view above.
-- Whether statements gain a marker for objective fact, belief, or plan. Slice 1 has no such marker. Adding one later must not block a writer's edit.
+- Whether statements gain a marker for objective fact, belief, or plan. The model has no such marker. Adding one later must not block a writer's edit.
 - Whether an Assertion's references need roles.
 - Whether Properties should ever link to other Properties, or whether a change should propagate on its own. They do not. `supersedes`, which named the statement a new one replaced, was removed. Question 28.
-- Whether a story-specific calendar is ever added as a new kind of time point. Slice 1 uses the ISO 8601 timestamp above.
+- Whether a story-specific calendar is ever added as a new kind of time point. The model uses the ISO 8601 timestamp above.
 - Whether an Event's time can be recorded more loosely: once at an unknown moment inside a window, or only as before or after another Event. Each would be a new kind of span. Question 44.

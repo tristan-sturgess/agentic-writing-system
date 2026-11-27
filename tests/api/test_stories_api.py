@@ -144,7 +144,7 @@ def test_create_app_refuses_non_local(settings: Settings) -> None:
 
 
 def test_validation_returns_400() -> None:
-    """No story endpoint validates a body in this slice; exercise the handler."""
+    """Exercise the validation handler on a probe endpoint of its own."""
 
     class _Body(BaseModel):
         model_config = ConfigDict(extra="forbid")

@@ -1,6 +1,6 @@
 # Timeline
 
-The timeline arranges a story's Events in story time. A highlight draws the Events of one Entity or one Arc. It draws both of the pictures [story-bible.md](../story-bible.md) requires: Events in story time, and Arcs laid over them. Steps 3 to 5 of slice 2 in [build-sequence.md](../build-sequence.md) build it read-only, and step 11 adds editing. [ui.md](../ui.md) says what it shares with the other views.
+The timeline arranges a story's Events in story time. A highlight draws the Events of one Entity or one Arc. It draws both of the pictures [story-bible.md](../story-bible.md) requires: Events in story time, and Arcs laid over them. It is built read-only, and editing from it is planned. [ui.md](../ui.md) says what it shares with the other views.
 
 Story time comes from the spans in each Event's `when`. The Story Bible doc owns what a span means and how a time point that names an Event resolves to a timestamp. The service does the resolving, as settled item 43 in [open-questions.md](../open-questions.md) says, and this view draws what the service returns. This doc says how. It does not restate the rules, and it does not add to them.
 
@@ -17,7 +17,7 @@ Story time comes from the spans in each Event's `when`. The Story Bible doc owns
 
 Questions 1 to 3 are the picture. Questions 4 and 5 say what the picture is about: whose Events these are, and which threads they make. Questions 6 and 7 keep it honest: a time that is derived is not shown as if it were written, and an Event with no known time is not given a position it does not have. Question 8 is what the picture is for. The view answers it by making a stretch between two moments something the writer can select and read, by showing who is free in that stretch, and by putting each Event's description one click away.
 
-Question 8 is asked by an agent as well as by the writer. An agent does not use this screen. It reads the same resolved times from the service through a read tool in slice 3, which is why item 43 puts the resolving there.
+Question 8 is asked by an agent as well as by the writer. An agent does not use this screen. Its read tool, when the agent is built, returns the same resolved times from the service, which is why item 43 puts the resolving there.
 
 ## What an Event's time can be
 
@@ -96,7 +96,7 @@ These Events are selectable like any other, and they take part in the highlight 
 
 ## What the timeline does not do
 
-- It does not edit. Step 11 adds that: selecting an Event opens the editor, and a new Event can be started from a selected moment or stretch with that time filled in. Step 12 adds the Arc editor.
+- It does not edit. Editing is planned: selecting an Event opens the editor, and a new Event can be started from a selected moment or stretch with that time filled in. The Arc editor is planned with it.
 - It does not show Properties or Assertions in time. That is the entities view.
 - It does not show reading order. Narrative Units present Events in an order of their own, and that order is not story time.
 - It does not read an Assertion as an order. "The letter follows the arrival" is a claim the detail panel shows. It does not move either Event.
@@ -105,7 +105,7 @@ These Events are selectable like any other, and they take part in the highlight 
 
 ## The sample
 
-Step 3 adds a sample story to `samples/` whose Events cover every row of the table above. It has:
+`samples/timeline_story.json` is a sample story whose Events cover every row of the table above. It has:
 
 - Moments written as a date and moments written as a date and time.
 - Two Events at the same moment.
@@ -125,20 +125,12 @@ The view is checked by answering the eight questions for that story from the scr
 
 ## How it is built
 
-The times come from the service. `GET /stories/{story_id}/event-times` in [architecture/application.md](../architecture/application.md) returns, for each span of each Event, the timestamp each point and bound resolves to, or the reason it does not. The view loads that with the story. Step 3 builds it, with its own tests, before any of this screen exists.
+The times come from the service. `GET /stories/{story_id}/event-times` in [architecture/application.md](../architecture/application.md) returns, for each span of each Event, the timestamp each point and bound resolves to, or the reason it does not. The view loads that with the story. The resolving has its own tests in the service.
 
 Arranging those times is the frontend's part: the moments, the stretches and their lengths, the lanes, the groups of Events with no place, and which Events belong to a highlight. That is logic that does not render. It is a function of the story and the resolved times, with Vitest tests, one per row of the table and one per group.
 
 The layout is rows and lanes, so it is drawn with a grid, plain SVG where a mark needs it, and Mantine for the rest. It adds no chart or timeline library. Such a library would be chosen for a proportional axis with zoom, and this view has neither. If the proportional mode is added, that is when a library is weighed.
 
-The steps:
-
-| Step | What it builds | Questions it answers |
-| --- | --- | --- |
-| 3 | The resolved times from the service, and the sample. | None on screen yet. |
-| 4 | The axis, the lanes, the Events with no place, the detail panel, and selecting an Event, a moment, or a stretch. | 1, 2, 3, 6, 7, and 8 without the Entities. |
-| 5 | The Entities in a moment or a stretch, and the highlight of one Entity or one Arc. | 4, 5, and the rest of 8. |
-
 ## What stays open
 
-- **Times the model cannot store.** Question 44. Later, and not part of these steps.
+- **Times the model cannot store.** Question 44. Later.

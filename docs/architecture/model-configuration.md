@@ -59,7 +59,7 @@ The registry starts with the arc-planning conversation and the evaluation judge:
 | `chat` | Arc-planning chat | Turns the user's description into arcs and the Story Bible records they need. | `orchestration` |
 | `judge` | Evaluation judge | Scores an evaluation run's arcs and Story Bible construction. | `judgment` |
 
-Add a registry entry, with a role as its default, before the UI exposes a selector for that node. Version 2's scene-writing nodes and intimacy nodes are not in this registry. When the prose slice adds model calls, those nodes are classified then. An imported version 2 config file keeps the four roles and a `chat` selection. Selections for nodes this registry does not have are dropped.
+Add a registry entry, with a role as its default, before the UI exposes a selector for that node. Version 2's scene-writing nodes and intimacy nodes are not in this registry. When the prose workflow adds model calls, those nodes are classified then. An imported version 2 config file keeps the four roles and a `chat` selection. Selections for nodes this registry does not have are dropped.
 
 ## Resolution
 
@@ -156,4 +156,4 @@ The prompt-assembly doc owns how the base prompt, Story Bible context, and conve
 
 The logging doc owns the logging middleware and the record. This doc's promise to that one: every model call goes through an agent whose middleware list has the prefix middleware before the logging middleware, so the request the logger sees is the request the provider gets.
 
-The persistence doc owns what sits behind the config store, locally and hosted, how a user's config document is addressed, and how that user's API key is stored. Prose nodes are added to the registry when that slice exists.
+The persistence doc owns what sits behind the config store, locally and hosted, how a user's config document is addressed, and how that user's API key is stored. Prose nodes are added to the registry when the prose workflow is built.

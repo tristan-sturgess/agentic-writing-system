@@ -73,7 +73,7 @@ The model is the user's saved selection for the node, unless the launch names a 
 
 The version string is declared beside the base prompt. It changes when the base prompt or the tool behavior changes. The hash makes a prompt change visible when the string was not bumped. A tool change that forgets the bump is not something the hash can see. The string is the label a comparison uses.
 
-`bible_before` is the document once the fixture's starting state is in place, and before the first message. `bible_after` is the document when the last invoke returns, including when the run then ends in error or is cancelled. A later edit to the live story does not change the copies. The story and the thread stay, so the result can be opened. They are ordinary rows. Whether the story list separates a run's story from stories the user started by hand waits with question 22 in [open-questions.md](../open-questions.md). The comparison reads the copies.
+`bible_before` is the document once the fixture's starting state is in place, and before the first message. `bible_after` is the document when the last invoke returns, including when the run then ends in error or is cancelled. A later edit to the live story does not change the copies. The story and the thread stay, so the result can be opened. They are ordinary rows. Whether the story list separates a run's story from stories the user started by hand is decided when the screen for runs is designed, item 22 in [open-questions.md](../open-questions.md). The comparison reads the copies.
 
 Status is `success` when every message was sent and each invoke returned, `error` when an invoke raises, and `cancelled` when the operator stops the run. A stop uses the arc chat's cancel, at a superstep boundary. Commits that landed stay in the story and in `bible_after`. A run left `running` because the process died is shown as interrupted under the same instance rule as a call record. The stored status stays `running`.
 
@@ -211,7 +211,7 @@ The cited model calls are where the prompt and the response are read, including 
 
 ## Where a run is stored
 
-Fixtures and runs are rows in the application database: `data/app.sqlite` locally, Postgres on Railway, in the place the persistence doc reserved. They are scoped by `user_id`. They are not part of a story, and they are not in a story export. The bible copies are the story document, the same JSON the story row holds. Slice 4 has no eval blob, and it does not use the bucket. Prompts stay in the call log.
+Fixtures and runs are rows in the application database: `data/app.sqlite` locally, Postgres on Railway, in the place the persistence doc reserved. They are scoped by `user_id`. They are not part of a story, and they are not in a story export. The bible copies are the story document, the same JSON the story row holds. An evaluation has no blob, and it does not use the bucket. Prompts stay in the call log.
 
 | Operation | Role |
 | --- | --- |
@@ -235,4 +235,4 @@ Evaluations do not run in CI.
 
 ## What stays open
 
-The judge rubric, the scale, and the suite are the ones in this doc. Whether the story list separates a run's story from stories the user started by hand stays with question 22 in [open-questions.md](../open-questions.md).
+The judge rubric, the scale, and the suite are the ones in this doc. Whether the story list separates a run's story from stories the user started by hand is decided when the screen for runs is designed, item 22 in [open-questions.md](../open-questions.md).

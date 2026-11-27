@@ -40,7 +40,7 @@ One turn does this:
 2. The agent reads what it needs and writes framing, Entities, Properties, Assertions, Events, and Arcs.
 3. Each write commits as it succeeds. The story on disk changes at that commit. The writer can inspect it and edit it during the run. When the turn ends, the history shows every commit it made, and the writer can revert the turn or any one commit in it. Another prompt on this conversation waits until the run has ended. A turn whose process died is not running: the application doc reports it as interrupted under the heartbeat rule, and it does not block the next prompt.
 
-Prose is out. The agent does not create Narrative Units, and it does not write scene text. It does not touch `unit_ids` or any unit's `child_ids`. The writer may build units by hand from slice 2; the agent leaves whatever is there alone until a prose workflow exists.
+Prose is out. The agent does not create Narrative Units, and it does not write scene text. It does not touch `unit_ids` or any unit's `child_ids`. The writer may build units by hand once editing is built; the agent leaves whatever is there alone until a prose workflow exists.
 
 Plot is the Events and the Arcs. The agent does not decide what happens by simulating a character's reaction, and it does not run an interpretation step that derives a rank or a signal. Version 2's plot loop was constrained by that chain: a desired later beat had to be justified by replaying character state forward. Here a later Event is just an Event the agent writes. Coherence is the writer's judgment and the agent's reading of the records. The tools check references. They do not check whether a beat is dramatically plausible, and they do not check whether two statements contradict. Both save, as the Story Bible doc says.
 
@@ -111,11 +111,11 @@ No run waits for the writer to approve a commit, including a run that uses this 
 
 Some later work needs an order the model must not skip. That workflow is a LangGraph graph. The edges fix the step order. Each node that calls a model is an agent from the shared builder, with its own registry entry and its own base prompt. The graph is an entry point of its own. The chat agent does not carry it as a tool it can reorder.
 
-The arc chat is not that graph. One tool loop is the right shape, because the user is in the loop and the next prompt is the revision. The prose slice is the first place a fixed order is expected. The build sequence holds the salvage for that slice: enforced steps, a model config per node, continuity from neighboring units, and saving each finished step. This doc does not design it.
+The arc chat is not that graph. One tool loop is the right shape, because the user is in the loop and the next prompt is the revision. The prose workflow is the first place a fixed order is expected. The build sequence holds the salvage for it: enforced steps, a model config per node, continuity from neighboring units, and saving each finished step. This doc does not design it.
 
 Version 2's scene-writing graph and its intimacy graph are not ported. The intimacy workflow depended on replay and signals, which the Story Bible dropped. A belief, if a story needs one, is a Property or an Assertion written with the tools above.
 
-## Later, and not this slice
+## Later, and not this workflow
 
 Exploring several candidate arc directions, and asking what a character would think, wait until this workflow exists. They are not tools on the arc chat, and the arc chat does not call them.
 

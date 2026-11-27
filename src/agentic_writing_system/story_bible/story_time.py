@@ -4,7 +4,7 @@ Pure functions over a ``StoryDocument``. Nothing here is stored. The rules are
 the ones in ``docs/story-bible.md`` ("A time point that names an Event").
 ``event_times`` and ``statement_times`` build the bodies
 ``docs/architecture/application.md`` specifies for the event-times and
-statement-times reads. The in-force view and the slice 3 read tools call
+statement-times reads. The in-force view and the agent's read tools call
 ``resolve_point`` rather than reading a span themselves.
 """
 
