@@ -1,13 +1,17 @@
 """Undo commits by applying their inverse to a copy of the story.
 
 A revert does not go through ``apply_writes``. A create write mints a new id,
-and undoing a delete has to put the original id back.
+and undoing a delete has to put the original id back. An update restores only
+the fields that commit changed, and a list of ids is merged into the list as
+it stands now.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from typing import Any
+
+from pydantic import BaseModel
 
 from agentic_writing_system.stores.story_store import (
     Change,
@@ -32,6 +36,7 @@ from agentic_writing_system.story_bible.document import (
 )
 from agentic_writing_system.story_bible.records import (
     DOCUMENT_LISTS,
+    FIELDS_MODELS,
     RECORD_MODELS,
     Record,
     RecordKind,
@@ -50,6 +55,20 @@ from agentic_writing_system.story_bible.writes import (
 )
 
 type _Touch = Callable[[str | None], None]
+
+# The id lists named in the persistence doc. An update of one is merged into
+# the list as it stands now. Any other field is restored only when it still
+# holds the value that commit wrote.
+_ID_LIST_FIELDS = frozenset(
+    {
+        "arc_ids",
+        "child_ids",
+        "entity_ids",
+        "event_ids",
+        "subject_ids",
+        "unit_ids",
+    }
+)
 
 
 def plan_revert(
@@ -214,7 +233,13 @@ def _invert_story(
     conflicts: dict[str | None, ConflictRow],
     touch: _Touch,
 ) -> StoryDocument:
-    if story_fields(doc) != (change.after or {}):
+    """Undo a change to the story row. Only the fields it changed are restored."""
+    restored = _restore_update(
+        story_fields(doc),
+        _image(StoryFields, change.before),
+        _image(StoryFields, change.after),
+    )
+    if restored is None:
         _add(
             conflicts,
             ConflictRow(
@@ -224,9 +249,9 @@ def _invert_story(
             ),
         )
         return doc
-    restored = StoryFields.model_validate(change.before or {})
+    framing = StoryFields.model_validate(restored)
     touch(None)
-    return doc.model_copy(update=restored.model_dump())
+    return doc.model_copy(update=framing.model_dump())
 
 
 def _invert_present(
@@ -237,7 +262,11 @@ def _invert_present(
     conflicts: dict[str | None, ConflictRow],
     touch: _Touch,
 ) -> StoryDocument:
-    """Undo a create or an update. The record must still match ``after``."""
+    """Undo a create or an update.
+
+    A create deletes the record, so the record must still hold the whole
+    after-image. An update restores the fields that commit changed.
+    """
     found = _find(doc, record_id)
     if found is None:
         stored_row = _stored_record(stored, record_id)
@@ -252,20 +281,171 @@ def _invert_present(
         return doc
     kind, record = found
     expected = _as_kind(change.kind)
-    if expected is None or kind != expected or not _same_fields(record, change.after):
-        _add(
-            conflicts,
-            ConflictRow(
-                record_id=record_id,
-                reason="revision_mismatch",
-                current=_current(stored, record_id, record, kind),
-            ),
-        )
+    if expected is None or kind != expected:
+        _conflict_here(conflicts, stored, record_id, record, kind)
+        return doc
+    if change.op == "create":
+        if not _same_fields(record, change.after):
+            _conflict_here(conflicts, stored, record_id, record, kind)
+            return doc
+        touch(record_id)
+        return _remove(doc, record_id)
+    restored = _restore_update(
+        record_fields(record),
+        _image(FIELDS_MODELS[kind], change.before),
+        _image(FIELDS_MODELS[kind], change.after),
+    )
+    if restored is None:
+        _conflict_here(conflicts, stored, record_id, record, kind)
         return doc
     touch(record_id)
-    if change.op == "create":
-        return _remove(doc, record_id)
-    return _replace(doc, kind, record_id, change.before or {})
+    return _replace(doc, kind, record_id, restored)
+
+
+def _conflict_here(
+    conflicts: dict[str | None, ConflictRow],
+    stored: StoredStory,
+    record_id: str,
+    record: Record,
+    kind: RecordKind,
+) -> None:
+    _add(
+        conflicts,
+        ConflictRow(
+            record_id=record_id,
+            reason="revision_mismatch",
+            current=_current(stored, record_id, record, kind),
+        ),
+    )
+
+
+def _image(
+    model: type[BaseModel], fields: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """The stored fields with their defaults filled in.
+
+    A row can be stored with fields left out, and the story row is ``{}`` until
+    its first change. A missing key is that field's default, so it is not
+    counted as a field the commit changed.
+    """
+    if fields is None:
+        return None
+    return model.model_validate(fields).model_dump(mode="json")
+
+
+def _restore_update(
+    current: dict[str, Any],
+    before: dict[str, Any] | None,
+    after: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """The fields after undoing one update, or None when the change is in the way.
+
+    A field the update did not change keeps its current value. A field it did
+    change must still hold the after value, and goes back to the before value.
+    A list of ids is merged instead of replaced.
+    """
+    if before is None or after is None:
+        return None
+    restored = dict(current)
+    for key in _changed_keys(before, after):
+        if key in _ID_LIST_FIELDS:
+            merged = _merge_id_list(before.get(key), after.get(key), current.get(key))
+            if merged is None:
+                return None
+            restored[key] = merged
+            continue
+        if current.get(key) != after.get(key):
+            return None
+        restored[key] = before.get(key)
+    return restored
+
+
+def _changed_keys(before: dict[str, Any], after: dict[str, Any]) -> list[str]:
+    """The fields whose before and after differ, in after's order."""
+    keys = list(dict.fromkeys([*after, *before]))
+    return [key for key in keys if before.get(key) != after.get(key)]
+
+
+def _merge_id_list(before: Any, after: Any, current: Any) -> list[str] | None:
+    """The list with one update undone, or None when that update is in the way.
+
+    An update that reordered the ids it kept must find the whole after list
+    still in place, and the before list comes back whole. An update that only
+    added and removed ids takes its additions out and puts its removals back,
+    leaving every other id where it is.
+    """
+    before_ids = _as_id_list(before)
+    after_ids = _as_id_list(after)
+    current_ids = _as_id_list(current)
+    if before_ids is None or after_ids is None or current_ids is None:
+        return None
+    if _reordered(before_ids, after_ids):
+        if current_ids != after_ids:
+            return None
+        return before_ids
+    before_set = set(before_ids)
+    after_set = set(after_ids)
+    added = {item for item in after_ids if item not in before_set}
+    removed = _in_order(before_ids, after_set)
+    current_set = set(current_ids)
+    if any(item not in current_set for item in added):
+        return None
+    if any(item in current_set for item in removed):
+        return None
+    merged = [item for item in current_ids if item not in added]
+    for item in removed:
+        merged = _insert_restored(merged, item, before_ids)
+    return merged
+
+
+def _reordered(before: list[str], after: list[str]) -> bool:
+    """Whether the ids in both lists changed order relative to each other."""
+    common = set(before) & set(after)
+    return [item for item in before if item in common] != [
+        item for item in after if item in common
+    ]
+
+
+def _in_order(before: list[str], skip: set[str]) -> list[str]:
+    """The ids of ``before`` that are not in ``skip``, once each, in that order."""
+    chosen: list[str] = []
+    seen: set[str] = set()
+    for item in before:
+        if item in skip or item in seen:
+            continue
+        seen.add(item)
+        chosen.append(item)
+    return chosen
+
+
+def _insert_restored(current: list[str], item: str, before: list[str]) -> list[str]:
+    """Put ``item`` back next to the nearest neighbor it had in ``before``.
+
+    It goes after the nearest earlier neighbor that is in the list now. When
+    none is, it goes before the nearest later neighbor. When neither is, it
+    goes at the start. The rest of the list keeps its order.
+    """
+    position = before.index(item)
+    present = set(current)
+    earlier = next(
+        (neighbor for neighbor in reversed(before[:position]) if neighbor in present),
+        None,
+    )
+    if earlier is not None:
+        at = current.index(earlier) + 1
+    else:
+        later = next(
+            (neighbor for neighbor in before[position + 1 :] if neighbor in present),
+            None,
+        )
+        at = 0 if later is None else current.index(later)
+    return [*current[:at], item, *current[at:]]
+
+
+def _as_id_list(value: Any) -> list[str] | None:
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        return None
+    return list(value)
 
 
 def _invert_delete(
