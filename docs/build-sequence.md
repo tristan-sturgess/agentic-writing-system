@@ -61,16 +61,20 @@ Editing on the screens slice 2 built, and the story endpoints that are left: his
 
 Selecting a record in any view opens the same detail panel. It is read-only now, and in this slice it becomes the editor, so a view does not get an editor of its own. The records view stays, as the screen where every field of every record can be reached.
 
-A hand edit is a commit. A failed save leaves the screen and the stored story in agreement, and the edit stays on the screen so the writer can retry or reload.
+A hand edit is a commit. A failed save writes nothing. The stored story stays as it was, and the unsaved edit stays in the panel so the writer can correct it, retry, or discard it.
 
-How the panel shows a save, a refusal, and a conflict, and how each new screen is drawn, is written into [ui.md](ui.md) or the view's doc as the first act of its step.
+A refusal has no override. The Story Bible rules hold for the writer as they do for the agent, and a save is refused only for structure, never for the quality of what was written, as [story-bible.md](story-bible.md) says.
 
-1. **Entities and Properties.** Create, edit, and delete as structured fields, in the detail panel. A refusal or a conflict is shown with the edit kept.
-2. **Events.** Create, edit, and delete. Selecting an Event on the timeline opens it for editing.
-3. **Arcs.** The Arc editor: create, edit, and delete, and the order of an Arc's Events. The timeline with that Arc highlighted is where the result is seen.
-4. **The other records.** Assertions, Narrative Units, and the story framing. A Narrative Unit is edited as structure: its place in the reading order, its children, and its subjects. Its prose stays empty, and this slice does not grow a prose editor.
-5. **History, revert, and export.** The history and revert endpoints, and the story's commit history newest first, with what each commit changed and a revert of one commit. The export endpoint, and an export action. In this slice every commit is a hand edit, an import, or a revert. Slice 4 adds the agent's commits to the same list, grouped by turn, and the turn-level revert.
-6. **Tweak.** No new features. The writer uses the screens by hand and fixes what gets in the way. A change to the model or a rule found here goes into the docs first, before any agent depends on it.
+How the panel shows a save, a refusal, and a conflict is in [ui.md](ui.md). How each new screen is drawn is written into [ui.md](ui.md) or the view's doc as the first act of its step.
+
+- **1a. The save path and Entities.** Posting a commit from the frontend and showing each of its outcomes, as [ui.md](ui.md) says. Entities created, edited, and deleted as structured fields, in the detail panel. A refusal or a conflict leaves the story unchanged and the unsaved edit in the panel.
+- **1b. Properties.** Created from their Entity's panel, edited, and deleted. The editor for a `when` list, which Events and Assertions reuse.
+- **2. Events.** Create, edit, and delete. Selecting an Event on the timeline opens it for editing.
+- **3. Arcs.** The Arc editor: create, edit, and delete, and the order of an Arc's Events. The timeline with that Arc highlighted is where the result is seen.
+- **4a. Assertions and the framing.** Create, edit, and delete Assertions, and edit the story framing.
+- **4b. Narrative Units.** A Narrative Unit is edited as structure: its place in the reading order, its children, and its subjects. Its prose stays empty, and this slice does not grow a prose editor.
+- **5. History, revert, and export.** The history and revert endpoints, and the story's commit history newest first, with what each commit changed and a revert of one commit. The export endpoint, and an export action. In this slice every commit is a hand edit, an import, or a revert. Slice 4 adds the agent's commits to the same list, grouped by turn, and the turn-level revert.
+- **6. Tweak.** No new features. The writer uses the screens by hand and fixes what gets in the way. A change to the model or a rule found here goes into the docs first, before any agent depends on it.
 
 "A little" is the bar. The screens make the model inspectable and hand-editable. They do not cover later workflows. The questions in a view's doc are where its design starts: a feature that serves none of them waits. A screen beyond the ones in [ui.md](ui.md) is added to that doc first.
 
